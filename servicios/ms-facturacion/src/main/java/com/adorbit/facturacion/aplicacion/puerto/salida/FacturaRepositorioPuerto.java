@@ -3,6 +3,7 @@ package com.adorbit.facturacion.aplicacion.puerto.salida;
 import com.adorbit.facturacion.dominio.Cobro;
 import com.adorbit.facturacion.dominio.EstadoFactura;
 import com.adorbit.facturacion.dominio.Factura;
+import com.adorbit.facturacion.dominio.NotaCredito;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,4 +34,16 @@ public interface FacturaRepositorioPuerto {
 
     /** Facturas por estado (indice GSI2). */
     Pagina<Factura> listarPorEstado(EstadoFactura estado, int page, int size);
+
+    /**
+     * Guarda en UNA transaccion: la nota de credito, la factura anulada (version + estado), la clave de
+     * idempotencia y el evento.
+     *
+     * @throws ClaveIdempotenciaDuplicadaException si la clave ya existia
+     * @throws ConflictoVersionException si la factura cambio antes
+     */
+    void guardarNotaCredito(Factura factura, NotaCredito nota, RegistroIdempotencia idempotencia, EventoSalida evento);
+
+    /** Registra en UNA transaccion un fallo de negocio de un comando: su clave de idempotencia y el evento. */
+    void guardarFallo(RegistroIdempotencia idempotencia, EventoSalida evento);
 }

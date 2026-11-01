@@ -13,6 +13,7 @@ import com.adorbit.facturacion.dominio.EstadoFactura;
 import com.adorbit.facturacion.dominio.Factura;
 import com.adorbit.facturacion.dominio.ItemFactura;
 import com.adorbit.facturacion.dominio.Moneda;
+import com.adorbit.facturacion.dominio.NotaCredito;
 import com.adorbit.facturacion.dominio.Totales;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -153,38 +154,11 @@ public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, Ide
         List<TransactWriteItem> operaciones = new ArrayList<>();
         operaciones.add(poner(filaIdempotencia(idemp)));
         operaciones.add(poner(filaCobro(f, cobro)));
-        long versionPrevia = f.version() - 1;
-        operaciones.add(TransactWriteItem.builder()
-                .update(Update.builder()
-                        .tableName(tabla)
-                        .key(Map.of("PK", s("FACT#" + f.id()), "SK", s("META")))
-                        .updateExpression("SET saldo = :saldo, estado = :estado, version = :nueva, GSI2PK = :g2")
-                        .conditionExpression("version = :previa")
-                        .expressionAttributeValues(Map.of(
-                                ":saldo", n(f.saldo().monto()),
-                                ":estado", s(f.estado().name().toLowerCase()),
-                                ":nueva", AttributeValue.fromN(Long.toString(f.version())),
-                                ":previa", AttributeValue.fromN(Long.toString(versionPrevia)),
-                                ":g2", s("ESTADO#" + f.estado().name().toLowerCase())))
-                        .build())
-                .build());
+        operaciones.add(actualizarCabecera(f));
         for (EventoSalida evento : eventos) {
             operaciones.add(poner(filaSalida(evento)));
         }
-        try {
-            cliente.transactWriteItems(r -> r.transactItems(operaciones));
-        } catch (TransactionCanceledException e) {
-            var razones = e.cancellationReasons();
-            if (!razones.isEmpty()
-                    && "ConditionalCheckFailed".equals(razones.get(0).code())) {
-                throw new ClaveIdempotenciaDuplicadaException(idemp.clave());
-            }
-            if (razones.size() > 2
-                    && "ConditionalCheckFailed".equals(razones.get(2).code())) {
-                throw new ConflictoVersionException("La factura fue modificada por otra operacion");
-            }
-            throw e;
-        }
+        ejecutarConConflictos(operaciones, idemp.clave());
     }
 
     @Override
@@ -224,7 +198,10 @@ public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, Ide
                 }
             });
             for (Map<String, AttributeValue> fila : r.items()) {
-                resultado.add(desdeCabecera(fila, List.of(), List.of()));
+                if (fila.containsKey("tipo")
+                        && "FACTURA".equals(fila.get("tipo").s())) {
+                    resultado.add(desdeCabecera(fila, List.of(), List.of()));
+                }
             }
             inicio = r.hasLastEvaluatedKey() ? r.lastEvaluatedKey() : null;
         } while (inicio != null && resultado.size() < MAXIMO_LISTADO);
@@ -235,6 +212,76 @@ public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, Ide
         int desde = Math.min(page * size, todas.size());
         int hasta = Math.min(desde + size, todas.size());
         return new Pagina<>(List.copyOf(todas.subList(desde, hasta)), page, size, todas.size());
+    }
+
+    @Override
+    public void guardarNotaCredito(Factura f, NotaCredito nota, RegistroIdempotencia idemp, EventoSalida evento) {
+        List<TransactWriteItem> operaciones = new ArrayList<>();
+        operaciones.add(poner(filaIdempotencia(idemp)));
+        operaciones.add(poner(filaNotaCredito(f, nota)));
+        operaciones.add(actualizarCabecera(f));
+        operaciones.add(poner(filaSalida(evento)));
+        ejecutarConConflictos(operaciones, idemp.clave());
+    }
+
+    @Override
+    public void guardarFallo(RegistroIdempotencia idemp, EventoSalida evento) {
+        List<TransactWriteItem> operaciones = new ArrayList<>();
+        operaciones.add(poner(filaIdempotencia(idemp)));
+        operaciones.add(poner(filaSalida(evento)));
+        ejecutarConConflictos(operaciones, idemp.clave());
+    }
+
+    private TransactWriteItem actualizarCabecera(Factura f) {
+        return TransactWriteItem.builder()
+                .update(Update.builder()
+                        .tableName(tabla)
+                        .key(Map.of("PK", s("FACT#" + f.id()), "SK", s("META")))
+                        .updateExpression("SET saldo = :saldo, estado = :estado, version = :nueva, GSI2PK = :g2")
+                        .conditionExpression("version = :previa")
+                        .expressionAttributeValues(Map.of(
+                                ":saldo", n(f.saldo().monto()),
+                                ":estado", s(f.estado().name().toLowerCase()),
+                                ":nueva", AttributeValue.fromN(Long.toString(f.version())),
+                                ":previa", AttributeValue.fromN(Long.toString(f.version() - 1)),
+                                ":g2", s("ESTADO#" + f.estado().name().toLowerCase())))
+                        .build())
+                .build();
+    }
+
+    /** Ejecuta la transaccion. Posicion 0 = idempotencia; posicion 2 = actualizacion de cabecera (si la hay). */
+    private void ejecutarConConflictos(List<TransactWriteItem> operaciones, String clave) {
+        try {
+            cliente.transactWriteItems(r -> r.transactItems(operaciones));
+        } catch (TransactionCanceledException e) {
+            var razones = e.cancellationReasons();
+            if (!razones.isEmpty()
+                    && "ConditionalCheckFailed".equals(razones.get(0).code())) {
+                throw new ClaveIdempotenciaDuplicadaException(clave);
+            }
+            if (razones.size() > 2
+                    && operaciones.get(2).update() != null
+                    && "ConditionalCheckFailed".equals(razones.get(2).code())) {
+                throw new ConflictoVersionException("La factura fue modificada por otra operacion");
+            }
+            throw e;
+        }
+    }
+
+    private Map<String, AttributeValue> filaNotaCredito(Factura f, NotaCredito nc) {
+        Map<String, AttributeValue> fila = new LinkedHashMap<>();
+        fila.put("PK", s("NC#" + nc.id()));
+        fila.put("SK", s("META"));
+        fila.put("tipo", s("NOTA_CREDITO"));
+        fila.put("factura_id", s(f.id().toString()));
+        fila.put("cliente_id", s(nc.clienteId().toString()));
+        fila.put("total", n(nc.total().monto()));
+        fila.put("moneda", s(f.moneda().name()));
+        fila.put("motivo", s(nc.motivo() == null ? "" : nc.motivo()));
+        fila.put("fecha", s(nc.fecha().toString()));
+        fila.put("GSI1PK", s("CLI#" + nc.clienteId()));
+        fila.put("GSI1SK", s(nc.fecha() + "#" + nc.id()));
+        return fila;
     }
 
     private Map<String, AttributeValue> filaCobro(Factura f, Cobro c) {

@@ -4,6 +4,7 @@ import com.adorbit.facturacion.aplicacion.puerto.entrada.ConsultarEstadoCasoDeUs
 import com.adorbit.facturacion.aplicacion.puerto.entrada.ConsultarFacturasCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.CotizarCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirFacturaCasoDeUso;
+import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirNotaCreditoCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.salida.FacturaRepositorioPuerto;
 import com.adorbit.facturacion.aplicacion.puerto.salida.IdempotenciaPuerto;
@@ -11,6 +12,7 @@ import com.adorbit.facturacion.aplicacion.puerto.salida.VerificarAlmacenamientoP
 import com.adorbit.facturacion.aplicacion.servicio.ServicioConsultarFacturas;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioCotizar;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioEmitirFactura;
+import com.adorbit.facturacion.aplicacion.servicio.ServicioEmitirNotaCredito;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioEstado;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioRegistrarCobro;
 import java.math.BigDecimal;
@@ -59,5 +61,11 @@ public class AplicacionConfiguracion {
     @Bean
     CotizarCasoDeUso cotizar(@Value("${adorbit.facturacion.negocio.tasa-impuesto}") BigDecimal tasaImpuesto) {
         return new ServicioCotizar(tasaImpuesto, UUID::randomUUID);
+    }
+
+    @Bean
+    EmitirNotaCreditoCasoDeUso emitirNotaCredito(
+            FacturaRepositorioPuerto facturas, IdempotenciaPuerto idempotencia, Clock reloj) {
+        return new ServicioEmitirNotaCredito(facturas, idempotencia, reloj, UUID::randomUUID);
     }
 }

@@ -68,6 +68,17 @@ class ServicioEmitirFacturaTest {
         }
 
         @Override
+        public void guardarNotaCredito(
+                Factura f, com.adorbit.facturacion.dominio.NotaCredito n, RegistroIdempotencia r, EventoSalida e) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void guardarFallo(RegistroIdempotencia r, EventoSalida e) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public Optional<RegistroIdempotencia> buscar(String clave) {
             return Optional.ofNullable(claves.get(clave));
         }

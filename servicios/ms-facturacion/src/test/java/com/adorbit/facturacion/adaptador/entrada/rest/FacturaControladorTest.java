@@ -41,7 +41,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
         properties = {
             "adorbit.facturacion.seguridad.jwks-uri=http://localhost:9/jwks",
             "adorbit.facturacion.seguridad.emisor=http://localhost:9/realms/adorbit",
-            "adorbit.facturacion.seguridad.audiencia=ms-facturacion"
+            "adorbit.facturacion.seguridad.audiencia=ms-facturacion",
+            "adorbit.facturacion.mensajeria.activa=false"
         })
 @AutoConfigureMockMvc
 class FacturaControladorTest {

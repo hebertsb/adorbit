@@ -9,6 +9,22 @@ spring:
     deserialization:
       fail-on-unknown-properties: true
 
+  rabbitmq:
+    host: ${ADORBIT_FACTURACION_RABBITMQ_HOST:localhost}
+    port: ${ADORBIT_FACTURACION_RABBITMQ_PUERTO:5672}
+    username: ${ADORBIT_FACTURACION_RABBITMQ_USUARIO:}
+    password: ${ADORBIT_FACTURACION_RABBITMQ_CLAVE:}
+    publisher-confirm-type: simple
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 5
+          initial-interval: ${ADORBIT_FACTURACION_REINTENTO_INICIAL:1s}
+          multiplier: 2
+          max-interval: 30s
+
 logging:
   structured:
     format:
@@ -25,6 +41,10 @@ adorbit:
     negocio:
       tasa-impuesto: ${ADORBIT_FACTURACION_TASA_IMPUESTO:0.13}
       dias-vencimiento: ${ADORBIT_FACTURACION_DIAS_VENCIMIENTO:30}
+    mensajeria:
+      activa: ${ADORBIT_FACTURACION_MENSAJERIA_ACTIVA:true}
+      cola-comandos: saga.facturacion
+      intervalo-relevo: ${ADORBIT_FACTURACION_INTERVALO_RELEVO:1s}
     dynamodb:
       region: ${ADORBIT_FACTURACION_DYNAMODB_REGION:us-east-1}
       tabla: ${ADORBIT_FACTURACION_DYNAMODB_TABLA:AdOrbitFacturacion}

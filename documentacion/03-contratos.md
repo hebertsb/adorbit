@@ -72,3 +72,18 @@ del servicio dueño (el gateway **no** tiene lógica de negocio).
 - Respuestas a la SAGA (`FacturaEmitida`, `CreditoReservado`, ...) llevan `saga_id` y se publican en
   `adorbit.eventos`; el orquestador correlaciona con `correlacion_id = saga_id`.
 - En `FacturacionFallida.motivo` y `CreditoRechazado.motivo` los valores válidos están en el esquema.
+
+## Topología RabbitMQ de ms-facturacion (la declara el propio servicio al arrancar)
+| Elemento | Nombre | Detalle |
+|---|---|---|
+| Exchange de eventos | `adorbit.eventos` | topic, durable. Clave = `tipo_evento` en minúsculas con puntos (`factura.emitida`, `nota.credito.emitida`, `facturacion.fallida`, `factura.pagada`) |
+| Exchange de comandos | `adorbit.saga` | topic, durable |
+| Cola de comandos | `saga.facturacion` | durable; bindings `emitir.factura` y `emitir.nota.credito` en `adorbit.saga` |
+| Cola de errores | `saga.facturacion.dlq` | vía exchange `adorbit.saga.dlx` (direct, clave `saga.facturacion`) |
+| Reintentos | 5 intentos | espera exponencial 1 s ×2 (máx. 30 s); luego a la DLQ. Mensaje ilegible o desconocido → DLQ sin reintentar |
+
+**Para A (orquestador):** publicar los comandos en `adorbit.saga` con la clave `emitir.factura` / `emitir.nota.credito`
+y el sobre estándar; la `clave_comando` es la clave de idempotencia. Si A declara estos mismos elementos con otros
+argumentos, RabbitMQ rechaza la declaración (`PRECONDITION_FAILED`): acordar que los declare solo uno.
+Un fallo de negocio al facturar (p. ej. `total` distinto del calculado) responde con `FacturacionFallida`, no con error.
+Una compensación (`EmitirNotaCredito`) sobre una factura inexistente o ya anulada no hace nada y no publica evento.
