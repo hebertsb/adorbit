@@ -20,10 +20,23 @@ describe('obtenerJson', () => {
     ).resolves.toEqual({ ok: true });
 
     const [url, opciones] = falso.mock.calls[0] as unknown as [URL, RequestInit];
-    expect(url.toString()).toBe('http://api/v1/x?estado=vencida&page=0');
+    expect(url.toString()).toBe('http://api/v1/x?estado=vencida&page=0&_u=cliente-1');
     const cabeceras = opciones.headers as Record<string, string>;
     expect(cabeceras.Authorization).toMatch(/^Bearer .+\..+\..+$/);
     expect(cabeceras['X-Correlation-Id']).toMatch(/^[0-9a-f-]{36}$/);
+  });
+
+  it('separa por usuario la cache offline: la URL lleva el cliente del token', async () => {
+    const falso = vi.fn(async () => respuestaJson({}));
+    vi.stubGlobal('fetch', falso);
+    fijarSesion({ clienteId: 'ana' });
+    await obtenerJson('http://api', '/v1/facturas');
+    fijarSesion({ clienteId: 'beto' });
+    await obtenerJson('http://api', '/v1/facturas');
+    const urls = falso.mock.calls.map((c) => String((c as unknown as [URL])[0]));
+    expect(urls[0]).toContain('_u=ana');
+    expect(urls[1]).toContain('_u=beto');
+    expect(urls[0]).not.toBe(urls[1]); // misma ruta, distinta entrada de cache
   });
 
   it('traduce el error de la API a ErrorApi', async () => {

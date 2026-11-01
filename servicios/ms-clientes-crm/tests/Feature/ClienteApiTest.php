@@ -129,6 +129,19 @@ class ClienteApiTest extends PruebaCrm
         $this->getJson("/api/v1/clientes/$id", $this->cabeceras())->assertOk()->assertJsonPath('estado', 'inactivo');
     }
 
+    public function test_no_se_puede_inactivar_por_put_con_contratos_vigentes(): void
+    {
+        $id = $this->crear()->json('id');
+        $this->postJson('/api/v1/contratos', [
+            'cliente_id' => $id, 'fecha_inicio' => '2026-11-01', 'fecha_fin' => '2027-11-01', 'monto' => '10000.00', 'moneda' => 'BOB',
+        ], $this->cabeceras() + ['Idempotency-Key' => $this->clave()])->assertCreated();
+
+        $this->putJson("/api/v1/clientes/$id", ['razon_social' => 'Agencia Sol SRL', 'nit' => '1020304050', 'version' => 1, 'estado' => 'inactivo'],
+            $this->cabeceras() + ['Idempotency-Key' => $this->clave()])
+            ->assertStatus(409)->assertJsonPath('codigo', 'cliente_con_contratos_vigentes');
+        $this->getJson("/api/v1/clientes/$id", $this->cabeceras())->assertJsonPath('estado', 'activo')->assertJsonPath('version', 1);
+    }
+
     public function test_contactos_crud(): void
     {
         $id = $this->crear()->json('id');

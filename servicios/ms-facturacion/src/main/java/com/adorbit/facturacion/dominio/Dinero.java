@@ -20,6 +20,17 @@ public record Dinero(BigDecimal monto, Moneda moneda) implements Comparable<Dine
         return new Dinero(BigDecimal.ZERO, moneda);
     }
 
+    /**
+     * Valida un monto que viene de AFUERA (REST o comando de la SAGA): maximo 2 decimales. El redondeo silencioso de
+     * {@code Dinero} es solo para resultados calculados (p. ej. impuestos), nunca para datos de entrada.
+     */
+    public static BigDecimal exigirCentavos(BigDecimal monto) {
+        if (monto == null || monto.stripTrailingZeros().scale() > 2) {
+            throw new ExcepcionDominio("monto_invalido", "Los montos admiten como maximo 2 decimales");
+        }
+        return monto;
+    }
+
     public static Dinero de(String monto, Moneda moneda) {
         return new Dinero(new BigDecimal(monto), moneda);
     }

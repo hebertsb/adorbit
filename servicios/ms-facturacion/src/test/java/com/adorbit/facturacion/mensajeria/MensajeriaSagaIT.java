@@ -238,6 +238,20 @@ class MensajeriaSagaIT {
     }
 
     @Test
+    void unMontoConTresDecimalesPublicaFacturacionFallidaEnVezDeColgarLaSaga() throws Exception {
+        String cola = "test.eventos." + UUID.randomUUID();
+        escucharEventos(cola);
+        UUID saga = UUID.randomUUID();
+        String carga = emitirFacturaJson(saga, "2260.00")
+                .replace("\"precio_unitario\":\"1000.00\"", "\"precio_unitario\":\"10.123\"");
+
+        enviarComando("EmitirFactura", carga);
+        JsonNode evento = esperar(cola, "FacturacionFallida", saga, 20_000);
+        assertThat(evento).as("la SAGA recibe la falla").isNotNull();
+        assertThat(evento.path("carga").path("motivo").asText()).isEqualTo("datos_invalidos");
+    }
+
+    @Test
     void notaDeCreditoCompensaYAnulaLaFactura() throws Exception {
         String cola = "test.eventos." + UUID.randomUUID();
         escucharEventos(cola);

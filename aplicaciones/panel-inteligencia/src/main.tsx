@@ -62,7 +62,10 @@ async function iniciar() {
     response_type: 'code',
     scope: 'openid profile',
     userStore: new WebStorageStateStore({ store: window.sessionStorage }),
-    automaticSilentRenew: false,
+    automaticSilentRenew: true, // renueva el token antes de que venza (refresh token)
+  });
+  administrador.events.addSilentRenewError(() => {
+    void administrador.removeUser().then(() => window.location.assign('/'));
   });
 
   if (window.location.pathname === '/autenticado') {

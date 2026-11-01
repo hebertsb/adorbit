@@ -118,6 +118,27 @@ class FacturaTest {
     }
 
     @Test
+    void unPagoParcialNoSacaALaFacturaDeVencida() {
+        Factura f = nueva(null);
+        f.marcarVencidaSiCorresponde(HOY.plusDays(31));
+        f.registrarCobro(UUID.randomUUID(), bob("100.00"), HOY.plusDays(31), null);
+        assertThat(f.estado()).isEqualTo(EstadoFactura.VENCIDA);
+        assertThat(f.saldo().monto()).isEqualByComparingTo("2725.57");
+
+        f.registrarCobro(UUID.randomUUID(), bob("2725.57"), HOY.plusDays(31), null);
+        assertThat(f.estado()).isEqualTo(EstadoFactura.PAGADA);
+    }
+
+    @Test
+    void losMontosDeEntradaNoAdmitenMasDeDosDecimales() {
+        assertThat(Dinero.exigirCentavos(new BigDecimal("10.50"))).isEqualByComparingTo("10.50");
+        assertThat(Dinero.exigirCentavos(new BigDecimal("1E+3"))).isEqualByComparingTo("1000");
+        assertThatThrownBy(() -> Dinero.exigirCentavos(new BigDecimal("10.123")))
+                .extracting("codigo")
+                .isEqualTo("monto_invalido");
+    }
+
+    @Test
     void noSeMezclanMonedas() {
         assertThatThrownBy(() -> bob("1.00").sumar(Dinero.de("1.00", Moneda.USD)))
                 .extracting("codigo")

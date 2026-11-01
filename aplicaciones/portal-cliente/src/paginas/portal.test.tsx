@@ -43,6 +43,16 @@ describe('portal del cliente', () => {
     expect(falso).not.toHaveBeenCalled();
   });
 
+  it('sin sesion se borra la cache de datos que el service worker guardo (equipo compartido)', async () => {
+    fijarSesion(null);
+    const borrar = vi.fn(async () => true);
+    vi.stubGlobal('caches', { delete: borrar });
+    simularApi({});
+    renderizarAplicacion('/');
+    await screen.findByRole('button', { name: 'Ingresar' });
+    expect(borrar).toHaveBeenCalledWith('api-datos');
+  });
+
   it('un usuario sin rol cliente ve «Sin acceso» y no se consulta nada', async () => {
     fijarSesion({ roles: ['ejecutivo'] });
     const { falso } = simularApi({});

@@ -24,8 +24,12 @@ portal de gestión).
 - Solo entra quien tiene el rol **`cliente`** y un claim **`cliente_id`** en el token. El `cliente_id` sale **solo del
   token**, nunca de la URL ni de un parámetro; los servicios vuelven a validar firma, audiencia y rol, y filtran por el
   `cliente_id` del token. Una factura o cliente ajeno responde 404.
-- **Sin conexión**: el service worker guarda las lecturas de las APIs propias (`NetworkFirst`, 24 h). Al **cerrar sesión**
-  o expirar se borra esa caché (equipos compartidos) y la de consultas en memoria.
+- **Sin conexión**: el service worker guarda las lecturas de las APIs propias (`NetworkFirst`, 24 h). Esa caché es por
+  **usuario**: cada petición lleva `_u=<cliente_id del token>` en la URL (los servicios lo ignoran), así dos usuarios del
+  mismo navegador nunca comparten una entrada. Además se **borra** al cerrar sesión, al expirar y siempre que el portal
+  arranca sin sesión (equipos compartidos), junto con la caché de consultas en memoria.
+- **Sesión**: el token se **renueva solo** antes de vencer (`automaticSilentRenew`, con refresh token); si la renovación
+  falla se cierra la sesión local. Keycloak debe entregar refresh token al cliente público `portal-cliente`.
 - Las respuestas se muestran como texto de React (sin `dangerouslySetInnerHTML`); el dinero viaja como texto decimal y se
   suma en centavos enteros (nunca `float`).
 - `nginx.conf` agrega cabeceras de seguridad; en el despliegue conviene sumar una CSP con el `connect-src` real.

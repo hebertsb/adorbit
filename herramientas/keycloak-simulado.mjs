@@ -8,7 +8,7 @@
 //
 // Flujos soportados:
 //   - client_credentials (servicios, p. ej. n8n):  POST /realms/adorbit/protocol/openid-connect/token
-//   - Authorization Code + PKCE (portales web):    GET  /realms/adorbit/protocol/openid-connect/auth  (pantalla de ingreso)
+//   - Authorization Code + PKCE (portales web), con refresh token rotativo (DURACION_S acorta el access token):    GET  /realms/adorbit/protocol/openid-connect/auth  (pantalla de ingreso)
 //   - Descubrimiento OIDC, JWKS y cierre de sesion, con CORS para los portales.
 //   - Atajo de desarrollo:                         GET  /emitir?roles=cliente&cliente_id=<uuid>
 //
@@ -27,13 +27,15 @@ const CLIENTES = JSON.parse(process.env.CLIENTES ?? '{"n8n":{"secret":"secreto-l
 const USUARIOS = JSON.parse(process.env.USUARIOS ?? '[]');
 const CLIENTES_PUBLICOS = (process.env.CLIENTES_PUBLICOS ?? 'portal-cliente,panel-inteligencia').split(',');
 const REDIRECCIONES = (process.env.REDIRECCIONES ?? 'http://localhost:5173,http://localhost:4173,http://localhost:5174,http://localhost:4174').split(',');
-const DURACION_S = 300;
+const DURACION_S = Number(process.env.DURACION_S ?? 300); // duracion del access token (corta para probar la renovacion)
+const DURACION_REFRESCO_S = 1800;
 const BASE = '/realms/adorbit/protocol/openid-connect';
 
 const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 // kid distinto en cada arranque: los validadores que cachean el JWKS lo vuelven a pedir al ver un kid desconocido.
 const jwk = { ...publicKey.export({ format: 'jwk' }), kid: `simulado-${randomUUID().slice(0, 8)}`, use: 'sig', alg: 'RS256' };
 const codigos = new Map(); // code -> { cliente, redirigir, desafio, nonce, usuario }
+const refrescos = new Map(); // refresh_token -> { cliente, usuario, vence }
 
 const b64 = (x) => Buffer.from(x).toString('base64url');
 const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -98,6 +100,19 @@ ${error ? `<p class="aviso" role="alert">${esc(error)}</p>` : ''}${atajos}
 <input name="cliente_id" placeholder="cliente_id (UUID, solo para el rol cliente)"><button>Entrar</button></form>`);
 }
 
+function emitirTokensDeUsuario(cliente, u, nonce) {
+  const perfil = { name: u.nombre ?? u.usuario, preferred_username: u.usuario, ...(u.cliente_id ? { cliente_id: u.cliente_id } : {}) };
+  const sub = `usuario-${u.usuario}`;
+  const refresco = randomUUID();
+  refrescos.set(refresco, { cliente, usuario: u, vence: Date.now() + DURACION_REFRESCO_S * 1000 });
+  return {
+    access_token: tokenAcceso({ sub, roles: u.roles ?? [], extra: { ...perfil, azp: cliente } }),
+    id_token: firmar({ iss: EMISOR, aud: cliente, sub, iat: ahora(), exp: ahora() + DURACION_S, ...(nonce ? { nonce } : {}), ...perfil }),
+    refresh_token: refresco, refresh_expires_in: DURACION_REFRESCO_S,
+    token_type: 'Bearer', expires_in: DURACION_S, scope: 'openid profile',
+  };
+}
+
 const servidor = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const ruta = url.pathname;
@@ -109,7 +124,7 @@ const servidor = createServer(async (req, res) => {
       issuer: EMISOR, authorization_endpoint: `${EMISOR}/protocol/openid-connect/auth`, token_endpoint: `${EMISOR}/protocol/openid-connect/token`,
       jwks_uri: `${EMISOR}/protocol/openid-connect/certs`, end_session_endpoint: `${EMISOR}/protocol/openid-connect/logout`,
       response_types_supported: ['code'], subject_types_supported: ['public'], id_token_signing_alg_values_supported: ['RS256'],
-      code_challenge_methods_supported: ['S256'], grant_types_supported: ['authorization_code', 'client_credentials'], scopes_supported: ['openid', 'profile'],
+      code_challenge_methods_supported: ['S256'], grant_types_supported: ['authorization_code', 'refresh_token', 'client_credentials'], scopes_supported: ['openid', 'profile'],
     });
   }
 
@@ -151,14 +166,16 @@ const servidor = createServer(async (req, res) => {
       if (!emitido || emitido.cliente !== f.client_id || emitido.redirigir !== f.redirect_uri || emitido.desafio !== desafioCalculado) {
         return json(res, 400, { error: 'invalid_grant', error_description: 'Codigo o verificador PKCE invalido' });
       }
-      const u = emitido.usuario;
-      const perfil = { name: u.nombre ?? u.usuario, preferred_username: u.usuario, ...(u.cliente_id ? { cliente_id: u.cliente_id } : {}) };
-      const sub = `usuario-${u.usuario}`;
-      return json(res, 200, {
-        access_token: tokenAcceso({ sub, roles: u.roles ?? [], extra: { ...perfil, azp: f.client_id } }),
-        id_token: firmar({ iss: EMISOR, aud: f.client_id, sub, iat: ahora(), exp: ahora() + DURACION_S, nonce: emitido.nonce, ...perfil }),
-        token_type: 'Bearer', expires_in: DURACION_S, scope: 'openid profile',
-      });
+      return json(res, 200, emitirTokensDeUsuario(f.client_id, emitido.usuario, emitido.nonce));
+    }
+
+    if (f.grant_type === 'refresh_token') {
+      const previo = refrescos.get(f.refresh_token);
+      refrescos.delete(f.refresh_token); // rotacion: cada refresh token sirve una sola vez
+      if (!previo || previo.cliente !== f.client_id || previo.vence < Date.now()) {
+        return json(res, 400, { error: 'invalid_grant', error_description: 'Refresh token invalido o vencido' });
+      }
+      return json(res, 200, emitirTokensDeUsuario(f.client_id, previo.usuario));
     }
     return json(res, 400, { error: 'unsupported_grant_type' });
   }

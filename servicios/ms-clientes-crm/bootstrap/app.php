@@ -30,6 +30,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(fn (Request $request) => true);
 
+        // Un error de negocio (401, 404, 409, 422...) es una respuesta esperada, no un fallo del servicio: no se registra
+        // como ERROR con traza.
+        $exceptions->dontReport(ErrorNegocio::class);
+
         $exceptions->render(fn (ErrorNegocio $e) => response()->json([
             'codigo' => $e->codigo,
             'mensaje' => $e->getMessage(),

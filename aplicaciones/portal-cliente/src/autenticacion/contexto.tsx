@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import type { User } from 'oidc-client-ts';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { EVENTO_SESION_EXPIRADA } from '../api/cliente-http';
+import { EVENTO_SESION_EXPIRADA } from './eventos';
 import { obtenerAdministrador } from './oidc';
 import { usuarioDesdeToken, type UsuarioSesion } from './reclamos';
 
@@ -19,7 +19,7 @@ interface ValorAutenticacion {
 const Contexto = createContext<ValorAutenticacion | null>(null);
 
 /** Datos guardados offline por el service worker: se borran al salir (equipos compartidos). */
-async function borrarCachesDeDatos(): Promise<void> {
+export async function borrarCachesDeDatos(): Promise<void> {
   if ('caches' in window) await caches.delete('api-datos');
 }
 
@@ -35,6 +35,8 @@ export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
     } else {
       setUsuario(null);
       setFase('anonimo');
+      // Sin sesion no debe quedar nada del usuario anterior en este equipo.
+      void borrarCachesDeDatos();
     }
   }, []);
 
@@ -57,6 +59,7 @@ export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
   useEffect(() => {
     const alExpirar = () => {
       void obtenerAdministrador().removeUser();
+      void borrarCachesDeDatos();
       clienteConsultas.clear();
       setUsuario(null);
       setFase('anonimo');

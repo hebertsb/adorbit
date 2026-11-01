@@ -48,6 +48,7 @@ public class ServicioRegistrarCobro implements RegistrarCobroCasoDeUso {
             throw new ExcepcionDominio(
                     "clave_idempotencia_invalida", "La clave de idempotencia debe tener 8 a 120 caracteres");
         }
+        Dinero.exigirCentavos(c.monto());
         String huella = huella(c);
         var previo = idempotencia.buscar(c.clave());
         if (previo.isPresent()) {

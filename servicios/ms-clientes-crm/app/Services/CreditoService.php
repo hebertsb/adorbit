@@ -11,6 +11,7 @@ use App\Repositories\ClienteRepository;
 use App\Repositories\ReservaCreditoRepository;
 use App\Support\Dinero;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -60,19 +61,25 @@ class CreditoService
     /** Compensacion del paso 2. Idempotente: si no hay reserva activa de esa SAGA, no hace nada. */
     public function liberar(string $clave, string $saga_id, string $cliente_id, string $campana_id, string $monto, string $moneda): void
     {
-        $this->una_vez($clave, 'liberar', function () use ($saga_id, $cliente_id, $campana_id, $moneda): void {
+        $this->una_vez($clave, 'liberar', function () use ($saga_id, $cliente_id): void {
             $reserva = $this->reservas->de_saga($saga_id);
             if ($reserva === null || $reserva->estado !== 'reservado') {
                 return;
+            }
+            // La reserva manda: el credito vuelve a quien lo tenia reservado, sin confiar en el cliente_id del comando.
+            if ((string) $reserva->cliente_id !== $cliente_id) {
+                Log::warning('LiberarCredito con un cliente_id distinto al de la reserva; se usa el de la reserva', [
+                    'saga_id' => $saga_id, 'cliente_comando' => $cliente_id, 'cliente_reserva' => (string) $reserva->cliente_id,
+                ]);
             }
             $monto_reservado = Dinero::a_texto($reserva->monto);
             if (! $this->reservas->liberar($saga_id)) {
                 return;
             }
-            $this->clientes->devolver_credito($cliente_id, $monto_reservado);
-            $this->bandeja->encolar('CreditoLiberado', $campana_id, $saga_id, [
-                'saga_id' => $saga_id, 'cliente_id' => $cliente_id, 'campana_id' => $campana_id,
-                'monto' => $monto_reservado, 'moneda' => $moneda, 'reserva_id' => (string) $reserva->id,
+            $this->clientes->devolver_credito((string) $reserva->cliente_id, $monto_reservado);
+            $this->bandeja->encolar('CreditoLiberado', (string) $reserva->campana_id, $saga_id, [
+                'saga_id' => $saga_id, 'cliente_id' => (string) $reserva->cliente_id, 'campana_id' => (string) $reserva->campana_id,
+                'monto' => $monto_reservado, 'moneda' => (string) $reserva->moneda, 'reserva_id' => (string) $reserva->id,
             ]);
         });
     }

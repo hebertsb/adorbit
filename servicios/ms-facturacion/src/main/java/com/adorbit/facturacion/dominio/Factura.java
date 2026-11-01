@@ -138,7 +138,11 @@ public final class Factura {
         Cobro cobro = new Cobro(cobroId, id, monto, fecha, referencia);
         cobros.add(cobro);
         saldo = saldo.restar(monto);
-        estado = saldo.esCero() ? EstadoFactura.PAGADA : EstadoFactura.PAGADA_PARCIAL;
+        // Un pago parcial no "perdona" el vencimiento: una factura vencida con saldo sigue vencida; solo el pago total
+        // la cierra.
+        EstadoFactura siguiente =
+                estado == EstadoFactura.VENCIDA ? EstadoFactura.VENCIDA : EstadoFactura.PAGADA_PARCIAL;
+        estado = saldo.esCero() ? EstadoFactura.PAGADA : siguiente;
         version++;
         return cobro;
     }

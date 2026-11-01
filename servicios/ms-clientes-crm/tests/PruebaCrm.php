@@ -25,6 +25,11 @@ abstract class PruebaCrm extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Red de seguridad: estas pruebas vacian colecciones. Solo corren contra una base cuyo nombre acaba en _test.
+        $base = (string) config('database.connections.mongodb.database');
+        if (! str_ends_with($base, '_test')) {
+            $this->fail("Las pruebas se niegan a vaciar la base '$base': el nombre debe terminar en _test.");
+        }
         self::preparar_claves();
         Cache::flush();
         Http::fake(['keycloak.test/jwks' => Http::response(self::$jwks)]);

@@ -41,7 +41,9 @@ php artisan crm:publicar-bandeja                      # relevo de la bandeja de 
 ```
 Pruebas: `./preparar-bd-local.sh adorbit_crm_test && php artisan test` (usan Mongo y RabbitMQ locales; los de RabbitMQ se
 omiten si no responde). Calidad: `vendor/bin/pint --test` y `vendor/bin/phpstan analyse`.
-En producción es una sola imagen con tres comandos (API, consumidor y relevo).
+En producción es una sola imagen (FrankenPHP, un servidor de producción con hilos; no `php -S`) con tres comandos: API (por
+defecto), `php artisan crm:consumir-comandos` y `php artisan crm:publicar-bandeja`. Los logs salen en JSON por stderr.
+Las pruebas se niegan a correr si la base no termina en `_test` (vacían colecciones).
 
 ## Tareas (en orden)
 1. [x] Esqueleto Laravel + JWT + `/api/salud` (driver MongoDB)

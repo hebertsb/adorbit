@@ -18,18 +18,18 @@
         </include>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="mongodb"/>
-        <env name="ADORBIT_CRM_MONGO_DSN" value="mongodb://localhost:27017/?directConnection=true"/>
-        <env name="ADORBIT_CRM_MONGO_BD" value="adorbit_crm_test"/>
-        <env name="ADORBIT_CRM_JWKS_URI" value="http://keycloak.test/jwks"/>
-        <env name="ADORBIT_CRM_JWT_EMISOR" value="http://keycloak.test/realms/adorbit"/>
-        <env name="ADORBIT_CRM_JWT_AUDIENCIA" value="ms-clientes-crm"/>
-        <env name="ADORBIT_CRM_CORS_ORIGENES" value="http://localhost:5173"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="mongodb" force="true"/>
+        <env name="ADORBIT_CRM_MONGO_DSN" value="mongodb://localhost:27017/?directConnection=true" force="true"/>
+        <env name="ADORBIT_CRM_MONGO_BD" value="adorbit_crm_test" force="true"/>
+        <env name="ADORBIT_CRM_JWKS_URI" value="http://keycloak.test/jwks" force="true"/>
+        <env name="ADORBIT_CRM_JWT_EMISOR" value="http://keycloak.test/realms/adorbit" force="true"/>
+        <env name="ADORBIT_CRM_JWT_AUDIENCIA" value="ms-clientes-crm" force="true"/>
+        <env name="ADORBIT_CRM_CORS_ORIGENES" value="http://localhost:5173" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

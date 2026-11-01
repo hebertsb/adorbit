@@ -150,6 +150,24 @@ class ServicioEmitirFacturaTest {
     }
 
     @Test
+    void unMontoConMasDeDosDecimalesSeRechazaComoDatoInvalidoSinGuardarNada() {
+        var c = comando("clave-0003", "10.123");
+        assertThatThrownBy(() -> servicio.emitir(c)).extracting("codigo").isEqualTo("monto_invalido");
+        var conTotal = new ComandoEmitirFactura(
+                "clave-0004",
+                c.sagaId(),
+                c.clienteId(),
+                c.campanaId(),
+                c.moneda(),
+                comando("x", "10.00").items(),
+                new BigDecimal("2260.005"),
+                null);
+        assertThatThrownBy(() -> servicio.emitir(conTotal)).extracting("codigo").isEqualTo("monto_invalido");
+        assertThat(memoria.facturas).isEmpty();
+        assertThat(memoria.claves).isEmpty();
+    }
+
+    @Test
     void claveInvalidaSeRechaza() {
         assertThatThrownBy(() -> servicio.emitir(comando("corta", "1.00")))
                 .extracting("codigo")

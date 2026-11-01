@@ -67,6 +67,10 @@ class ClienteService
             'nit' => $datos['nit'] ?? null,
         ];
         if (isset($datos['estado'])) {
+            // La misma regla que la baja: un cliente con contratos vigentes no puede quedar inactivo por ningun camino.
+            if ($datos['estado'] === 'inactivo' && $actual->estado !== 'inactivo' && $this->contratos->cliente_tiene_vigentes($id)) {
+                throw ErrorNegocio::conflicto('cliente_con_contratos_vigentes', 'El cliente tiene contratos vigentes');
+            }
             $cambios['estado'] = $datos['estado'];
         }
         if (isset($datos['limite_credito'])) {

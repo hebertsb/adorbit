@@ -56,6 +56,8 @@ public class ServicioEmitirFactura implements EmitirFacturaCasoDeUso {
     @Override
     public ResultadoEmision emitir(ComandoEmitirFactura comando) {
         validarClave(comando.clave());
+        validarMontos(comando); // antes de la huella: un monto con mas de 2 decimales es un dato invalido, no un error
+        // interno
         String huella = huella(comando);
 
         var previo = idempotencia.buscar(comando.clave());
@@ -125,6 +127,18 @@ public class ServicioEmitirFactura implements EmitirFacturaCasoDeUso {
         }
         String correlacion = c.sagaId() != null ? c.sagaId().toString() : c.clave();
         return new EventoSalida(generadorId.get(), "FacturaEmitida", f.id(), correlacion, ahora, carga);
+    }
+
+    private static void validarMontos(ComandoEmitirFactura c) {
+        if (c.items() == null || c.items().isEmpty()) {
+            throw new ExcepcionDominio("items_invalidos", "Debe haber al menos un item");
+        }
+        for (LineaComando linea : c.items()) {
+            Dinero.exigirCentavos(linea.precioUnitario());
+        }
+        if (c.totalEsperado() != null) {
+            Dinero.exigirCentavos(c.totalEsperado());
+        }
     }
 
     private static void validarClave(String clave) {

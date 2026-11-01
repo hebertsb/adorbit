@@ -157,6 +157,23 @@ class CreditoSagaTest extends PruebaCrm
         $this->assertCumpleContrato('CreditoLiberado', SobreEvento::armar($liberado[0]));
     }
 
+    public function test_liberar_devuelve_el_credito_a_quien_lo_reservo_aunque_el_comando_traiga_otro_cliente(): void
+    {
+        $dueno = $this->cliente();
+        $otro = $this->cliente();
+        $campana = (string) Str::uuid();
+        $saga = $this->reservar($dueno, '300.00', null, $campana);
+
+        $this->credito->liberar("$saga:2:compensacion", $saga, $otro, (string) Str::uuid(), '300.00', 'BOB');
+
+        $this->assertSame('0.00', $this->usado($dueno), 'el dueno recupera su credito');
+        $this->assertSame('0.00', $this->usado($otro), 'el otro cliente no se toca');
+        $liberado = $this->eventos('CreditoLiberado')[0];
+        $this->assertSame($dueno, $liberado->carga['cliente_id']);
+        $this->assertSame($campana, $liberado->carga['campana_id']);
+        $this->assertCumpleContrato('CreditoLiberado', SobreEvento::armar($liberado));
+    }
+
     public function test_liberar_sin_reserva_no_hace_nada(): void
     {
         $cliente = $this->cliente();

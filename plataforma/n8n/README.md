@@ -41,7 +41,7 @@ secretos** y `N8N_ENCRYPTION_KEY`. Las credenciales de n8n (SMTP y RabbitMQ) est
 ## Levantarlo en local
 ```bash
 # 1. Servicios (ver el README de cada uno): Mongo+RabbitMQ del CRM, DynamoDB de facturación, y ambos servicios.
-node herramientas/keycloak-simulado.mjs &                  # Keycloak simulado en :8180
+ESCUCHAR=0.0.0.0 node herramientas/keycloak-simulado.mjs &   # Keycloak simulado en :8180 (0.0.0.0: n8n corre en Docker)
 # (los servicios deben apuntar su JWKS/emisor a http://localhost:8180/realms/adorbit)
 
 # 2. n8n + Mailpit (ver correos en http://localhost:8025)
