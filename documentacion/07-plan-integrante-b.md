@@ -33,7 +33,7 @@ Los comandos de la SAGA son del orquestador (A): los dejo como **propuesta** ali
 | 9 | **Crédito atómico** | `ReservarCredito` / `LiberarCredito` en transacción Mongo + outbox + idempotencia | Casos: crédito insuficiente y reintento |
 | 10 | **n8n** (hecho, salvo lo que depende de A y C) | Flujos pedido→factura→notificación, cobranza, reuniones, métricas, tareas | Flujos exportados a `plataforma/n8n/`; pendientes en su README |
 | 11 | **Portal del cliente (React, PWA)** (hecho; sin campañas ni PWA offline verificada) | Facturas, cobros, estado de campañas; responsive 360–1920 px | Probado en celular y escritorio |
-| 12 | **Módulo remoto de BI** | Reportes consumiendo ms-ia (REST) | Se carga en el contenedor de A |
+| 12 | **Módulo remoto de BI** (hecho contra un ms-ia simulado; falta probarlo en el contenedor real de A) | Reportes consumiendo ms-ia (REST) | Se carga en el contenedor de A |
 | 13 | **Integración y defensa** | 5 casos de la SAGA, datos de demo | Guion ensayado |
 
 ## Dependencias que NO controlo

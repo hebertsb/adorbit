@@ -27,6 +27,10 @@
 7. Nombre correcto del docente (¿Ronaldo o Rolando?) y datos de portada de la universidad.
 8. Nombre comercial final (AdOrbit / AdSphere).
 
+## Preguntas abiertas con otros integrantes (módulo BI)
+- **C (ms-ia):** ¿se acepta el contrato de reportes propuesto (`contratos/openapi/ms-ia.yaml`) y las 4 herramientas MCP iniciales? ¿El reporte se guarda en el servidor para poder exportarlo (necesario para `GET …/exportar`)?
+- **A (portal de gestión):** ¿el contenedor Angular usa Module Federation (webpack/enhanced) o Native Federation? El remoto expone `./montar`; el contrato no cambia, solo cómo se empaqueta.
+
 ## Riesgos
 - Carga del Integrante C (IA + móvil): revisar al cierre de la Fase 1.
 - Límites de los planes gratuitos (Supabase pausa proyectos inactivos; Atlas M0 tiene tope de conexiones).
@@ -42,4 +46,5 @@
 - 1 nov · Luis (B) · ms-clientes-crm: `reservas_credito` gana el campo `id` (UUID, índice único) porque `CreditoReservado.reserva_id` lo exige; OpenAPI del CRM alineado al script (estados de contrato `vigente|vencido|rescindido`, contactos embebidos con `email`/`rol`, sin `titulo`/`correo`); `ClienteCreado/Actualizado.estado` admite `moroso` · `base_de_datos/ms-clientes-crm.mongo.js`, `contratos/openapi/ms-clientes-crm.yaml`, `contratos/eventos/Cliente*.schema.json`
 - 1 nov · Luis (B) · n8n: 5 flujos (factura emitida→correo, cobranza diaria, reporte semanal, reunión→.ics, pedido→cotización) probados con servicios reales; ms-facturacion gana `POST /facturas/vencimientos` (nada marcaba facturas como `vencida`); se agrega `herramientas/keycloak-simulado.mjs` mientras no exista el realm real; pendientes con A y C listados en el README de n8n · `plataforma/n8n/*`, `herramientas/keycloak-simulado.mjs`, `contratos/openapi/ms-facturacion.yaml`, `documentacion/03-contratos.md`
 - 1 nov · Luis (B) · portal-cliente (React/PWA, solo lectura, login OIDC con PKCE); ms-facturacion y ms-clientes-crm aceptan **CORS por lista blanca** (`…_CORS_ORIGENES`); ms-clientes-crm vuelve a pedir el JWKS (máx. 1 vez/30 s) si llega un `kid` desconocido; el Keycloak simulado ahora ofrece login OIDC y escucha solo en 127.0.0.1; se agrega `herramientas/datos-demo.sh`; requisitos para el realm real (cliente público `portal-cliente`, claim `cliente_id`) en el README del portal · `aplicaciones/portal-cliente/*`, `herramientas/*`, `servicios/*`
+- 1 nov · Luis (B) · panel-inteligencia (remoto React por Module Federation + modo independiente, Shadow DOM, reportes por texto/voz, gráficos de barras y línea, exportar PDF/Excel); **propuesta** de contrato de reportes de ms-ia (`contratos/openapi/ms-ia.yaml`) que C debe confirmar; `herramientas/ms-ia-simulado.mjs` (sin IA) y el Keycloak simulado ahora admite el cliente `panel-inteligencia` y la audiencia `ms-ia` · `aplicaciones/panel-inteligencia/*`, `contratos/openapi/ms-ia.yaml`, `herramientas/*`
 (Añadir arriba una fila por cambio: fecha · quién · qué · archivos tocados.)

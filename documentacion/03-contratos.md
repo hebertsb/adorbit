@@ -116,3 +116,12 @@ Llama directo (hasta que exista el gateway) a `GET /api/v1/facturas`, `/facturas
 `…_CORS_ORIGENES` (`ADORBIT_FACTURACION_CORS_ORIGENES`, `ADORBIT_CRM_CORS_ORIGENES`); sin lista no se permite ningún origen
 ajeno. El token del rol `cliente` debe traer el claim `cliente_id` (los servicios filtran por él, nunca por un parámetro).
 
+## Panel de inteligencia (aplicaciones/panel-inteligencia) y reportes de ms-ia
+El remoto React `panel_inteligencia` expone `./montar` (Module Federation); el contrato con el contenedor Angular está en su
+README (`montarPanel(elemento, { apiIaUrl, obtenerToken, ... })`). Consume de ms-ia **`POST /api/v1/reportes`**,
+**`GET /api/v1/reportes/{id}`** y **`GET /api/v1/reportes/{id}/exportar?formato=pdf|xlsx`**. La forma del reporte
+(`interpretacion`, `columnas`, `filas`, `indicadores`, `grafico`, `advertencias`) y los errores (`pregunta_no_entendida` 422 con
+sugerencias, `consulta_bloqueada` 403 auditado) están en **`contratos/openapi/ms-ia.yaml`: PROPUESTA del Integrante B, pendiente de
+confirmar por el Integrante C**. CORS de ms-ia: orígenes del panel y del portal de gestión. Keycloak: cliente público
+`panel-inteligencia`, roles `gerente`/`ejecutivo`, audiencia `ms-ia`.
+

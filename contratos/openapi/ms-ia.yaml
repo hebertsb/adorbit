@@ -1,0 +1,199 @@
+openapi: 3.0.3
+info:
+  title: ms-ia (reportes)
+  version: 0.1.0-propuesta
+  description: >
+    PROPUESTA del Integrante B para la parte de ms-ia que consume el panel de inteligencia (`aplicaciones/panel-inteligencia`):
+    reportes generados desde una pregunta en lenguaje natural, y su exportacion. Pendiente de confirmar por el
+    Integrante C (dueno de ms-ia); el resto de la API (vision, agentes, auditoria MCP) no se describe aqui.
+
+
+    Reglas que este contrato fija (CLAUDE.md, regla 8): el modelo NUNCA escribe SQL. La pregunta se interpreta a una
+    **herramienta MCP parametrizada** (`interpretacion`), que se ejecuta con el rol `lector_mcp` sobre vistas
+    `vista_mcp_*`. Toda llamada, tambien las bloqueadas, queda en `auditoria_mcp`. El panel muestra al usuario que
+    herramienta y que parametros se usaron, para que el resultado sea verificable.
+    El dinero viaja como texto decimal ("1250.50"); las fechas, ISO-8601.
+servers:
+  - url: http://localhost:8085
+security:
+  - bearerAuth: []
+tags:
+  - name: reportes
+paths:
+  /api/v1/reportes:
+    post:
+      tags: [reportes]
+      summary: Generar un reporte desde una pregunta en lenguaje natural
+      description: Roles gerente y ejecutivo. Idempotente por Idempotency-Key (el reporte queda guardado y se puede exportar).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReporteSolicitud' }
+      responses:
+        '201':
+          description: Reporte generado (200 si es una repeticion de la misma clave)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reporte' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403':
+          description: >
+            Sin permiso, o la pregunta intento algo que la politica del MCP bloquea (codigo `consulta_bloqueada`;
+            queda auditado con bloqueado=true).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: No se pudo interpretar la pregunta (codigo `pregunta_no_entendida`); `detalle.sugerencias` trae ejemplos validos.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/reportes/{id}:
+    get:
+      tags: [reportes]
+      summary: Obtener un reporte ya generado
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Reporte
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reporte' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/reportes/{id}/exportar:
+    get:
+      tags: [reportes]
+      summary: Exportar un reporte a PDF o Excel
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - name: formato
+          in: query
+          required: true
+          schema: { type: string, enum: [pdf, xlsx] }
+      responses:
+        '200':
+          description: Archivo (Content-Disposition con el nombre sugerido)
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT de Keycloak (audiencia ms-ia). Roles gerente y ejecutivo.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 120 }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [codigo, mensaje]
+      properties:
+        codigo: { type: string }
+        mensaje: { type: string }
+        detalle:
+          type: object
+          nullable: true
+          additionalProperties: true
+          properties:
+            sugerencias:
+              type: array
+              items: { type: string }
+    ReporteSolicitud:
+      type: object
+      additionalProperties: false
+      required: [pregunta]
+      properties:
+        pregunta: { type: string, minLength: 3, maxLength: 500 }
+    Herramienta:
+      type: string
+      description: Herramientas MCP admitidas hoy (ver documentacion/03-contratos.md).
+      enum: [consultar_campanas, facturas_por_vencer, clientes_morosos, resumen_gasto_campana]
+    Interpretacion:
+      type: object
+      required: [herramienta, parametros]
+      properties:
+        herramienta: { $ref: '#/components/schemas/Herramienta' }
+        parametros:
+          type: object
+          additionalProperties: true
+          description: Parametros tipados con los que se llamo a la herramienta (p. ej. {"dias":30}).
+    Columna:
+      type: object
+      required: [clave, etiqueta, tipo]
+      properties:
+        clave: { type: string }
+        etiqueta: { type: string }
+        tipo: { type: string, enum: [texto, numero, dinero, fecha, porcentaje] }
+        moneda: { type: string, enum: [BOB, USD], description: Obligatoria si tipo es dinero }
+    Indicador:
+      type: object
+      required: [etiqueta, valor, tipo]
+      properties:
+        etiqueta: { type: string }
+        valor: { type: string, description: Numero o dinero como texto decimal }
+        tipo: { type: string, enum: [numero, dinero, porcentaje] }
+        moneda: { type: string, enum: [BOB, USD] }
+    Grafico:
+      type: object
+      required: [tipo, x, y]
+      description: Sugerencia de visualizacion. x e y son claves de `columnas`; y debe ser numerica, dinero o porcentaje.
+      properties:
+        tipo: { type: string, enum: [barras, linea] }
+        x: { type: string }
+        y: { type: string }
+    Reporte:
+      type: object
+      required: [id, pregunta, titulo, generado_en, interpretacion, columnas, filas]
+      properties:
+        id: { type: string, format: uuid }
+        pregunta: { type: string }
+        titulo: { type: string }
+        generado_en: { type: string, format: date-time }
+        interpretacion: { $ref: '#/components/schemas/Interpretacion' }
+        columnas:
+          type: array
+          items: { $ref: '#/components/schemas/Columna' }
+        filas:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: true
+            description: Valores por `clave` de columna. Dinero y porcentaje como texto decimal; fecha como ISO-8601.
+        indicadores:
+          type: array
+          items: { $ref: '#/components/schemas/Indicador' }
+        grafico:
+          allOf:
+            - $ref: '#/components/schemas/Grafico'
+          nullable: true
+        advertencias:
+          type: array
+          items: { type: string }
+          description: Avisos al usuario (p. ej. "Se muestran las primeras 500 filas").

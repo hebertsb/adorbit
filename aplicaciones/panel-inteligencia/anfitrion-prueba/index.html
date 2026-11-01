@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Anfitrión de prueba · panel de inteligencia</title>
+    <style>
+      body {
+        margin: 0;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        background: #eef0f6;
+      }
+      .barra {
+        padding: 12px 16px;
+        background: #1f2937;
+        color: #fff;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .barra button {
+        min-height: 36px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 0;
+        cursor: pointer;
+      }
+      #estado {
+        margin-left: auto;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+      #contenedor {
+        max-width: 1280px;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      Simula al contenedor del portal de gestion (Angular, Integrante A): corre en OTRO origen, carga el remoto por su
+      remoteEntry.js (Module Federation) y le pasa un contexto. Asi se comprueba el contrato sin depender del portal real.
+      Uso:  python3 -m http.server 5180 --bind 127.0.0.1   (en esta carpeta)  ->  http://localhost:5180
+      Parametros: ?remoto=http://localhost:4174  &ia=http://localhost:8085  &kc=http://localhost:8180
+    -->
+    <div class="barra">
+      <strong>Portal de gestión (simulado)</strong>
+      <button id="montar" type="button">Montar panel</button>
+      <button id="desmontar" type="button">Desmontar</button>
+      <button id="tema" type="button">Tema: sistema</button>
+      <span id="estado" role="status"></span>
+    </div>
+    <div id="contenedor"></div>
+
+    <script type="module">
+      const parametros = new URLSearchParams(location.search);
+      const REMOTO = parametros.get('remoto') ?? 'http://localhost:4174';
+      const IA = parametros.get('ia') ?? 'http://localhost:8085';
+      const KC = parametros.get('kc') ?? 'http://localhost:8180';
+      const estado = document.getElementById('estado');
+      let panel = null;
+      let modulo = null;
+      const temas = ['sistema', 'claro', 'oscuro'];
+      let tema = 0;
+
+      async function cargarRemoto() {
+        if (modulo) return modulo;
+        const contenedor = await import(/* @vite-ignore */ `${REMOTO}/remoteEntry.js`);
+        await contenedor.init({}); // el remoto empaqueta su propio React: no se comparte nada
+        const fabrica = await contenedor.get('./montar');
+        modulo = await fabrica();
+        return modulo;
+      }
+
+      // En el portal real el token viene de la sesion de Keycloak del contenedor; aqui, del Keycloak simulado.
+      const obtenerToken = async () => {
+        const r = await fetch(`${KC}/emitir?roles=gerente`);
+        return (await r.json()).access_token;
+      };
+
+      document.getElementById('montar').addEventListener('click', async () => {
+        if (panel) return;
+        try {
+          const { montarPanel } = await cargarRemoto();
+          panel = montarPanel(document.getElementById('contenedor'), {
+            apiIaUrl: IA,
+            obtenerToken,
+            usuario: { nombre: 'Gerencia (anfitrión)' },
+            alExpirarSesion: () => (estado.textContent = 'El panel avisó: sesión expirada'),
+          });
+          estado.textContent = 'Panel montado desde ' + REMOTO;
+        } catch (e) {
+          estado.textContent = 'Error al cargar el remoto: ' + e.message;
+        }
+      });
+      document.getElementById('desmontar').addEventListener('click', () => {
+        panel?.desmontar();
+        panel = null;
+        estado.textContent = 'Panel desmontado';
+      });
+      document.getElementById('tema').addEventListener('click', (e) => {
+        tema = (tema + 1) % temas.length;
+        e.target.textContent = 'Tema: ' + temas[tema];
+        panel?.actualizarContexto({ tema: temas[tema] });
+      });
+    </script>
+  </body>
+</html>
