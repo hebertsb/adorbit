@@ -1,0 +1,38 @@
+# Secretos y configuracion local
+.env
+.env.local
+*.env
+
+# Dependencias
+node_modules/
+vendor/
+__pycache__/
+*.pyc
+.venv/
+
+# Builds
+target/
+build/
+dist/
+.next/
+out/
+
+# Modelos y datos locales (no versionar pesos ni datasets)
+*.pt
+*.onnx
+*.tflite
+*.h5
+datos/
+*.db
+*.sqlite
+
+# IDE y SO
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

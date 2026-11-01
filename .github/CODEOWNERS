@@ -1,0 +1,24 @@
+# Reemplazar @a @b @c por los usuarios reales de GitHub (ver documentacion/04-reparto-equipo.md)
+/CLAUDE.md                     @a @b @c
+/documentacion/                @a @b @c
+/contratos/                    @a @b @c
+/base_de_datos/ms-campanas.*        @a
+/base_de_datos/ms-facturacion.*     @b
+/base_de_datos/ms-clientes-crm.*    @b
+/base_de_datos/ms-creatividades.*   @c
+/base_de_datos/ms-ia.*              @c
+/servicios/ms-campanas/         @a
+/servicios/ms-facturacion/      @b
+/servicios/ms-clientes-crm/     @b
+/servicios/ms-creatividades/    @c
+/servicios/ms-ia/               @c
+/aplicaciones/portal-gestion/          @a
+/aplicaciones/modulo-campanas/         @a
+/aplicaciones/portal-cliente/          @b
+/aplicaciones/panel-inteligencia/      @b
+/aplicaciones/app-movil/               @b
+/plataforma/pasarela/           @a
+/plataforma/keycloak/           @a
+/plataforma/rabbitmq/           @a
+/plataforma/n8n/                @b
+/infraestructura/               @a @b
