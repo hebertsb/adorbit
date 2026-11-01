@@ -1,0 +1,28 @@
+server:
+  port: ${ADORBIT_FACTURACION_PUERTO:8082}
+
+spring:
+  application:
+    name: ms-facturacion
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    deserialization:
+      fail-on-unknown-properties: true
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    root: INFO
+
+adorbit:
+  facturacion:
+    seguridad:
+      jwks-uri: ${ADORBIT_FACTURACION_JWKS_URI}
+      emisor: ${ADORBIT_FACTURACION_JWT_EMISOR}
+      audiencia: ${ADORBIT_FACTURACION_JWT_AUDIENCIA:ms-facturacion}
+    dynamodb:
+      region: ${ADORBIT_FACTURACION_DYNAMODB_REGION:us-east-1}
+      tabla: ${ADORBIT_FACTURACION_DYNAMODB_TABLA:AdOrbitFacturacion}
+      endpoint: ${ADORBIT_FACTURACION_DYNAMODB_ENDPOINT:}
