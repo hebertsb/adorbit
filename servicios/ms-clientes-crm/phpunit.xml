@@ -29,6 +29,7 @@
         <env name="ADORBIT_CRM_JWKS_URI" value="http://keycloak.test/jwks"/>
         <env name="ADORBIT_CRM_JWT_EMISOR" value="http://keycloak.test/realms/adorbit"/>
         <env name="ADORBIT_CRM_JWT_AUDIENCIA" value="ms-clientes-crm"/>
+        <env name="ADORBIT_CRM_CORS_ORIGENES" value="http://localhost:5173"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

@@ -21,9 +21,19 @@ class JwtService
         JWT::$leeway = (int) $config['holgura_segundos'];
 
         try {
-            $claims = (array) JWT::decode($token, JWK::parseKeySet($this->jwks(), 'RS256'));
+            $claims = $this->decodificar($token);
         } catch (Throwable) {
-            throw new ErrorNegocio('no_autenticado', 'Token invalido o vencido', 401);
+            // Rotacion de claves: si el kid no esta en la cache, se vuelve a pedir el JWKS. Como mucho una vez cada
+            // 30 s, para que tokens basura no obliguen al servicio a llamar a Keycloak sin parar.
+            if (! Cache::add('crm.jwks.recarga', true, 30)) {
+                throw new ErrorNegocio('no_autenticado', 'Token invalido o vencido', 401);
+            }
+            try {
+                Cache::forget('crm.jwks');
+                $claims = $this->decodificar($token);
+            } catch (Throwable) {
+                throw new ErrorNegocio('no_autenticado', 'Token invalido o vencido', 401);
+            }
         }
 
         if (($claims['iss'] ?? null) !== $config['emisor']) {
@@ -35,6 +45,12 @@ class JwtService
         }
 
         return $claims;
+    }
+
+    /** @return array<string, mixed> */
+    private function decodificar(string $token): array
+    {
+        return (array) JWT::decode($token, JWK::parseKeySet($this->jwks(), 'RS256'));
     }
 
     /** @param  array<string, mixed>  $claims

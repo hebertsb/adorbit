@@ -110,3 +110,9 @@ hace nada. `ClienteCreado/Actualizado.estado` admite `moroso` (igual que la cole
 | Llama a | ms-facturacion (`/facturas`, `/facturas/vencimientos`, `/cotizaciones`) y ms-clientes-crm (`/clientes/{id}`) con un JWT de la cuenta de servicio `n8n` (rol `gerente`) |
 | Para A | La cuenta de servicio `n8n` debe existir en el realm de Keycloak con el rol `gerente` y las audiencias `ms-facturacion` y `ms-clientes-crm`; hasta entonces se usa `herramientas/keycloak-simulado.mjs` |
 
+## Portal del cliente (aplicaciones/portal-cliente)
+Llama directo (hasta que exista el gateway) a `GET /api/v1/facturas`, `/facturas/{id}`, `/contratos`, `/clientes/{id}` y
+`/clientes/{id}/credito`, con el JWT del usuario. **CORS:** cada servicio lista los orígenes de los portales en su variable
+`…_CORS_ORIGENES` (`ADORBIT_FACTURACION_CORS_ORIGENES`, `ADORBIT_CRM_CORS_ORIGENES`); sin lista no se permite ningún origen
+ajeno. El token del rol `cliente` debe traer el claim `cliente_id` (los servicios filtran por él, nunca por un parámetro).
+

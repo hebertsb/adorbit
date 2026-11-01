@@ -19,7 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
             "adorbit.facturacion.seguridad.jwks-uri=http://localhost:9/jwks",
             "adorbit.facturacion.seguridad.emisor=http://localhost:9/realms/adorbit",
             "adorbit.facturacion.seguridad.audiencia=ms-facturacion",
-            "adorbit.facturacion.mensajeria.activa=false"
+            "adorbit.facturacion.mensajeria.activa=false",
+            "adorbit.facturacion.seguridad.cors-origenes=http://localhost:5173"
         })
 @AutoConfigureMockMvc
 class EstadoControladorTest {
@@ -63,5 +64,24 @@ class EstadoControladorTest {
     void conservaElIdDeCorrelacionRecibido() throws Exception {
         mvc.perform(get("/salud").header("X-Correlation-Id", "abc-123"))
                 .andExpect(header().string("X-Correlation-Id", "abc-123"));
+    }
+
+    @Test
+    void elPreflightDeUnOrigenPermitidoSeResponde() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/v1/facturas")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "authorization,x-correlation-id"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
+    @Test
+    void unOrigenNoPermitidoNoRecibeCabecerasCors() throws Exception {
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options("/api/v1/facturas")
+                        .header("Origin", "http://sitio-malicioso.example")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isForbidden())
+                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
     }
 }

@@ -38,6 +38,7 @@ adorbit:
       jwks-uri: ${ADORBIT_FACTURACION_JWKS_URI}
       emisor: ${ADORBIT_FACTURACION_JWT_EMISOR}
       audiencia: ${ADORBIT_FACTURACION_JWT_AUDIENCIA:ms-facturacion}
+      cors-origenes: ${ADORBIT_FACTURACION_CORS_ORIGENES:}
     negocio:
       tasa-impuesto: ${ADORBIT_FACTURACION_TASA_IMPUESTO:0.13}
       dias-vencimiento: ${ADORBIT_FACTURACION_DIAS_VENCIMIENTO:30}
