@@ -225,7 +225,7 @@ components:
         items:
           type: array
           minItems: 1
-          maxItems: 200
+          maxItems: 90
           items: { $ref: '#/components/schemas/ItemCrear' }
         moneda: { $ref: '#/components/schemas/Moneda' }
         fecha_vencimiento: { type: string, format: date }
@@ -286,7 +286,7 @@ components:
         items:
           type: array
           minItems: 1
-          maxItems: 200
+          maxItems: 90
           items: { $ref: '#/components/schemas/ItemCrear' }
         moneda: { $ref: '#/components/schemas/Moneda' }
     Cotizacion:

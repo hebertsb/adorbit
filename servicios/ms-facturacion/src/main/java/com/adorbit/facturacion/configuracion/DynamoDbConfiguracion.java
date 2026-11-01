@@ -1,5 +1,6 @@
 package com.adorbit.facturacion.configuracion;
 
+import com.adorbit.facturacion.adaptador.salida.dynamodb.FacturaRepositorioDynamoDb;
 import com.adorbit.facturacion.adaptador.salida.dynamodb.VerificadorAlmacenamientoDynamoDb;
 import com.adorbit.facturacion.aplicacion.puerto.salida.VerificarAlmacenamientoPuerto;
 import java.net.URI;
@@ -24,5 +25,10 @@ public class DynamoDbConfiguracion {
     @Bean
     VerificarAlmacenamientoPuerto verificarAlmacenamiento(DynamoDbClient cliente, PropiedadesDynamoDb propiedades) {
         return new VerificadorAlmacenamientoDynamoDb(cliente, propiedades.tabla());
+    }
+
+    @Bean
+    FacturaRepositorioDynamoDb facturaRepositorio(DynamoDbClient cliente, PropiedadesDynamoDb propiedades) {
+        return new FacturaRepositorioDynamoDb(cliente, propiedades.tabla());
     }
 }

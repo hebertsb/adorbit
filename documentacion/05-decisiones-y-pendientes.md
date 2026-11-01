@@ -37,4 +37,5 @@
 ## Registro de cambios
 - 1 nov · Hebert (C) · Provisionado el proyecto Supabase real `ms-ia` (schema `base_de_datos/ms-ia.postgres.sql`); se detectaron las vistas `vista_mcp_*` accesibles por `anon`/`authenticated` y se corrigió con `REVOKE` (ver D12) · `base_de_datos/ms-ia.postgres.sql`
 - 1 nov · Luis (B) · Contratos iniciales: esquemas JSON de 13 eventos/comandos (facturación y CRM) y OpenAPI de ms-facturacion y ms-clientes-crm; dinero en JSON como texto decimal; plan del Integrante B (D13) · `contratos/eventos/*`, `contratos/openapi/ms-facturacion.yaml`, `contratos/openapi/ms-clientes-crm.yaml`, `documentacion/03`, `documentacion/07`
+- 1 nov · Luis (B) · ms-facturacion: máximo **90 ítems** por factura (antes 200) para caber en una `TransactWriteItems` (límite 100 operaciones: cabecera + ítems + IDEMP + SALIDA); la tasa de impuesto y los días de vencimiento son configurables por variable de entorno · `contratos/openapi/ms-facturacion.yaml`, `contratos/eventos/EmitirFactura.schema.json`
 (Añadir arriba una fila por cambio: fecha · quién · qué · archivos tocados.)

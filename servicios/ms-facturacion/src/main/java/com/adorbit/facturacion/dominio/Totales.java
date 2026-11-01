@@ -6,7 +6,7 @@ import java.util.List;
 /** Subtotal, impuestos y total calculados siempre en el servidor, nunca tomados del cliente. */
 public record Totales(Dinero subtotal, Dinero impuestos, Dinero total) {
 
-    public static final int MAXIMO_ITEMS = 200;
+    public static final int MAXIMO_ITEMS = 90;
 
     public static Totales calcular(List<ItemFactura> items, Moneda moneda, BigDecimal tasaImpuesto) {
         if (items == null || items.isEmpty() || items.size() > MAXIMO_ITEMS) {

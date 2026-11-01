@@ -35,8 +35,8 @@ Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos 
 
 ## Tareas (en orden)
 1. [ ] Esqueleto + JWT + `/salud` + tabla creada
-2. [ ] Dominio y puertos (dominio hecho: Factura, Cobro, NotaCredito, Dinero); adaptador DynamoDB
-3. [ ] `TransactWriteItems` (factura + OUTBOX + IDEMP; si la clave existe, comparar hash y devolver respuesta)
+2. [x] Dominio y puertos; adaptador DynamoDB (emision y lectura)
+3. [x] `TransactWriteItems` (factura + OUTBOX + IDEMP; si la clave existe, comparar hash y devolver respuesta)
 4. [ ] Relay de Streams a RabbitMQ (filtrar `SALIDA#`)
 5. [ ] Consumidor de comandos SAGA (+ nota de crédito)
 6. [ ] Consultas por GSI1/GSI2; tests de idempotencia
