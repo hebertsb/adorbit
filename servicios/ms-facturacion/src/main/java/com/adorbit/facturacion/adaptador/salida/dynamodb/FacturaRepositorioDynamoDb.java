@@ -1,9 +1,11 @@
 package com.adorbit.facturacion.adaptador.salida.dynamodb;
 
 import com.adorbit.facturacion.aplicacion.puerto.salida.ClaveIdempotenciaDuplicadaException;
+import com.adorbit.facturacion.aplicacion.puerto.salida.ConflictoVersionException;
 import com.adorbit.facturacion.aplicacion.puerto.salida.EventoSalida;
 import com.adorbit.facturacion.aplicacion.puerto.salida.FacturaRepositorioPuerto;
 import com.adorbit.facturacion.aplicacion.puerto.salida.IdempotenciaPuerto;
+import com.adorbit.facturacion.aplicacion.puerto.salida.Pagina;
 import com.adorbit.facturacion.aplicacion.puerto.salida.RegistroIdempotencia;
 import com.adorbit.facturacion.dominio.Cobro;
 import com.adorbit.facturacion.dominio.Dinero;
@@ -29,6 +31,7 @@ import software.amazon.awssdk.services.dynamodb.model.Put;
 import software.amazon.awssdk.services.dynamodb.model.QueryResponse;
 import software.amazon.awssdk.services.dynamodb.model.TransactWriteItem;
 import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
+import software.amazon.awssdk.services.dynamodb.model.Update;
 
 /**
  * Adaptador DynamoDB (tabla unica, ver base_de_datos/ms-facturacion.dynamodb.sh).
@@ -36,6 +39,7 @@ import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledExcepti
  */
 public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, IdempotenciaPuerto {
 
+    static final int MAXIMO_LISTADO = 1000;
     static final long VIGENCIA_BANDEJA_SEGUNDOS = 30L * 24 * 3600;
     private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -120,13 +124,17 @@ public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, Ide
         if (cabecera == null) {
             return Optional.empty();
         }
+        return Optional.of(desdeCabecera(cabecera, items, cobros));
+    }
+
+    private Factura desdeCabecera(Map<String, AttributeValue> cabecera, List<ItemFactura> items, List<Cobro> cobros) {
         Moneda moneda = Moneda.valueOf(cabecera.get("moneda").s());
         Totales totales = new Totales(
                 dinero(cabecera, "subtotal", moneda),
                 dinero(cabecera, "impuestos", moneda),
                 dinero(cabecera, "total", moneda));
-        return Optional.of(Factura.reconstituir(
-                id,
+        return Factura.reconstituir(
+                UUID.fromString(cabecera.get("PK").s().substring("FACT#".length())),
                 UUID.fromString(cabecera.get("cliente_id").s()),
                 UUID.fromString(cabecera.get("campana_id").s()),
                 moneda,
@@ -136,7 +144,111 @@ public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, Ide
                 LocalDate.parse(cabecera.get("fecha_vencimiento").s()),
                 cobros,
                 EstadoFactura.valueOf(cabecera.get("estado").s().toUpperCase()),
-                dinero(cabecera, "saldo", moneda)));
+                dinero(cabecera, "saldo", moneda),
+                Long.parseLong(cabecera.get("version").n()));
+    }
+
+    @Override
+    public void guardarCobro(Factura f, Cobro cobro, RegistroIdempotencia idemp, List<EventoSalida> eventos) {
+        List<TransactWriteItem> operaciones = new ArrayList<>();
+        operaciones.add(poner(filaIdempotencia(idemp)));
+        operaciones.add(poner(filaCobro(f, cobro)));
+        long versionPrevia = f.version() - 1;
+        operaciones.add(TransactWriteItem.builder()
+                .update(Update.builder()
+                        .tableName(tabla)
+                        .key(Map.of("PK", s("FACT#" + f.id()), "SK", s("META")))
+                        .updateExpression("SET saldo = :saldo, estado = :estado, version = :nueva, GSI2PK = :g2")
+                        .conditionExpression("version = :previa")
+                        .expressionAttributeValues(Map.of(
+                                ":saldo", n(f.saldo().monto()),
+                                ":estado", s(f.estado().name().toLowerCase()),
+                                ":nueva", AttributeValue.fromN(Long.toString(f.version())),
+                                ":previa", AttributeValue.fromN(Long.toString(versionPrevia)),
+                                ":g2", s("ESTADO#" + f.estado().name().toLowerCase())))
+                        .build())
+                .build());
+        for (EventoSalida evento : eventos) {
+            operaciones.add(poner(filaSalida(evento)));
+        }
+        try {
+            cliente.transactWriteItems(r -> r.transactItems(operaciones));
+        } catch (TransactionCanceledException e) {
+            var razones = e.cancellationReasons();
+            if (!razones.isEmpty()
+                    && "ConditionalCheckFailed".equals(razones.get(0).code())) {
+                throw new ClaveIdempotenciaDuplicadaException(idemp.clave());
+            }
+            if (razones.size() > 2
+                    && "ConditionalCheckFailed".equals(razones.get(2).code())) {
+                throw new ConflictoVersionException("La factura fue modificada por otra operacion");
+            }
+            throw e;
+        }
+    }
+
+    @Override
+    public Pagina<Factura> listarPorCliente(UUID clienteId, EstadoFactura estado, int page, int size) {
+        List<Factura> todas = consultarIndice("GSI1-ClienteFecha", "GSI1PK", "CLI#" + clienteId);
+        if (estado != null) {
+            todas = todas.stream().filter(f -> f.estado() == estado).toList();
+        }
+        return paginar(todas, page, size);
+    }
+
+    @Override
+    public Pagina<Factura> listarPorEstado(EstadoFactura estado, int page, int size) {
+        return paginar(
+                consultarIndice(
+                        "GSI2-EstadoVencimiento",
+                        "GSI2PK",
+                        "ESTADO#" + estado.name().toLowerCase()),
+                page,
+                size);
+    }
+
+    /** Trae hasta {@value #MAXIMO_LISTADO} cabeceras del indice (sin items ni cobros). */
+    private List<Factura> consultarIndice(String indice, String atributoPk, String valorPk) {
+        List<Factura> resultado = new ArrayList<>();
+        Map<String, AttributeValue> inicio = null;
+        do {
+            Map<String, AttributeValue> desde = inicio;
+            QueryResponse r = cliente.query(q -> {
+                q.tableName(tabla)
+                        .indexName(indice)
+                        .keyConditionExpression(atributoPk + " = :v")
+                        .expressionAttributeValues(Map.of(":v", s(valorPk)))
+                        .scanIndexForward(false);
+                if (desde != null) {
+                    q.exclusiveStartKey(desde);
+                }
+            });
+            for (Map<String, AttributeValue> fila : r.items()) {
+                resultado.add(desdeCabecera(fila, List.of(), List.of()));
+            }
+            inicio = r.hasLastEvaluatedKey() ? r.lastEvaluatedKey() : null;
+        } while (inicio != null && resultado.size() < MAXIMO_LISTADO);
+        return resultado;
+    }
+
+    private static Pagina<Factura> paginar(List<Factura> todas, int page, int size) {
+        int desde = Math.min(page * size, todas.size());
+        int hasta = Math.min(desde + size, todas.size());
+        return new Pagina<>(List.copyOf(todas.subList(desde, hasta)), page, size, todas.size());
+    }
+
+    private Map<String, AttributeValue> filaCobro(Factura f, Cobro c) {
+        Map<String, AttributeValue> fila = new LinkedHashMap<>();
+        fila.put("PK", s("FACT#" + f.id()));
+        fila.put("SK", s("COBRO#" + c.id()));
+        fila.put("cobro_id", s(c.id().toString()));
+        fila.put("monto", n(c.monto().monto()));
+        fila.put("moneda", s(f.moneda().name()));
+        fila.put("fecha", s(c.fecha().toString()));
+        if (c.referencia() != null) {
+            fila.put("referencia", s(c.referencia()));
+        }
+        return fila;
     }
 
     private Map<String, AttributeValue> filaCabecera(Factura f) {
@@ -154,7 +266,7 @@ public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, Ide
         fila.put("saldo", n(f.saldo().monto()));
         fila.put("fecha_emision", s(f.fechaEmision().toString()));
         fila.put("fecha_vencimiento", s(f.fechaVencimiento().toString()));
-        fila.put("version", AttributeValue.fromN("1"));
+        fila.put("version", AttributeValue.fromN(Long.toString(f.version())));
         fila.put("GSI1PK", s("CLI#" + f.clienteId()));
         fila.put("GSI1SK", s(f.fechaEmision() + "#" + f.id()));
         fila.put("GSI2PK", s("ESTADO#" + f.estado().name().toLowerCase()));

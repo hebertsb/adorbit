@@ -1,12 +1,18 @@
 package com.adorbit.facturacion.configuracion;
 
 import com.adorbit.facturacion.aplicacion.puerto.entrada.ConsultarEstadoCasoDeUso;
+import com.adorbit.facturacion.aplicacion.puerto.entrada.ConsultarFacturasCasoDeUso;
+import com.adorbit.facturacion.aplicacion.puerto.entrada.CotizarCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirFacturaCasoDeUso;
+import com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.salida.FacturaRepositorioPuerto;
 import com.adorbit.facturacion.aplicacion.puerto.salida.IdempotenciaPuerto;
 import com.adorbit.facturacion.aplicacion.puerto.salida.VerificarAlmacenamientoPuerto;
+import com.adorbit.facturacion.aplicacion.servicio.ServicioConsultarFacturas;
+import com.adorbit.facturacion.aplicacion.servicio.ServicioCotizar;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioEmitirFactura;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioEstado;
+import com.adorbit.facturacion.aplicacion.servicio.ServicioRegistrarCobro;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.UUID;
@@ -37,5 +43,21 @@ public class AplicacionConfiguracion {
             @Value("${adorbit.facturacion.negocio.dias-vencimiento}") int diasVencimiento) {
         return new ServicioEmitirFactura(
                 facturas, idempotencia, reloj, UUID::randomUUID, tasaImpuesto, diasVencimiento);
+    }
+
+    @Bean
+    RegistrarCobroCasoDeUso registrarCobro(
+            FacturaRepositorioPuerto facturas, IdempotenciaPuerto idempotencia, Clock reloj) {
+        return new ServicioRegistrarCobro(facturas, idempotencia, reloj, UUID::randomUUID);
+    }
+
+    @Bean
+    ConsultarFacturasCasoDeUso consultarFacturas(FacturaRepositorioPuerto facturas) {
+        return new ServicioConsultarFacturas(facturas);
+    }
+
+    @Bean
+    CotizarCasoDeUso cotizar(@Value("${adorbit.facturacion.negocio.tasa-impuesto}") BigDecimal tasaImpuesto) {
+        return new ServicioCotizar(tasaImpuesto, UUID::randomUUID);
     }
 }

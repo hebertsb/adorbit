@@ -50,6 +50,24 @@ class ServicioEmitirFacturaTest {
         }
 
         @Override
+        public void guardarCobro(
+                Factura f, com.adorbit.facturacion.dominio.Cobro c, RegistroIdempotencia r, List<EventoSalida> e) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public com.adorbit.facturacion.aplicacion.puerto.salida.Pagina<Factura> listarPorCliente(
+                UUID clienteId, com.adorbit.facturacion.dominio.EstadoFactura estado, int page, int size) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public com.adorbit.facturacion.aplicacion.puerto.salida.Pagina<Factura> listarPorEstado(
+                com.adorbit.facturacion.dominio.EstadoFactura estado, int page, int size) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public Optional<RegistroIdempotencia> buscar(String clave) {
             return Optional.ofNullable(claves.get(clave));
         }

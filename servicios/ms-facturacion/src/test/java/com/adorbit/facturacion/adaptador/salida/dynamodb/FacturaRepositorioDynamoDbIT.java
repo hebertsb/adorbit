@@ -213,4 +213,111 @@ class FacturaRepositorioDynamoDbIT {
                 .items();
         assertThat(items).hasSize(1);
     }
+
+    @Test
+    void cobroParcialYTotalActualizanSaldoEstadoYPublicanFacturaPagada() {
+        var registrar = new com.adorbit.facturacion.aplicacion.servicio.ServicioRegistrarCobro(
+                repositorio, repositorio, Clock.systemUTC(), UUID::randomUUID);
+        var factura = servicio.emitir(comando("clave-it-007", UUID.randomUUID(), "100.00"))
+                .factura();
+        // total = (3*100 + 100) * 1.13 = 452.00
+
+        var parcial = registrar.registrar(
+                new com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso.ComandoRegistrarCobro(
+                        "cobro-it-001", factura.id(), new BigDecimal("200.00"), java.time.LocalDate.now(), "tr-1"));
+        assertThat(parcial.factura().estado()).isEqualTo(EstadoFactura.PAGADA_PARCIAL);
+        var leida = repositorio.buscarPorId(factura.id()).orElseThrow();
+        assertThat(leida.saldo().monto()).isEqualByComparingTo("252.00");
+        assertThat(leida.cobros()).hasSize(1);
+        assertThat(leida.version()).isEqualTo(2);
+
+        var total = registrar.registrar(
+                new com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso.ComandoRegistrarCobro(
+                        "cobro-it-002", factura.id(), new BigDecimal("252.00"), java.time.LocalDate.now(), null));
+        assertThat(total.factura().estado()).isEqualTo(EstadoFactura.PAGADA);
+        assertThat(repositorio.buscarPorId(factura.id()).orElseThrow().cobros()).hasSize(2);
+
+        long pagadas = cliente.scan(r -> r.tableName(TABLA)).items().stream()
+                .filter(f -> f.get("PK").s().startsWith("SALIDA#")
+                        && f.get("agregado_id").s().equals(factura.id().toString())
+                        && f.get("tipo_evento").s().equals("FacturaPagada"))
+                .count();
+        assertThat(pagadas).isEqualTo(1);
+    }
+
+    @Test
+    void repetirElCobroNoLoAplicaDosVeces() {
+        var registrar = new com.adorbit.facturacion.aplicacion.servicio.ServicioRegistrarCobro(
+                repositorio, repositorio, Clock.systemUTC(), UUID::randomUUID);
+        var factura = servicio.emitir(comando("clave-it-008", UUID.randomUUID(), "100.00"))
+                .factura();
+        var cmd = new com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso.ComandoRegistrarCobro(
+                "cobro-it-003", factura.id(), new BigDecimal("50.00"), java.time.LocalDate.now(), null);
+
+        var primero = registrar.registrar(cmd);
+        var segundo = registrar.registrar(cmd);
+
+        assertThat(segundo.repetida()).isTrue();
+        assertThat(segundo.cobro().id()).isEqualTo(primero.cobro().id());
+        assertThat(repositorio.buscarPorId(factura.id()).orElseThrow().cobros()).hasSize(1);
+        assertThat(repositorio.buscarPorId(factura.id()).orElseThrow().saldo().monto())
+                .isEqualByComparingTo("402.00");
+    }
+
+    @Test
+    void unCobroConcurrenteConVersionVencidaSeRechaza() {
+        var factura = servicio.emitir(comando("clave-it-009", UUID.randomUUID(), "100.00"))
+                .factura();
+        var copiaA = repositorio.buscarPorId(factura.id()).orElseThrow();
+        var copiaB = repositorio.buscarPorId(factura.id()).orElseThrow();
+
+        var cobroA = copiaA.registrarCobro(
+                UUID.randomUUID(),
+                com.adorbit.facturacion.dominio.Dinero.de("10.00", Moneda.BOB),
+                java.time.LocalDate.now(),
+                null);
+        repositorio.guardarCobro(
+                copiaA,
+                cobroA,
+                new com.adorbit.facturacion.aplicacion.puerto.salida.RegistroIdempotencia(
+                        "cobro-it-004", "h", "{}", java.time.Instant.now().plusSeconds(60)),
+                List.of());
+
+        var cobroB = copiaB.registrarCobro(
+                UUID.randomUUID(),
+                com.adorbit.facturacion.dominio.Dinero.de("10.00", Moneda.BOB),
+                java.time.LocalDate.now(),
+                null);
+        assertThatThrownBy(() -> repositorio.guardarCobro(
+                        copiaB,
+                        cobroB,
+                        new com.adorbit.facturacion.aplicacion.puerto.salida.RegistroIdempotencia(
+                                "cobro-it-005",
+                                "h",
+                                "{}",
+                                java.time.Instant.now().plusSeconds(60)),
+                        List.of()))
+                .isInstanceOf(com.adorbit.facturacion.aplicacion.puerto.salida.ConflictoVersionException.class);
+        assertThat(repositorio.buscar("cobro-it-005")).isEmpty();
+        assertThat(repositorio.buscarPorId(factura.id()).orElseThrow().cobros()).hasSize(1);
+    }
+
+    @Test
+    void listaPorClienteYPorEstadoConPaginacion() {
+        UUID clienteId = UUID.randomUUID();
+        for (int i = 0; i < 3; i++) {
+            servicio.emitir(comando("clave-it-lista-" + i, clienteId, "10.00"));
+        }
+        var primera = repositorio.listarPorCliente(clienteId, null, 0, 2);
+        assertThat(primera.totalElementos()).isEqualTo(3);
+        assertThat(primera.contenido()).hasSize(2);
+        assertThat(repositorio.listarPorCliente(clienteId, null, 1, 2).contenido())
+                .hasSize(1);
+        assertThat(repositorio
+                        .listarPorCliente(clienteId, EstadoFactura.PAGADA, 0, 10)
+                        .contenido())
+                .isEmpty();
+        assertThat(repositorio.listarPorEstado(EstadoFactura.EMITIDA, 0, 100).totalElementos())
+                .isGreaterThanOrEqualTo(3);
+    }
 }

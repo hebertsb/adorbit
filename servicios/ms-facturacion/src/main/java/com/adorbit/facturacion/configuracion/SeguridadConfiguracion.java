@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.GrantedAuthority;
@@ -30,8 +31,12 @@ public class SeguridadConfiguracion {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a.requestMatchers("/salud", "/listo")
                         .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/facturas", "/api/v1/facturas/*")
+                        .hasAnyRole("ejecutivo", "gerente", "cliente")
+                        .requestMatchers("/api/v1/**")
+                        .hasAnyRole("ejecutivo", "gerente")
                         .anyRequest()
-                        .authenticated())
+                        .denyAll())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(convertidorRoles())));
         return http.build();
     }

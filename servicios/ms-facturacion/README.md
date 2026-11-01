@@ -39,7 +39,7 @@ Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos 
 3. [x] `TransactWriteItems` (factura + OUTBOX + IDEMP; si la clave existe, comparar hash y devolver respuesta)
 4. [ ] Relay de Streams a RabbitMQ (filtrar `SALIDA#`)
 5. [ ] Consumidor de comandos SAGA (+ nota de crédito)
-6. [ ] Consultas por GSI1/GSI2; tests de idempotencia
+6. [x] Consultas por GSI1/GSI2; tests de idempotencia (API REST de facturas, cobros y cotizaciones incluida)
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

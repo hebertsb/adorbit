@@ -24,6 +24,7 @@ public final class Factura {
     private final List<Cobro> cobros;
     private EstadoFactura estado;
     private Dinero saldo;
+    private long version;
 
     private Factura(
             UUID id,
@@ -36,7 +37,8 @@ public final class Factura {
             LocalDate fechaVencimiento,
             List<Cobro> cobros,
             EstadoFactura estado,
-            Dinero saldo) {
+            Dinero saldo,
+            long version) {
         this.id = id;
         this.clienteId = clienteId;
         this.campanaId = campanaId;
@@ -48,6 +50,7 @@ public final class Factura {
         this.cobros = new ArrayList<>(cobros);
         this.estado = estado;
         this.saldo = saldo;
+        this.version = version;
     }
 
     /** Emite una factura nueva. {@code totalEsperado} es opcional: si viene y difiere del calculado, falla. */
@@ -85,7 +88,8 @@ public final class Factura {
                 fechaVencimiento,
                 List.of(),
                 EstadoFactura.EMITIDA,
-                totales.total());
+                totales.total(),
+                1);
     }
 
     /** Reconstruye una factura ya persistida, sin recalcular ni revalidar historia. */
@@ -100,7 +104,8 @@ public final class Factura {
             LocalDate fechaVencimiento,
             List<Cobro> cobros,
             EstadoFactura estado,
-            Dinero saldo) {
+            Dinero saldo,
+            long version) {
         return new Factura(
                 id,
                 clienteId,
@@ -112,7 +117,8 @@ public final class Factura {
                 fechaVencimiento,
                 cobros,
                 estado,
-                saldo);
+                saldo,
+                version);
     }
 
     /** Aplica un cobro. No puede superar el saldo ni hacerse sobre una factura anulada. */
@@ -133,6 +139,7 @@ public final class Factura {
         cobros.add(cobro);
         saldo = saldo.restar(monto);
         estado = saldo.esCero() ? EstadoFactura.PAGADA : EstadoFactura.PAGADA_PARCIAL;
+        version++;
         return cobro;
     }
 
@@ -141,6 +148,7 @@ public final class Factura {
         boolean abierta = estado == EstadoFactura.EMITIDA || estado == EstadoFactura.PAGADA_PARCIAL;
         if (abierta && hoy.isAfter(fechaVencimiento)) {
             estado = EstadoFactura.VENCIDA;
+            version++;
             return true;
         }
         return false;
@@ -152,6 +160,7 @@ public final class Factura {
             throw new ExcepcionDominio("factura_anulada", "La factura ya esta anulada");
         }
         estado = EstadoFactura.ANULADA;
+        version++;
     }
 
     public UUID id() {
@@ -180,6 +189,11 @@ public final class Factura {
 
     public Dinero saldo() {
         return saldo;
+    }
+
+    /** Version tras los cambios en memoria; la version persistida previa es {@code version() - 1} si hubo un cambio. */
+    public long version() {
+        return version;
     }
 
     public EstadoFactura estado() {
