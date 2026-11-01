@@ -87,3 +87,18 @@ y el sobre estándar; la `clave_comando` es la clave de idempotencia. Si A decla
 argumentos, RabbitMQ rechaza la declaración (`PRECONDITION_FAILED`): acordar que los declare solo uno.
 Un fallo de negocio al facturar (p. ej. `total` distinto del calculado) responde con `FacturacionFallida`, no con error.
 Una compensación (`EmitirNotaCredito`) sobre una factura inexistente o ya anulada no hace nada y no publica evento.
+
+## Topología RabbitMQ de ms-clientes-crm (la declara el propio servicio al arrancar)
+| Elemento | Nombre | Detalle |
+|---|---|---|
+| Exchanges | `adorbit.eventos`, `adorbit.saga`, `adorbit.saga.dlx` | mismos argumentos que ms-facturacion (topic/topic/direct, durables) |
+| Cola de comandos | `saga.crm` | durable; bindings `reservar.credito` y `liberar.credito` en `adorbit.saga` |
+| Cola de errores | `saga.crm.dlq` | vía `adorbit.saga.dlx` (clave `saga.crm`) |
+| Reintentos | 5 intentos | espera exponencial (1 s ×2); luego a la DLQ. Mensaje ilegible o desconocido → DLQ sin reintentar |
+| Eventos que publica | `cliente.creado`, `cliente.actualizado`, `credito.reservado`, `credito.rechazado`, `credito.liberado` | por la bandeja de salida (`bandeja_salida_eventos`) |
+
+**Para A (orquestador):** publicar `ReservarCredito` / `LiberarCredito` en `adorbit.saga` con esas claves y la
+`clave_comando` (`sagaId:2:accion|compensacion`). Crédito insuficiente (o cliente inexistente/inactivo, moneda distinta,
+reserva activa ya existente) responde con `CreditoRechazado` y su `motivo`, no con error. Liberar sin reserva activa no
+hace nada. `ClienteCreado/Actualizado.estado` admite `moroso` (igual que la colección).
+

@@ -29,13 +29,27 @@ Publica: `ClienteCreado/Actualizado`, `CreditoReservado/Rechazado/Liberado`. Con
 
 Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos (ver `AGENTS.md`).
 
+## Cómo correrlo en local
+```bash
+cd servicios/ms-clientes-crm
+docker compose -f docker-compose.local.yml up -d     # Mongo (replica set, para transacciones) + RabbitMQ
+./preparar-bd-local.sh adorbit_crm                    # aplica base_de_datos/ms-clientes-crm.mongo.js
+composer install && cp .env.ejemplo .env && php artisan key:generate   # completar las variables ADORBIT_CRM_*
+php artisan serve --port=8084                         # API
+php artisan crm:consumir-comandos                     # consumidor de la SAGA (proceso aparte)
+php artisan crm:publicar-bandeja                      # relevo de la bandeja de salida (proceso aparte)
+```
+Pruebas: `./preparar-bd-local.sh adorbit_crm_test && php artisan test` (usan Mongo y RabbitMQ locales; los de RabbitMQ se
+omiten si no responde). Calidad: `vendor/bin/pint --test` y `vendor/bin/phpstan analyse`.
+En producción es una sola imagen con tres comandos (API, consumidor y relevo).
+
 ## Tareas (en orden)
-1. [ ] Esqueleto Laravel + JWT + `/api/salud` (driver MongoDB)
-2. [ ] CRUD clientes/contratos con validación
-3. [ ] Reserva atómica de crédito en transacción Mongo (cliente + reserva + outbox)
-4. [ ] Liberación idempotente y consumo
-5. [ ] Consumidor de comandos SAGA y relay de outbox
-6. [ ] Tests: crédito insuficiente, reintento del mismo comando
+1. [x] Esqueleto Laravel + JWT + `/api/salud` (driver MongoDB)
+2. [x] CRUD clientes/contratos con validación
+3. [x] Reserva atómica de crédito en transacción Mongo (cliente + reserva + outbox)
+4. [x] Liberación idempotente y consumo
+5. [x] Consumidor de comandos SAGA y relay de outbox
+6. [x] Tests: crédito insuficiente, reintento del mismo comando
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

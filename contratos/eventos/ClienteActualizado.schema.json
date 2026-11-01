@@ -65,7 +65,8 @@
           "type": "string",
           "enum": [
             "activo",
-            "inactivo"
+            "inactivo",
+            "moroso"
           ]
         },
         "linea_credito": {
