@@ -102,3 +102,11 @@ Una compensación (`EmitirNotaCredito`) sobre una factura inexistente o ya anula
 reserva activa ya existente) responde con `CreditoRechazado` y su `motivo`, no con error. Liberar sin reserva activa no
 hace nada. `ClienteCreado/Actualizado.estado` admite `moroso` (igual que la colección).
 
+## n8n (plataforma/n8n)
+| Qué | Detalle |
+|---|---|
+| Consume | cola `n8n.factura-emitida` ← `adorbit.eventos` clave `factura.emitida` (la crea `plataforma/n8n/preparar-rabbitmq.sh`) |
+| Webhooks | `POST /webhook/reunion` y `POST /webhook/pedido` con el encabezado `X-Webhook-Token`; cuerpos y errores en `plataforma/n8n/README.md` |
+| Llama a | ms-facturacion (`/facturas`, `/facturas/vencimientos`, `/cotizaciones`) y ms-clientes-crm (`/clientes/{id}`) con un JWT de la cuenta de servicio `n8n` (rol `gerente`) |
+| Para A | La cuenta de servicio `n8n` debe existir en el realm de Keycloak con el rol `gerente` y las audiencias `ms-facturacion` y `ms-clientes-crm`; hasta entonces se usa `herramientas/keycloak-simulado.mjs` |
+

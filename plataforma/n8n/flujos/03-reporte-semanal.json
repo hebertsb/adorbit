@@ -1,0 +1,352 @@
+{
+  "id": "adorbit-03",
+  "name": "AdOrbit · 03 Reporte semanal de facturación",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "8c330441-1754-5f6a-9fb9-0515f5541976",
+      "name": "Lunes 8:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADORBIT_KEYCLOAK_TOKEN_URL }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "={{ $env.ADORBIT_N8N_CLIENT_ID }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $env.ADORBIT_N8N_CLIENT_SECRET }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb8a68d6-3bb2-51fd-a840-3869573ac0bf",
+      "name": "Obtener token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ADORBIT_FACTURACION_URL }}/api/v1/facturas",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "estado",
+              "value": "emitida"
+            },
+            {
+              "name": "size",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "id": "da865ba1-92ac-5761-afb7-3215a090f66e",
+      "name": "Facturas emitidas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ADORBIT_FACTURACION_URL }}/api/v1/facturas",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "estado",
+              "value": "pagada_parcial"
+            },
+            {
+              "name": "size",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "id": "a94779ba-f682-54cc-b420-6937d1feb57a",
+      "name": "Facturas con cobro parcial",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ADORBIT_FACTURACION_URL }}/api/v1/facturas",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "estado",
+              "value": "vencida"
+            },
+            {
+              "name": "size",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "id": "00020c63-bcdb-58cd-9e71-c6b1ffb57859",
+      "name": "Facturas vencidas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ADORBIT_FACTURACION_URL }}/api/v1/facturas",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "estado",
+              "value": "pagada"
+            },
+            {
+              "name": "size",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "id": "61d3fea4-1668-5a8f-afb8-c615e48200cb",
+      "name": "Facturas pagadas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst esc = (t) => String(t ?? '').replace(/[&<>\"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/La_Paz' });\nconst sumarDias = (iso, d) => { const f = new Date(iso + 'T00:00:00Z'); f.setUTCDate(f.getUTCDate() + d); return f.toISOString().slice(0, 10); };\n// Hash no criptografico (el entorno de Code de n8n no permite require('crypto')): solo para claves de idempotencia / UID.\nconst hash = (texto) => {\n  const una = (s) => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }\n    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);\n    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0'); };\n  return una(texto) + una([...texto].reverse().join(''));\n};\n// Memoria entre ejecuciones del flujo. Se guarda como texto JSON: los objetos anidados de static data fallan en n8n 2.x.\nconst memoriaLeer = (nombre, porDefecto) => { try { const t = $getWorkflowStaticData('global')[nombre]; return t ? JSON.parse(t) : porDefecto; } catch (e) { return porDefecto; } };\nconst memoriaGuardar = (nombre, valor) => { $getWorkflowStaticData('global')[nombre] = JSON.stringify(valor); };\nconst destinatario = (cliente, patron) => {\n  const conEmail = ((cliente && cliente.contactos) || []).filter((c) => c.email);\n  return conEmail.find((c) => patron.test(c.rol || '')) || conEmail[0] || null;\n};\nconst plantilla = (titulo, cuerpo) => `<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937\">\n<h2 style=\"color:#4f46e5\">${esc(titulo)}</h2>${cuerpo}<hr style=\"border:none;border-top:1px solid #e5e7eb\">\n<p style=\"font-size:12px;color:#6b7280\">AdOrbit · mensaje automatico, no responda a este correo.</p></div>`;\n\nconst grupos = [\n  ['emitida', 'Emitidas', 'Facturas emitidas'],\n  ['pagada_parcial', 'Con cobro parcial', 'Facturas con cobro parcial'],\n  ['vencida', 'Vencidas', 'Facturas vencidas'],\n  ['pagada', 'Pagadas', 'Facturas pagadas'],\n];\nconst resumen = {};\nfor (const [estado, etiqueta, nodoNombre] of grupos) {\n  const lista = $(nodoNombre).first().json.contenido ?? [];\n  for (const f of lista) {\n    const k = `${etiqueta}|${f.moneda}`;\n    resumen[k] = resumen[k] ?? { etiqueta, moneda: f.moneda, cantidad: 0, total: 0, saldo: 0 };\n    resumen[k].cantidad += 1;\n    resumen[k].total += Number(f.total);\n    resumen[k].saldo += Number(f.saldo);\n  }\n}\nconst fmt = (n) => n.toFixed(2);\nconst filas = Object.values(resumen).sort((a, b) => a.etiqueta.localeCompare(b.etiqueta)).map((r) =>\n  `<tr><td>${esc(r.etiqueta)}</td><td>${esc(r.moneda)}</td><td style=\"text-align:right\">${r.cantidad}</td><td style=\"text-align:right\">${fmt(r.total)}</td><td style=\"text-align:right\">${fmt(r.saldo)}</td></tr>`).join('');\nconst cuerpo = filas\n  ? `<p>Situacion de facturacion al ${hoy()} (hasta 100 facturas por estado):</p>\n<table cellpadding=\"6\" style=\"border-collapse:collapse\"><tr style=\"background:#f3f4f6\"><th>Estado</th><th>Moneda</th><th>Facturas</th><th>Total</th><th>Saldo</th></tr>${filas}</table>`\n  : '<p>No hay facturas registradas.</p>';\nreturn [{ json: { para: $env.ADORBIT_CORREO_GERENCIA, asunto: `Reporte semanal de facturacion - ${hoy()}`, html: plantilla('Reporte semanal', cuerpo) } }];\n"
+      },
+      "id": "8ec0b1a6-e971-5597-aabc-6cd4b6a734a1",
+      "name": "Armar reporte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.ADORBIT_CORREO_REMITENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "7dc24249-5976-5b56-9089-5f34f6d26636",
+      "name": "Enviar reporte",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        200
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "adorbit-smtp",
+          "name": "AdOrbit SMTP (Mailpit local)"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "b72f50f9-76cf-5d5a-bb15-df5c35701344",
+      "name": "Ejecutar a mano",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Lunes 8:00": {
+      "main": [
+        [
+          {
+            "node": "Obtener token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener token": {
+      "main": [
+        [
+          {
+            "node": "Facturas emitidas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facturas emitidas": {
+      "main": [
+        [
+          {
+            "node": "Facturas con cobro parcial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facturas con cobro parcial": {
+      "main": [
+        [
+          {
+            "node": "Facturas vencidas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facturas vencidas": {
+      "main": [
+        [
+          {
+            "node": "Facturas pagadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facturas pagadas": {
+      "main": [
+        [
+          {
+            "node": "Armar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar reporte": {
+      "main": [
+        [
+          {
+            "node": "Enviar reporte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar a mano": {
+      "main": [
+        [
+          {
+            "node": "Obtener token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/La_Paz"
+  },
+  "pinData": {}
+}

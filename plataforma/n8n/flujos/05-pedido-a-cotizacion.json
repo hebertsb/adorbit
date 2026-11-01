@@ -1,0 +1,495 @@
+{
+  "id": "adorbit-05",
+  "name": "AdOrbit · 05 Pedido → cotización → notificar",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pedido",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "eb730d97-9e0f-5a82-a2a5-28530119d1f2",
+      "name": "Webhook pedido",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "7cf57f46-736a-5e59-838c-69d5e71589ae"
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n\nconst esc = (t) => String(t ?? '').replace(/[&<>\"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/La_Paz' });\nconst sumarDias = (iso, d) => { const f = new Date(iso + 'T00:00:00Z'); f.setUTCDate(f.getUTCDate() + d); return f.toISOString().slice(0, 10); };\n// Hash no criptografico (el entorno de Code de n8n no permite require('crypto')): solo para claves de idempotencia / UID.\nconst hash = (texto) => {\n  const una = (s) => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }\n    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);\n    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0'); };\n  return una(texto) + una([...texto].reverse().join(''));\n};\n// Memoria entre ejecuciones del flujo. Se guarda como texto JSON: los objetos anidados de static data fallan en n8n 2.x.\nconst memoriaLeer = (nombre, porDefecto) => { try { const t = $getWorkflowStaticData('global')[nombre]; return t ? JSON.parse(t) : porDefecto; } catch (e) { return porDefecto; } };\nconst memoriaGuardar = (nombre, valor) => { $getWorkflowStaticData('global')[nombre] = JSON.stringify(valor); };\nconst destinatario = (cliente, patron) => {\n  const conEmail = ((cliente && cliente.contactos) || []).filter((c) => c.email);\n  return conEmail.find((c) => patron.test(c.rol || '')) || conEmail[0] || null;\n};\nconst plantilla = (titulo, cuerpo) => `<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937\">\n<h2 style=\"color:#4f46e5\">${esc(titulo)}</h2>${cuerpo}<hr style=\"border:none;border-top:1px solid #e5e7eb\">\n<p style=\"font-size:12px;color:#6b7280\">AdOrbit · mensaje automatico, no responda a este correo.</p></div>`;\n\nconst entrada = $input.first().json;\nconst esperado = $env.ADORBIT_N8N_WEBHOOK_TOKEN;\nconst recibido = (entrada.headers || {})['x-webhook-token'];\nconst fallo = (estado_http, codigo, mensaje) => [{ json: { ok: false, estado_http, respuesta: { codigo, mensaje } } }];\nif (!esperado || recibido !== esperado) return fallo(401, 'no_autenticado', 'Falta o es invalido el encabezado X-Webhook-Token');\nconst b = entrada.body || {};\n\nconst uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nconst errores = {};\nif (!uuidRe.test(b.cliente_id || '')) errores.cliente_id = 'UUID invalido';\nif (typeof b.nombre_campana !== 'string' || b.nombre_campana.trim() === '' || b.nombre_campana.length > 200) errores.nombre_campana = 'Obligatorio, maximo 200 caracteres';\nif (!['BOB', 'USD'].includes(b.moneda)) errores.moneda = 'BOB o USD';\nif (!Array.isArray(b.items) || b.items.length < 1 || b.items.length > 90) errores.items = 'Entre 1 y 90 items';\nelse b.items.forEach((it, i) => {\n  if (!it || typeof it.descripcion !== 'string' || !it.descripcion.trim() || it.descripcion.length > 200) errores[`items[${i}].descripcion`] = 'Obligatoria';\n  if (!Number.isInteger(it.cantidad) || it.cantidad < 1) errores[`items[${i}].cantidad`] = 'Entero >= 1';\n  if (!/^\\d{1,12}(\\.\\d{1,2})?$/.test(String(it.precio_unitario))) errores[`items[${i}].precio_unitario`] = 'Decimal como texto, ej. \"1500.00\"';\n});\nif (Object.keys(errores).length) return [{ json: { ok: false, estado_http: 400, respuesta: { codigo: 'solicitud_invalida', mensaje: 'Hay campos invalidos', detalle: errores } } }];\nconst huella = hash(JSON.stringify([b.cliente_id, b.nombre_campana, b.moneda, b.items]));\nreturn [{ json: { ok: true, clave: 'pedido-' + huella, pedido: { cliente_id: b.cliente_id, nombre_campana: b.nombre_campana.trim(), moneda: b.moneda, items: b.items.map((i) => ({ descripcion: i.descripcion.trim(), cantidad: i.cantidad, precio_unitario: String(i.precio_unitario) })) } } }];\n\n} catch (e) {\n  return [{ json: { ok: false, estado_http: 500, respuesta: { codigo: 'error_interno', mensaje: 'Fallo interno del flujo', detalle: String((e && e.message) || e) } } }];\n}\n"
+      },
+      "id": "5ebc1ba7-9534-5ed1-8fa2-89ddac3a9ee8",
+      "name": "Validar pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fa11a40b-5da8-574f-9c8a-7383def52594",
+      "name": "Pedido valido",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADORBIT_KEYCLOAK_TOKEN_URL }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "={{ $env.ADORBIT_N8N_CLIENT_ID }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $env.ADORBIT_N8N_CLIENT_SECRET }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb8a68d6-3bb2-51fd-a840-3869573ac0bf",
+      "name": "Obtener token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADORBIT_FACTURACION_URL }}/api/v1/cotizaciones",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $('Validar pedido').first().json.clave }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ cliente_id: $('Validar pedido').first().json.pedido.cliente_id, moneda: $('Validar pedido').first().json.pedido.moneda, items: $('Validar pedido').first().json.pedido.items }) }}"
+      },
+      "id": "c5654592-4e7f-5932-82ef-ca7ae15abc9b",
+      "name": "Cotizar en facturacion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADORBIT_CAMPANAS_URL }}/api/v1/campanas",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $('Validar pedido').first().json.clave }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ cliente_id: $('Validar pedido').first().json.pedido.cliente_id, nombre: $('Validar pedido').first().json.pedido.nombre_campana }) }}"
+      },
+      "id": "7ad02ad3-0367-592a-a3e0-65cbbcd3a01b",
+      "name": "Crear campana en ms-campanas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        100
+      ],
+      "disabled": true,
+      "notes": "DESACTIVADO: depende del contrato POST /campanas de ms-campanas (Integrante A). Ajustar el cuerpo y activar."
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ADORBIT_CRM_URL }}/api/v1/clientes/{{ $('Validar pedido').first().json.pedido.cliente_id }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            }
+          ]
+        }
+      },
+      "id": "02338757-5c0a-5b14-9d09-5297fd781cb8",
+      "name": "Cliente en CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n\nconst esc = (t) => String(t ?? '').replace(/[&<>\"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/La_Paz' });\nconst sumarDias = (iso, d) => { const f = new Date(iso + 'T00:00:00Z'); f.setUTCDate(f.getUTCDate() + d); return f.toISOString().slice(0, 10); };\n// Hash no criptografico (el entorno de Code de n8n no permite require('crypto')): solo para claves de idempotencia / UID.\nconst hash = (texto) => {\n  const una = (s) => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }\n    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);\n    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0'); };\n  return una(texto) + una([...texto].reverse().join(''));\n};\n// Memoria entre ejecuciones del flujo. Se guarda como texto JSON: los objetos anidados de static data fallan en n8n 2.x.\nconst memoriaLeer = (nombre, porDefecto) => { try { const t = $getWorkflowStaticData('global')[nombre]; return t ? JSON.parse(t) : porDefecto; } catch (e) { return porDefecto; } };\nconst memoriaGuardar = (nombre, valor) => { $getWorkflowStaticData('global')[nombre] = JSON.stringify(valor); };\nconst destinatario = (cliente, patron) => {\n  const conEmail = ((cliente && cliente.contactos) || []).filter((c) => c.email);\n  return conEmail.find((c) => patron.test(c.rol || '')) || conEmail[0] || null;\n};\nconst plantilla = (titulo, cuerpo) => `<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937\">\n<h2 style=\"color:#4f46e5\">${esc(titulo)}</h2>${cuerpo}<hr style=\"border:none;border-top:1px solid #e5e7eb\">\n<p style=\"font-size:12px;color:#6b7280\">AdOrbit · mensaje automatico, no responda a este correo.</p></div>`;\n\nconst cot = $('Cotizar en facturacion').first().json;\nif (!cot || !cot.id) {\n  const estado = cot && cot.codigo === 'solicitud_invalida' ? 400 : 502;\n  return [{ json: { ok: false, estado_http: estado, respuesta: { codigo: (cot && cot.codigo) || 'facturacion_no_disponible', mensaje: (cot && cot.mensaje) || 'No se pudo cotizar', detalle: (cot && cot.detalle) || null } } }];\n}\nconst pedido = $('Validar pedido').first().json.pedido;\nconst cliente = $input.first().json && $input.first().json.id ? $input.first().json : null;\nconst dest = destinatario(cliente, /direc|gerent|compras|marketing/i);\n// Un reintento del mismo pedido (misma clave) responde igual pero no vuelve a enviar el correo (24 h).\nconst notificados = memoriaLeer('notificados', {});\nconst clave = $('Validar pedido').first().json.clave;\nconst ahora = Date.now();\nfor (const k of Object.keys(notificados)) if (ahora - notificados[k] > 86400000) delete notificados[k];\nconst yaNotificado = !!notificados[clave];\nif (!yaNotificado) notificados[clave] = ahora;\nmemoriaGuardar('notificados', notificados);\nconst filas = cot.items.map((i) => `<tr><td>${esc(i.descripcion)}</td><td style=\"text-align:right\">${i.cantidad}</td><td style=\"text-align:right\">${esc(i.precio_unitario)}</td><td style=\"text-align:right\">${esc(i.subtotal)}</td></tr>`).join('');\nconst cuerpo = `<p>Hola${dest ? ' ' + esc(dest.nombre) : ''},</p><p>Esta es la cotizacion para <b>${esc(pedido.nombre_campana)}</b>:</p>\n<table cellpadding=\"6\" style=\"border-collapse:collapse\"><tr style=\"background:#f3f4f6\"><th>Detalle</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>${filas}</table>\n<p>Subtotal: ${esc(cot.subtotal)} · Impuestos: ${esc(cot.impuestos)} · <b>Total: ${esc(cot.total)} ${esc(cot.moneda)}</b></p>`;\nreturn [{ json: {\n  ok: true, enviar_correo: !yaNotificado, para: dest ? dest.email : $env.ADORBIT_CORREO_GERENCIA,\n  asunto: `Cotizacion - ${pedido.nombre_campana}`, html: plantilla('Cotizacion', cuerpo),\n  respuesta: { cotizacion: cot, notificado: dest ? dest.email : null, campana: 'pendiente: ms-campanas aun no expone POST /campanas' },\n} }];\n\n} catch (e) {\n  return [{ json: { ok: false, estado_http: 500, respuesta: { codigo: 'error_interno', mensaje: 'Fallo interno del flujo', detalle: String((e && e.message) || e) } } }];\n}\n"
+      },
+      "id": "e2268a02-a660-5eda-b579-825e355273ab",
+      "name": "Armar respuesta y correo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ok3",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "287b3953-f0bf-519a-9bd0-57bc79c948cd",
+      "name": "Cotizacion lista",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ok4",
+              "leftValue": "={{ $json.enviar_correo }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f0cb077-d79c-551f-9145-0ad8c2bea2fe",
+      "name": "Correo pendiente",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1980,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.ADORBIT_CORREO_REMITENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "1ac9d2c7-e441-5823-af87-edd0582190f9",
+      "name": "Enviar cotizacion",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2200,
+        0
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "adorbit-smtp",
+          "name": "AdOrbit SMTP (Mailpit local)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Armar respuesta y correo').first().json.respuesta) }}",
+        "options": {
+          "responseCode": 201
+        }
+      },
+      "id": "6d8c7f04-eb96-550f-bd93-a1fbbb00b5e8",
+      "name": "Responder cotizacion",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.respuesta) }}",
+        "options": {
+          "responseCode": "={{ $json.estado_http }}"
+        }
+      },
+      "id": "7e94067d-6218-5222-bd82-7d8cccde1223",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1980,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook pedido": {
+      "main": [
+        [
+          {
+            "node": "Validar pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar pedido": {
+      "main": [
+        [
+          {
+            "node": "Pedido valido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedido valido": {
+      "main": [
+        [
+          {
+            "node": "Obtener token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener token": {
+      "main": [
+        [
+          {
+            "node": "Cotizar en facturacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cotizar en facturacion": {
+      "main": [
+        [
+          {
+            "node": "Crear campana en ms-campanas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear campana en ms-campanas": {
+      "main": [
+        [
+          {
+            "node": "Cliente en CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente en CRM": {
+      "main": [
+        [
+          {
+            "node": "Armar respuesta y correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar respuesta y correo": {
+      "main": [
+        [
+          {
+            "node": "Cotizacion lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cotizacion lista": {
+      "main": [
+        [
+          {
+            "node": "Correo pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Correo pendiente": {
+      "main": [
+        [
+          {
+            "node": "Enviar cotizacion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder cotizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar cotizacion": {
+      "main": [
+        [
+          {
+            "node": "Responder cotizacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/La_Paz"
+  },
+  "pinData": {}
+}

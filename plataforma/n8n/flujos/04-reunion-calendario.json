@@ -1,0 +1,347 @@
+{
+  "id": "adorbit-04",
+  "name": "AdOrbit · 04 Programar reunión (invitación de calendario)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reunion",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6e5804b4-ff33-5402-b1ef-d22c7442bb9d",
+      "name": "Webhook reunion",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "baca839d-2de2-531e-a5a1-29ed0c9a658e"
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n\nconst entrada = $input.first().json;\nconst esperado = $env.ADORBIT_N8N_WEBHOOK_TOKEN;\nconst recibido = (entrada.headers || {})['x-webhook-token'];\nconst fallo = (estado_http, codigo, mensaje) => [{ json: { ok: false, estado_http, respuesta: { codigo, mensaje } } }];\nif (!esperado || recibido !== esperado) return fallo(401, 'no_autenticado', 'Falta o es invalido el encabezado X-Webhook-Token');\nconst b = entrada.body || {};\n\nconst uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nconst errores = {};\nif (!uuidRe.test(b.cliente_id || '')) errores.cliente_id = 'UUID invalido';\nif (typeof b.titulo !== 'string' || b.titulo.trim() === '' || b.titulo.length > 200) errores.titulo = 'Obligatorio, maximo 200 caracteres';\nconst inicio = new Date(b.inicio);\nif (!b.inicio || Number.isNaN(inicio.getTime())) errores.inicio = 'Fecha-hora ISO-8601 invalida';\nelse if (inicio.getTime() < Date.now()) errores.inicio = 'Debe ser futura';\nconst duracion = Number(b.duracion_min ?? 60);\nif (!Number.isInteger(duracion) || duracion < 15 || duracion > 480) errores.duracion_min = 'Entre 15 y 480 minutos';\nif (b.notas !== undefined && String(b.notas).length > 2000) errores.notas = 'Maximo 2000 caracteres';\nconst desconocidos = Object.keys(b).filter((k) => !['cliente_id', 'titulo', 'inicio', 'duracion_min', 'notas'].includes(k));\nif (desconocidos.length) errores.campos = 'No permitidos: ' + desconocidos.join(', ');\nif (Object.keys(errores).length) return [{ json: { ok: false, estado_http: 400, respuesta: { codigo: 'solicitud_invalida', mensaje: 'Hay campos invalidos', detalle: errores } } }];\nreturn [{ json: { ok: true, datos: { cliente_id: b.cliente_id, titulo: b.titulo.trim(), inicio: inicio.toISOString(), duracion_min: duracion, notas: b.notas ?? '' } } }];\n\n} catch (e) {\n  return [{ json: { ok: false, estado_http: 500, respuesta: { codigo: 'error_interno', mensaje: 'Fallo interno del flujo', detalle: String((e && e.message) || e) } } }];\n}\n"
+      },
+      "id": "49cc406d-42d2-5a10-8017-1a1996f530e0",
+      "name": "Validar solicitud",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ok",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8d6271a1-2502-519d-85d7-5d8a510f921b",
+      "name": "Solicitud valida",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADORBIT_KEYCLOAK_TOKEN_URL }}",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "={{ $env.ADORBIT_N8N_CLIENT_ID }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $env.ADORBIT_N8N_CLIENT_SECRET }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb8a68d6-3bb2-51fd-a840-3869573ac0bf",
+      "name": "Obtener token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.ADORBIT_CRM_URL }}/api/v1/clientes/{{ $('Validar solicitud').first().json.datos.cliente_id }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Obtener token').first().json.access_token }}"
+            }
+          ]
+        }
+      },
+      "id": "02338757-5c0a-5b14-9d09-5297fd781cb8",
+      "name": "Cliente en CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n\nconst esc = (t) => String(t ?? '').replace(/[&<>\"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '\"': '&quot;' }[c]));\nconst hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/La_Paz' });\nconst sumarDias = (iso, d) => { const f = new Date(iso + 'T00:00:00Z'); f.setUTCDate(f.getUTCDate() + d); return f.toISOString().slice(0, 10); };\n// Hash no criptografico (el entorno de Code de n8n no permite require('crypto')): solo para claves de idempotencia / UID.\nconst hash = (texto) => {\n  const una = (s) => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }\n    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);\n    return (h2 >>> 0).toString(16).padStart(8, '0') + (h1 >>> 0).toString(16).padStart(8, '0'); };\n  return una(texto) + una([...texto].reverse().join(''));\n};\n// Memoria entre ejecuciones del flujo. Se guarda como texto JSON: los objetos anidados de static data fallan en n8n 2.x.\nconst memoriaLeer = (nombre, porDefecto) => { try { const t = $getWorkflowStaticData('global')[nombre]; return t ? JSON.parse(t) : porDefecto; } catch (e) { return porDefecto; } };\nconst memoriaGuardar = (nombre, valor) => { $getWorkflowStaticData('global')[nombre] = JSON.stringify(valor); };\nconst destinatario = (cliente, patron) => {\n  const conEmail = ((cliente && cliente.contactos) || []).filter((c) => c.email);\n  return conEmail.find((c) => patron.test(c.rol || '')) || conEmail[0] || null;\n};\nconst plantilla = (titulo, cuerpo) => `<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:auto;color:#1f2937\">\n<h2 style=\"color:#4f46e5\">${esc(titulo)}</h2>${cuerpo}<hr style=\"border:none;border-top:1px solid #e5e7eb\">\n<p style=\"font-size:12px;color:#6b7280\">AdOrbit · mensaje automatico, no responda a este correo.</p></div>`;\n\nconst datos = $('Validar solicitud').first().json.datos;\nconst cliente = $input.first().json && $input.first().json.id ? $input.first().json : null;\nif (!cliente) return [{ json: { ok: false, estado_http: 404, respuesta: { codigo: 'cliente_no_encontrado', mensaje: 'No existe el cliente' } } }];\nconst dest = destinatario(cliente, /direc|gerent|compras|marketing/i);\nif (!dest) return [{ json: { ok: false, estado_http: 422, respuesta: { codigo: 'cliente_sin_contacto', mensaje: 'El cliente no tiene un contacto con correo' } } }];\n\nconst fin = new Date(new Date(datos.inicio).getTime() + datos.duracion_min * 60000);\nconst f = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\\.\\d{3}/, '');\nconst texto = (t) => String(t).replace(/\\\\/g, '\\\\\\\\').replace(/;/g, '\\\\;').replace(/,/g, '\\\\,').replace(/\\r?\\n/g, '\\\\n');\nconst uid = hash(datos.cliente_id + datos.inicio) + '@adorbit';\nconst remitente = (($env.ADORBIT_CORREO_REMITENTE.match(/<(.+)>/) || [])[1]) || $env.ADORBIT_CORREO_REMITENTE;\nconst ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//AdOrbit//n8n//ES', 'METHOD:REQUEST', 'BEGIN:VEVENT',\n  `UID:${uid}`, `DTSTAMP:${f(new Date())}`, `DTSTART:${f(new Date(datos.inicio))}`, `DTEND:${f(fin)}`,\n  `SUMMARY:${texto(datos.titulo)}`, `DESCRIPTION:${texto(datos.notas)}`,\n  `ORGANIZER:mailto:${remitente}`, `ATTENDEE;CN=${texto(dest.nombre)}:mailto:${dest.email}`,\n  'END:VEVENT', 'END:VCALENDAR'].join('\\r\\n') + '\\r\\n';\nconst cuando = new Date(datos.inicio).toLocaleString('es-BO', { timeZone: 'America/La_Paz', dateStyle: 'full', timeStyle: 'short' });\nconst cuerpo = `<p>Hola ${esc(dest.nombre)},</p><p>Le invitamos a la reunion <b>${esc(datos.titulo)}</b>.</p>\n<p><b>Cuando:</b> ${esc(cuando)} (hora de Bolivia)<br><b>Duracion:</b> ${datos.duracion_min} minutos</p>\n${datos.notas ? '<p>' + esc(datos.notas) + '</p>' : ''}<p>Adjuntamos la invitacion para su calendario.</p>`;\nreturn [{\n  json: { ok: true, para: dest.email, asunto: `Invitacion: ${datos.titulo}`, html: plantilla('Invitacion a reunion', cuerpo),\n          respuesta: { estado: 'enviada', destinatario: dest.email, inicio: datos.inicio, duracion_min: datos.duracion_min, uid } },\n  binary: { invitacion: { data: Buffer.from(ics, 'utf8').toString('base64'), mimeType: 'text/calendar', fileName: 'reunion.ics' } },\n}];\n\n} catch (e) {\n  return [{ json: { ok: false, estado_http: 500, respuesta: { codigo: 'error_interno', mensaje: 'Fallo interno del flujo', detalle: String((e && e.message) || e) } } }];\n}\n"
+      },
+      "id": "f8b5dd96-5097-5d23-a554-d04ed7fb0f52",
+      "name": "Armar invitacion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ok2",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4ead2b7c-a4d1-540c-a79c-5c53483b6396",
+      "name": "Invitacion lista",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.ADORBIT_CORREO_REMITENTE }}",
+        "toEmail": "={{ $json.para }}",
+        "subject": "={{ $json.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "attachments": "invitacion"
+        }
+      },
+      "id": "b317cd60-97cf-5757-8a0d-81f689987e0f",
+      "name": "Enviar invitacion",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1540,
+        40
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "adorbit-smtp",
+          "name": "AdOrbit SMTP (Mailpit local)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Armar invitacion').first().json.respuesta) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "bdb037dd-941c-5bf3-adda-46a20e6f36d6",
+      "name": "Responder exito",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.respuesta) }}",
+        "options": {
+          "responseCode": "={{ $json.estado_http }}"
+        }
+      },
+      "id": "7e94067d-6218-5222-bd82-7d8cccde1223",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook reunion": {
+      "main": [
+        [
+          {
+            "node": "Validar solicitud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar solicitud": {
+      "main": [
+        [
+          {
+            "node": "Solicitud valida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solicitud valida": {
+      "main": [
+        [
+          {
+            "node": "Obtener token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener token": {
+      "main": [
+        [
+          {
+            "node": "Cliente en CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cliente en CRM": {
+      "main": [
+        [
+          {
+            "node": "Armar invitacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Armar invitacion": {
+      "main": [
+        [
+          {
+            "node": "Invitacion lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Invitacion lista": {
+      "main": [
+        [
+          {
+            "node": "Enviar invitacion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar invitacion": {
+      "main": [
+        [
+          {
+            "node": "Responder exito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/La_Paz"
+  },
+  "pinData": {}
+}
