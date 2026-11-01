@@ -309,8 +309,11 @@ Los scripts de `base_de_datos/` ya siguen esta regla; los scripts y documentos n
 - El autor del commit es siempre la persona que usa la sesión (su `git config user.name`/`user.email`
   local). No cambiar la configuración de git ni agregar otros autores.
 - No incluir secretos, `.env`, binarios pesados ni archivos generados en los commits.
-- *(Heredado del CLAUDE.md del otro proyecto del equipo; borrar si no aplica aquí:)* los commits, PRs,
-  comentarios y archivos no mencionan a Claude, Claude Code ni Anthropic como autor o coautor.
+- **Ningún commit, PR, comentario, archivo ni metadato (`CODEOWNERS`, `AUTHORS`, pies de página, etc.)
+  menciona a Claude, Claude Code, Anthropic ni a ningún asistente de IA como autor, coautor o
+  colaborador.** Sin `Co-Authored-By` ni frases como "Generated with ...". El autor y el *committer*
+  son siempre las personas del equipo (su `git config user.name`/`user.email` local). Regla obligatoria
+  y permanente, sin excepciones.
 
 ---
 
