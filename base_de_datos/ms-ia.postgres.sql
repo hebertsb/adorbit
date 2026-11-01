@@ -180,6 +180,14 @@ GRANT SELECT ON vista_mcp_campanas, vista_mcp_facturacion, vista_mcp_clientes TO
 -- Para usarlo: crear un usuario LOGIN con "GRANT lector_mcp TO <usuario>" y
 -- un statement_timeout corto (ALTER ROLE <usuario> SET statement_timeout = '5s').
 
+-- Una vista corre con los permisos de su dueno (postgres, que bypassa RLS), no con los
+-- de quien consulta: el RLS de las tablas base NO protege estas vistas. Supabase otorga
+-- privilegios por defecto a anon/authenticated (los roles de su API publica) sobre los
+-- objetos nuevos de "public"; sin este REVOKE, las vistas MCP quedarian legibles con la
+-- anon key publica, saltandose la regla de que el MCP es la unica via a los datos.
+REVOKE ALL ON vista_mcp_campanas, vista_mcp_facturacion, vista_mcp_clientes
+  FROM PUBLIC, anon, authenticated;
+
 -- ------------------------------------------------ triggers y seguridad
 CREATE TRIGGER disparador_rep_camp_upd BEFORE UPDATE ON reporte_campanas
   FOR EACH ROW EXECUTE FUNCTION set_actualizado_en();

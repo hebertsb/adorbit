@@ -14,6 +14,7 @@
 | D9 | 31 oct | Archivos en Supabase Storage o S3 | Atlas no guarda archivos |
 | D10 | 31 oct | MCP con rol `lector_mcp`, vistas `vista_mcp_*` y auditoría de solo agregar | Defensa contra inyección SQL |
 | D11 | 31 oct | Un solo **monorepo** (aplicaciones/, servicios/, contratos/, plataforma/, infraestructura/); sin librerías de runtime compartidas ni Kubernetes | Menos fricción para 3 personas; despliegue por imagen en nubes distintas |
+| D12 | 1 nov | `base_de_datos/ms-ia.postgres.sql`: `REVOKE ALL ... FROM PUBLIC, anon, authenticated` sobre `vista_mcp_*` | Una vista corre con los permisos de su dueño (bypassa RLS); sin el REVOKE, Supabase deja esas vistas legibles con la anon key pública (detectado al provisionar el proyecto `ms-ia` real) |
 
 ## Preguntas abiertas (confirmar con el docente)
 1. Fecha exacta de entrega y formato de la defensa.
@@ -33,4 +34,5 @@
   **comparar con sus archivos antes de reemplazarlos** y conservar lo que el original tenga de más.
 
 ## Registro de cambios
+- 1 nov · Hebert (C) · Provisionado el proyecto Supabase real `ms-ia` (schema `base_de_datos/ms-ia.postgres.sql`); se detectaron las vistas `vista_mcp_*` accesibles por `anon`/`authenticated` y se corrigió con `REVOKE` (ver D12) · `base_de_datos/ms-ia.postgres.sql`
 (Añadir arriba una fila por cambio: fecha · quién · qué · archivos tocados.)
