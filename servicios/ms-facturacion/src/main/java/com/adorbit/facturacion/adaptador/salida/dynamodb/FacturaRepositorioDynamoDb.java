@@ -225,6 +225,20 @@ public class FacturaRepositorioDynamoDb implements FacturaRepositorioPuerto, Ide
     }
 
     @Override
+    public void guardarCambioDeEstado(Factura f) {
+        var actualizacion = actualizarCabecera(f).update();
+        try {
+            cliente.updateItem(r -> r.tableName(tabla)
+                    .key(actualizacion.key())
+                    .updateExpression(actualizacion.updateExpression())
+                    .conditionExpression(actualizacion.conditionExpression())
+                    .expressionAttributeValues(actualizacion.expressionAttributeValues()));
+        } catch (software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException e) {
+            throw new ConflictoVersionException("La factura fue modificada por otra operacion");
+        }
+    }
+
+    @Override
     public void guardarFallo(RegistroIdempotencia idemp, EventoSalida evento) {
         List<TransactWriteItem> operaciones = new ArrayList<>();
         operaciones.add(poner(filaIdempotencia(idemp)));

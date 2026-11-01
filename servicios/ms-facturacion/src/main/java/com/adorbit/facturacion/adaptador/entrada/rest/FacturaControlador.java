@@ -13,6 +13,7 @@ import com.adorbit.facturacion.aplicacion.puerto.entrada.CotizarCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirFacturaCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirFacturaCasoDeUso.ComandoEmitirFactura;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirFacturaCasoDeUso.LineaComando;
+import com.adorbit.facturacion.aplicacion.puerto.entrada.MarcarVencidasCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso.ComandoRegistrarCobro;
 import com.adorbit.facturacion.dominio.Dinero;
@@ -22,6 +23,8 @@ import com.adorbit.facturacion.dominio.Factura;
 import com.adorbit.facturacion.dominio.ItemFactura;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -48,16 +51,22 @@ public class FacturaControlador {
     private final RegistrarCobroCasoDeUso cobrar;
     private final ConsultarFacturasCasoDeUso consultar;
     private final CotizarCasoDeUso cotizar;
+    private final MarcarVencidasCasoDeUso marcarVencidas;
+    private final Clock reloj;
 
     public FacturaControlador(
             EmitirFacturaCasoDeUso emitir,
             RegistrarCobroCasoDeUso cobrar,
             ConsultarFacturasCasoDeUso consultar,
-            CotizarCasoDeUso cotizar) {
+            CotizarCasoDeUso cotizar,
+            MarcarVencidasCasoDeUso marcarVencidas,
+            Clock reloj) {
         this.emitir = emitir;
         this.cobrar = cobrar;
         this.consultar = consultar;
         this.cotizar = cotizar;
+        this.marcarVencidas = marcarVencidas;
+        this.reloj = reloj;
     }
 
     @PostMapping("/facturas")
@@ -114,6 +123,22 @@ public class FacturaControlador {
         HttpStatus estado = resultado.repetida() ? HttpStatus.OK : HttpStatus.CREATED;
         return ResponseEntity.status(estado).body(CobroRespuesta.de(resultado.cobro()));
     }
+
+    /**
+     * Marca como vencidas las facturas abiertas cuyo vencimiento ya paso. Lo dispara una tarea programada
+     * (n8n, a diario). Es idempotente por naturaleza; la clave se exige solo por uniformidad de la API.
+     */
+    @PostMapping("/facturas/vencimientos")
+    public ResultadoVencimientosRespuesta vencimientos(@RequestHeader("Idempotency-Key") String clave) {
+        if (clave == null || clave.length() < 8 || clave.length() > 120) {
+            throw new ExcepcionDominio(
+                    "clave_idempotencia_invalida", "La clave de idempotencia debe tener 8 a 120 caracteres");
+        }
+        var r = marcarVencidas.marcar(LocalDate.now(reloj));
+        return new ResultadoVencimientosRespuesta(r.revisadas(), r.marcadasVencidas(), r.conflictos());
+    }
+
+    public record ResultadoVencimientosRespuesta(int revisadas, int marcadasVencidas, int conflictos) {}
 
     @PostMapping("/cotizaciones")
     public ResponseEntity<CotizacionRespuesta> cotizar(

@@ -87,6 +87,28 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PaginaFacturas' }
         '401': { $ref: '#/components/responses/Error' }
+  /api/v1/facturas/vencimientos:
+    post:
+      tags: [facturas]
+      summary: Marcar como vencidas las facturas abiertas cuyo vencimiento ya paso
+      description: >
+        Tarea programada (la dispara n8n a diario). Roles ejecutivo, gerente. Idempotente por naturaleza: una factura
+        ya vencida no se vuelve a tocar. La Idempotency-Key se exige solo por uniformidad de la API.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Resumen de la corrida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revisadas: { type: integer }
+                  marcadas_vencidas: { type: integer }
+                  conflictos: { type: integer, description: Facturas que cambiaron durante la corrida; la proxima las revisa }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
   /api/v1/facturas/{id}:
     get:
       tags: [facturas]

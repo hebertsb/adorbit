@@ -74,6 +74,11 @@ class ServicioEmitirFacturaTest {
         }
 
         @Override
+        public void guardarCambioDeEstado(Factura f) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public void guardarFallo(RegistroIdempotencia r, EventoSalida e) {
             throw new UnsupportedOperationException();
         }

@@ -65,6 +65,9 @@ class FacturaControladorTest {
     @MockitoBean
     private CotizarCasoDeUso cotizar;
 
+    @MockitoBean
+    private com.adorbit.facturacion.aplicacion.puerto.entrada.MarcarVencidasCasoDeUso marcarVencidas;
+
     private static RequestPostProcessor rol(String rol) {
         return jwt().authorities(new SimpleGrantedAuthority("ROLE_" + rol));
     }
@@ -249,5 +252,25 @@ class FacturaControladorTest {
         mvc.perform(get("/api/v1/facturas").param("estado", "inventado").with(rol("gerente")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.codigo").value("estado_invalido"));
+    }
+
+    @Test
+    void vencimientosDevuelveElResumenYExigeClaveYRol() throws Exception {
+        when(marcarVencidas.marcar(any()))
+                .thenReturn(
+                        new com.adorbit.facturacion.aplicacion.puerto.entrada.MarcarVencidasCasoDeUso
+                                .ResultadoVencimientos(5, 2, 0));
+
+        mvc.perform(post("/api/v1/facturas/vencimientos")
+                        .with(rol("gerente"))
+                        .header("Idempotency-Key", "venc-2026-11-05"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.revisadas").value(5))
+                .andExpect(jsonPath("$.marcadas_vencidas").value(2));
+        mvc.perform(post("/api/v1/facturas/vencimientos").with(rol("gerente"))).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/v1/facturas/vencimientos")
+                        .with(cliente(CLIENTE))
+                        .header("Idempotency-Key", "venc-2026-11-05"))
+                .andExpect(status().isForbidden());
     }
 }

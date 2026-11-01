@@ -320,4 +320,52 @@ class FacturaRepositorioDynamoDbIT {
         assertThat(repositorio.listarPorEstado(EstadoFactura.EMITIDA, 0, 100).totalElementos())
                 .isGreaterThanOrEqualTo(3);
     }
+
+    @Test
+    void marcaVencidasSoloLasQueYaPasaronYEsIdempotente() {
+        var marcador = new com.adorbit.facturacion.aplicacion.servicio.ServicioMarcarVencidas(repositorio);
+        UUID clienteId = UUID.randomUUID();
+        var abierta =
+                servicio.emitir(comando("clave-it-venc-1", clienteId, "10.00")).factura();
+        var parcial =
+                servicio.emitir(comando("clave-it-venc-2", clienteId, "10.00")).factura();
+        var cobros = new com.adorbit.facturacion.aplicacion.servicio.ServicioRegistrarCobro(
+                repositorio, repositorio, Clock.systemUTC(), UUID::randomUUID);
+        cobros.registrar(
+                new com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso.ComandoRegistrarCobro(
+                        "cobro-it-venc", parcial.id(), new BigDecimal("1.00"), java.time.LocalDate.now(), null));
+        var pagada =
+                servicio.emitir(comando("clave-it-venc-3", clienteId, "10.00")).factura();
+        cobros.registrar(
+                new com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso.ComandoRegistrarCobro(
+                        "cobro-it-venc-total",
+                        pagada.id(),
+                        pagada.totales().total().monto(),
+                        java.time.LocalDate.now(),
+                        null));
+
+        var antes = marcador.marcar(java.time.LocalDate.now().plusDays(10));
+        assertThat(repositorio.buscarPorId(abierta.id()).orElseThrow().estado()).isEqualTo(EstadoFactura.EMITIDA);
+
+        var despues = marcador.marcar(java.time.LocalDate.now().plusDays(31));
+        assertThat(despues.marcadasVencidas()).isGreaterThanOrEqualTo(2);
+        assertThat(repositorio.buscarPorId(abierta.id()).orElseThrow().estado()).isEqualTo(EstadoFactura.VENCIDA);
+        assertThat(repositorio.buscarPorId(parcial.id()).orElseThrow().estado()).isEqualTo(EstadoFactura.VENCIDA);
+        assertThat(repositorio.buscarPorId(pagada.id()).orElseThrow().estado())
+                .as("una factura pagada no vence")
+                .isEqualTo(EstadoFactura.PAGADA);
+        assertThat(repositorio
+                        .listarPorCliente(clienteId, EstadoFactura.VENCIDA, 0, 10)
+                        .totalElementos())
+                .isEqualTo(2);
+        assertThat(antes.marcadasVencidas()).isZero();
+
+        // segunda corrida el mismo dia: ya no hay nada que marcar de esta tanda
+        var repetida = marcador.marcar(java.time.LocalDate.now().plusDays(31));
+        assertThat(repositorio
+                        .listarPorCliente(clienteId, EstadoFactura.VENCIDA, 0, 10)
+                        .totalElementos())
+                .isEqualTo(2);
+        assertThat(repetida.marcadasVencidas()).isZero();
+    }
 }

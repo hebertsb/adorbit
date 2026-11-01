@@ -5,6 +5,7 @@ import com.adorbit.facturacion.aplicacion.puerto.entrada.ConsultarFacturasCasoDe
 import com.adorbit.facturacion.aplicacion.puerto.entrada.CotizarCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirFacturaCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.EmitirNotaCreditoCasoDeUso;
+import com.adorbit.facturacion.aplicacion.puerto.entrada.MarcarVencidasCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.entrada.RegistrarCobroCasoDeUso;
 import com.adorbit.facturacion.aplicacion.puerto.salida.FacturaRepositorioPuerto;
 import com.adorbit.facturacion.aplicacion.puerto.salida.IdempotenciaPuerto;
@@ -14,6 +15,7 @@ import com.adorbit.facturacion.aplicacion.servicio.ServicioCotizar;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioEmitirFactura;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioEmitirNotaCredito;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioEstado;
+import com.adorbit.facturacion.aplicacion.servicio.ServicioMarcarVencidas;
 import com.adorbit.facturacion.aplicacion.servicio.ServicioRegistrarCobro;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -67,5 +69,10 @@ public class AplicacionConfiguracion {
     EmitirNotaCreditoCasoDeUso emitirNotaCredito(
             FacturaRepositorioPuerto facturas, IdempotenciaPuerto idempotencia, Clock reloj) {
         return new ServicioEmitirNotaCredito(facturas, idempotencia, reloj, UUID::randomUUID);
+    }
+
+    @Bean
+    MarcarVencidasCasoDeUso marcarVencidas(FacturaRepositorioPuerto facturas) {
+        return new ServicioMarcarVencidas(facturas);
     }
 }

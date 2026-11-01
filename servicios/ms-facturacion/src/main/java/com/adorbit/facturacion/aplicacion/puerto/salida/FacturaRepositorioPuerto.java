@@ -46,4 +46,11 @@ public interface FacturaRepositorioPuerto {
 
     /** Registra en UNA transaccion un fallo de negocio de un comando: su clave de idempotencia y el evento. */
     void guardarFallo(RegistroIdempotencia idempotencia, EventoSalida evento);
+
+    /**
+     * Persiste solo el cambio de estado/saldo/version de la cabecera (sin idempotencia ni evento).
+     *
+     * @throws ConflictoVersionException si la factura cambio antes
+     */
+    void guardarCambioDeEstado(Factura factura);
 }
