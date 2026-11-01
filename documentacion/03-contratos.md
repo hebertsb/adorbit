@@ -59,3 +59,16 @@ del servicio dueño (el gateway **no** tiene lógica de negocio).
 `consultar_campanas(estado?, cliente_id?, desde?, hasta?)`, `facturas_por_vencer(dias)`,
 `clientes_morosos()`, `resumen_gasto_campana(campana_id)`. Parámetros tipados, sin SQL libre; leen solo
 `vista_mcp_*`; cada llamada → `auditoria_mcp` (incluidas las bloqueadas).
+
+## Esquemas formales y OpenAPI
+- Cada evento y comando tiene su esquema JSON en `contratos/eventos/<Tipo>.schema.json` (sobre + `carga`).
+  Hoy están: `EmitirFactura`, `EmitirNotaCredito`, `FacturaEmitida`, `FacturacionFallida`, `FacturaPagada`,
+  `NotaCreditoEmitida`, `ReservarCredito`, `LiberarCredito`, `CreditoReservado`, `CreditoRechazado`,
+  `CreditoLiberado`, `ClienteCreado`, `ClienteActualizado`. Los demás se agregan por su dueño.
+- OpenAPI en `contratos/openapi/<ms>.yaml` (hoy: `ms-facturacion`, `ms-clientes-crm`).
+- **Dinero en JSON = texto decimal** (`"1250.50"`), moneda `BOB|USD`. Nunca número.
+- Colas de comandos de la SAGA: `saga.facturacion` y `saga.crm` en el exchange `adorbit.saga`.
+- `clave_comando` = `sagaId:orden:tipo` (`orden` 1–5, `tipo` `accion|compensacion`).
+- Respuestas a la SAGA (`FacturaEmitida`, `CreditoReservado`, ...) llevan `saga_id` y se publican en
+  `adorbit.eventos`; el orquestador correlaciona con `correlacion_id = saga_id`.
+- En `FacturacionFallida.motivo` y `CreditoRechazado.motivo` los valores válidos están en el esquema.

@@ -18,6 +18,7 @@ facturación, analítica con IA). Caso de estudio único. Detalle en `documentac
 | `documentacion/04-reparto-equipo.md` | Quién implementa qué y en qué orden |
 | `documentacion/05-decisiones-y-pendientes.md` | Decisiones tomadas y preguntas abiertas |
 | `documentacion/06-monorepo-y-estandares.md` | Estructura del monorepo, estándares, CODEOWNERS, CI/CD y despliegue por nube |
+| `documentacion/07-plan-integrante-b.md` | Plan por etapas del Integrante B y qué deja listo para A y C |
 | `servicios/<ms>/README.md` | Ficha de cada microservicio (alcance, capas, tareas) |
 | `base_de_datos/*` | Scripts de BD de cada servicio (**única fuente** del esquema) |
 

@@ -15,6 +15,7 @@
 | D10 | 31 oct | MCP con rol `lector_mcp`, vistas `vista_mcp_*` y auditoría de solo agregar | Defensa contra inyección SQL |
 | D11 | 31 oct | Un solo **monorepo** (aplicaciones/, servicios/, contratos/, plataforma/, infraestructura/); sin librerías de runtime compartidas ni Kubernetes | Menos fricción para 3 personas; despliegue por imagen en nubes distintas |
 | D12 | 1 nov | `base_de_datos/ms-ia.postgres.sql`: `REVOKE ALL ... FROM PUBLIC, anon, authenticated` sobre `vista_mcp_*` | Una vista corre con los permisos de su dueño (bypassa RLS); sin el REVOKE, Supabase deja esas vistas legibles con la anon key pública (detectado al provisionar el proyecto `ms-ia` real) |
+| D13 | 1 nov | En JSON el dinero viaja como **texto decimal** (`"1250.50"`), nunca como número | Evitar pérdida de precisión; coherente con NUMERIC/Decimal128 |
 
 ## Preguntas abiertas (confirmar con el docente)
 1. Fecha exacta de entrega y formato de la defensa.
@@ -35,4 +36,5 @@
 
 ## Registro de cambios
 - 1 nov · Hebert (C) · Provisionado el proyecto Supabase real `ms-ia` (schema `base_de_datos/ms-ia.postgres.sql`); se detectaron las vistas `vista_mcp_*` accesibles por `anon`/`authenticated` y se corrigió con `REVOKE` (ver D12) · `base_de_datos/ms-ia.postgres.sql`
+- 1 nov · Luis (B) · Contratos iniciales: esquemas JSON de 13 eventos/comandos (facturación y CRM) y OpenAPI de ms-facturacion y ms-clientes-crm; dinero en JSON como texto decimal; plan del Integrante B (D13) · `contratos/eventos/*`, `contratos/openapi/ms-facturacion.yaml`, `contratos/openapi/ms-clientes-crm.yaml`, `documentacion/03`, `documentacion/07`
 (Añadir arriba una fila por cambio: fecha · quién · qué · archivos tocados.)

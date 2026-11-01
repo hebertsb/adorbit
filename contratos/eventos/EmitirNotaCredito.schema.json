@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adorbit/contratos/eventos/EmitirNotaCredito.schema.json",
+  "title": "EmitirNotaCredito",
+  "description": "Comando SAGA compensacion del paso 4: anular la factura con una nota de credito. Publica/emite: ms-campanas (cola saga.facturacion). Consumen: ms-facturacion. Sobre estandar en documentacion/03-contratos.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id_evento",
+    "tipo_evento",
+    "version_esquema",
+    "ocurrido_en",
+    "agregado_id",
+    "correlacion_id",
+    "carga"
+  ],
+  "properties": {
+    "id_evento": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tipo_evento": {
+      "const": "EmitirNotaCredito"
+    },
+    "version_esquema": {
+      "const": 1
+    },
+    "ocurrido_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agregado_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlacion_id": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "carga": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "saga_id",
+        "clave_comando",
+        "factura_id",
+        "campana_id"
+      ],
+      "properties": {
+        "saga_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "clave_comando": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F-]{36}:[1-9]:(accion|compensacion)$",
+          "description": "sagaId:orden:tipo"
+        },
+        "factura_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "campana_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "motivo": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}
