@@ -1,0 +1,109 @@
+/* AdOrbit · tokens de diseno compartidos entre portal-gestion, portal-cliente,
+   panel-inteligencia y app-movil. Ver documentacion/08-sistema-diseno.md para el porque.
+   Prefijo --ao- para no chocar con variables locales cuando se inyecta en un Shadow DOM
+   (panel-inteligencia ya usa ese patron). */
+:root {
+  /* ---- superficies ---- */
+  --ao-fondo: #f6f7fb; /* fondo de pagina */
+  --ao-plano: #f6f7fb; /* superficie hundida: inputs, chips, celdas internas */
+  --ao-superficie: #ffffff; /* superficie elevada: tarjetas, barras, modales */
+  --ao-borde: #e3e6ee;
+
+  /* ---- texto (3 niveles) ---- */
+  --ao-texto: #1f2937;
+  --ao-texto-suave: #5b6472;
+  --ao-texto-tenue: #898781;
+
+  /* ---- marca ---- */
+  --ao-marca: #4f46e5;
+  --ao-marca-oscura: #4338ca;
+  --ao-marca-suave: #eef0ff;
+
+  /* ---- estado (semantico) ---- */
+  --ao-ok: #047857;
+  --ao-ok-fondo: #d9f5e9;
+  --ao-aviso: #92400e;
+  --ao-aviso-fondo: #fdecc8;
+  --ao-peligro: #b91c1c;
+  --ao-peligro-fondo: #fde2e2;
+  --ao-info: #1d4ed8;
+  --ao-info-fondo: #dce8ff;
+  --ao-neutro: #475569;
+  --ao-neutro-fondo: #e8ebf0;
+
+  /* ---- graficos (extension para panel-inteligencia / reportes) ---- */
+  --ao-rejilla: #e1e0d9;
+  --ao-eje: #c3c2b7;
+  --ao-serie-1: #2a78d6;
+  --ao-serie-2: #4f46e5;
+
+  /* ---- tipografia ---- */
+  --ao-familia-fuente:
+    system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --ao-familia-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --ao-texto-base: 16px;
+  --ao-interlineado-base: 1.5;
+
+  /* ---- radio ---- */
+  --ao-radio-chico: 6px; /* anillo de foco */
+  --ao-radio: 10px; /* botones, inputs */
+  --ao-radio-grande: 14px; /* tarjetas, paneles */
+  --ao-radio-pastilla: 999px; /* chips, etiquetas */
+
+  /* ---- sombra (una sola elevacion) ---- */
+  --ao-sombra: 0 1px 2px rgb(15 23 42 / 6%), 0 4px 14px rgb(15 23 42 / 5%);
+
+  /* ---- espaciado (base 4px) ---- */
+  --ao-espacio-1: 4px;
+  --ao-espacio-2: 8px;
+  --ao-espacio-3: 12px;
+  --ao-espacio-4: 16px;
+  --ao-espacio-6: 24px;
+  --ao-espacio-8: 32px;
+  --ao-espacio-12: 48px;
+
+  /* ---- layout ---- */
+  --ao-objetivo-tactil: 44px; /* alto minimo de todo elemento tocable */
+  --ao-alto-barra: 56px;
+  --ao-alto-navegacion: 64px;
+
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ao-fondo: #0f1220;
+    --ao-plano: #0d0d0d;
+    --ao-superficie: #181c2e;
+    --ao-borde: #2a3049;
+
+    --ao-texto: #e8eaf3;
+    --ao-texto-suave: #a3abc0;
+    --ao-texto-tenue: #898781;
+
+    --ao-marca: #8b92ff;
+    --ao-marca-oscura: #a5abff;
+    --ao-marca-suave: #232852;
+
+    --ao-ok: #4ade80;
+    --ao-ok-fondo: #12372a;
+    --ao-aviso: #fbbf24;
+    --ao-aviso-fondo: #3d2f10;
+    --ao-peligro: #f87171;
+    --ao-peligro-fondo: #44191d;
+    --ao-info: #93b4ff;
+    --ao-info-fondo: #1c2a52;
+    --ao-neutro: #b6bdcc;
+    --ao-neutro-fondo: #262b40;
+
+    --ao-rejilla: #2c2c2a;
+    --ao-eje: #383835;
+    --ao-serie-1: #3987e5;
+    --ao-serie-2: #8b92ff;
+
+    --ao-sombra: 0 1px 2px rgb(0 0 0 / 40%);
+  }
+}
+
+/* Breakpoints del sistema (documentales; usar los valores literales en cada @media,
+   CSS no permite variables dentro de @media): 360 (base), 480, 720, 900, 1400 px. */
