@@ -62,6 +62,43 @@ en React — cada componente Angular las consume con `var(--ao-marca)`, etc.
 **Flutter (app-movil):** CSS no aplica; mapear `tokens.json` a un `ThemeData`/`ColorScheme` de
 Flutter (hex directo, incluyendo el bloque `oscuro` para el tema oscuro del sistema).
 
+## Modo claro/oscuro y acento en una sola variable
+
+Además de `prefers-color-scheme` (automático, sigue el sistema), se puede dar al usuario un botón
+para forzarlo: un atributo `data-theme="claro"` o `data-theme="oscuro"` en `<html>`, con un bloque
+de overrides por cada uno (ver `documentacion/diseno/tokens.css`, que ya trae los tres bloques:
+claro por defecto, `prefers-color-scheme: dark`, y `[data-theme="oscuro"]`).
+
+Para retematizar todo el sitio **cambiando un solo valor**, los tonos derivados (halos, estados de
+hover, acentos suaves) no se escriben a mano — se calculan desde `--ao-marca` con `color-mix()`:
+```css
+--ao-marca-suave: color-mix(in srgb, var(--ao-marca) 14%, transparent);
+--ao-marca-media: color-mix(in srgb, var(--ao-marca) 35%, transparent);
+```
+Así, tocar `--ao-marca` (o reasignarla por JS a un color elegido por el usuario) mueve botones,
+halos y acentos de golpe, sin tocar nada más.
+
+## Patrones de movimiento (opcionales, no obligatorios en cada pantalla)
+
+Ninguno de estos reemplaza los componentes base de arriba; son para pantallas puntuales (login,
+landing del portal del cliente, dashboards) donde el equipo decida usarlos. Los tres respetan
+`prefers-reduced-motion` (se apagan solos si el usuario lo pidió en su sistema).
+
+- **Tarjetas flotantes**: balanceo vertical sutil continuo (`translateY` ±6-7px, 6s, `ease-in-out`)
+  más elevación al pasar el mouse (`y:-6px`, sombra con el color de acento). En reduced-motion, la
+  animación continua se apaga; el hover-lift puede quedar (es corto y a pedido del usuario).
+- **Carrusel accesible**: autoplay de 5s que se **pausa** con foco de teclado, hover, pestaña oculta
+  (`visibilitychange`) o fuera de pantalla (`IntersectionObserver`) — nunca gira sin un control de
+  pausa visible. Con reduced-motion no gira solo; el usuario cambia de diapositiva a mano.
+- **Fondo orbital**: anillos decorativos con elementos girando alrededor de un centro (`@keyframes`
+  de rotación + contra-rotación para que las etiquetas queden siempre legibles). Puramente
+  decorativo (`aria-hidden="true"`), nunca lleva información que no esté también en el texto normal
+  de la página.
+
+Demo en vivo de todo esto (incluido el selector de acento): artifact "AdOrbit — concepto orbital".
+Es una exploración, no se mergeó a ninguna app todavía — si el equipo lo adopta, se actualiza esta
+sección con dónde quedó implementado.
+
 ## Vista previa
 
 Componentes base (botones, inputs, tarjetas, estados de formulario, un login de ejemplo) armados
