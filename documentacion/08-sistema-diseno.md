@@ -103,3 +103,11 @@ sección con dónde quedó implementado.
 
 Componentes base (botones, inputs, tarjetas, estados de formulario, un login de ejemplo) armados
 con estos tokens: ver el artifact publicado (enlace en el mensaje donde se generó este documento).
+
+## Propuesta de logotipo para web y app
+
+La propuesta del 3 de noviembre de 2026 conserva esta paleta y combina una A con una trayectoria
+orbital. Incluye variantes claras/oscuras, íconos, originales SVG, PNG y editables de Affinity.
+Archivos y pautas de uso en [diseno/guia-logotipo.md](diseno/guia-logotipo.md); vista de conjunto en
+[la presentación](diseno/adorbit-presentacion-identidad.png). Es una propuesta para revisión del
+equipo; las pantallas ilustradas son ejemplos de marca y no están implementadas en los frontends.
