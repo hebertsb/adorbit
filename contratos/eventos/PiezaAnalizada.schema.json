@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PiezaAnalizada",
+  "description": "Publica ms-ia (pipeline de vision YOLO, tarea 6 — todavia no implementado), en respuesta a PiezaSubida/PiezaAprobada. Consume ms-creatividades.",
+  "type": "object",
+  "required": ["id_evento", "tipo_evento", "version_esquema", "ocurrido_en", "agregado_id", "correlacion_id", "carga"],
+  "properties": {
+    "id_evento": { "type": "string", "format": "uuid" },
+    "tipo_evento": { "const": "PiezaAnalizada" },
+    "version_esquema": { "type": "integer", "const": 1 },
+    "ocurrido_en": { "type": "string", "format": "date-time" },
+    "agregado_id": { "type": "string", "format": "uuid", "description": "pieza_id" },
+    "correlacion_id": { "type": "string" },
+    "carga": {
+      "type": "object",
+      "required": ["pieza_id", "manual_marca_ok", "confianza"],
+      "properties": {
+        "pieza_id": { "type": "string", "format": "uuid" },
+        "manual_marca_ok": { "type": "boolean" },
+        "confianza": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

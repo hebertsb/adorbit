@@ -15,11 +15,12 @@
 | D10 | 31 oct | MCP con rol `lector_mcp`, vistas `vista_mcp_*` y auditoría de solo agregar | Defensa contra inyección SQL |
 | D11 | 31 oct | Un solo **monorepo** (aplicaciones/, servicios/, contratos/, plataforma/, infraestructura/); sin librerías de runtime compartidas ni Kubernetes | Menos fricción para 3 personas; despliegue por imagen en nubes distintas |
 | D12 | 1 nov | `base_de_datos/ms-ia.postgres.sql`: `REVOKE ALL ... FROM PUBLIC, anon, authenticated` sobre `vista_mcp_*` | Una vista corre con los permisos de su dueño (bypassa RLS); sin el REVOKE, Supabase deja esas vistas legibles con la anon key pública (detectado al provisionar el proyecto `ms-ia` real) |
+| D13 | 5 nov | Prueba de "intento de inyección" del MCP de ms-ia = test automatizado (`tests/test_consultas_mcp.py`), no una demo en vivo | La pregunta abierta #3 nunca se confirmó con el docente; se interpretó la opción más simple y verificable: parámetros maliciosos (`'; DROP TABLE--`, etc.) se validan tipados *antes* de tocar `vista_mcp_*` y quedan registrados en `auditoria_mcp` con `bloqueado=true` |
 
 ## Preguntas abiertas (confirmar con el docente)
 1. Fecha exacta de entrega y formato de la defensa.
 2. ¿GraphQL solo en el portal de gestión es suficiente?
-3. Alcance exigido de MCP / inyección SQL (¿demo de ataque bloqueado?).
+3. Alcance exigido de MCP / inyección SQL (¿demo de ataque bloqueado en vivo, o alcanza con la prueba automatizada ya implementada — ver D13?).
 4. "Mínimo 3 bases de datos": ¿3 motores distintos o 3 instancias? (hoy: 3 motores, 5 bases).
 5. ¿Se acepta Python (FastAPI) como cuarto lenguaje para IA?
 6. ¿App móvil nativa (Flutter) o basta la PWA en el móvil?
@@ -34,5 +35,6 @@
   **comparar con sus archivos antes de reemplazarlos** y conservar lo que el original tenga de más.
 
 ## Registro de cambios
+- 5 nov · Hebert (C) · Construidas las tareas 1-3 de `ms-ia` (esqueleto FastAPI+JWT, consumidor de eventos con read model, servidor MCP real con las 4 herramientas + auditoría + prueba de inyección automatizada, ver D13); tareas 4-6 quedan pendientes de elegir proveedor de LLM · `servicios/ms-ia/`, `contratos/openapi/ms-ia.yaml`, `contratos/eventos/AlertaCampana.schema.json`, `contratos/eventos/PiezaAnalizada.schema.json`
 - 1 nov · Hebert (C) · Provisionado el proyecto Supabase real `ms-ia` (schema `base_de_datos/ms-ia.postgres.sql`); se detectaron las vistas `vista_mcp_*` accesibles por `anon`/`authenticated` y se corrigió con `REVOKE` (ver D12) · `base_de_datos/ms-ia.postgres.sql`
 (Añadir arriba una fila por cambio: fecha · quién · qué · archivos tocados.)

@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: ms-ia
+  version: '1'
+  description: >
+    Read model de reportes, servidor MCP (unica via de acceso de IA a los datos),
+    reportes en lenguaje natural, agentes LangGraph, ML/DL. Este contrato cubre solo
+    lo que ya existe (tareas 1-3 del README); /reportes, /vision/analizar, /agentes
+    (tareas 4-6) se agregan cuando se decida el proveedor de LLM.
+servers:
+  - url: http://localhost:8085
+tags:
+  - name: salud
+  - name: mcp
+
+paths:
+  /salud:
+    get:
+      tags: [salud]
+      summary: Liveness
+      security: []
+      responses:
+        '200':
+          description: El proceso esta arriba
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { estado: { type: string, example: ok } }
+
+  /listo:
+    get:
+      tags: [salud]
+      summary: Readiness (ping real a Postgres)
+      security: []
+      responses:
+        '200':
+          description: Listo para atender trafico
+        '503':
+          description: Postgres no disponible
+
+  /api/v1/mcp/auditoria:
+    get:
+      tags: [mcp]
+      summary: Historial de llamadas al servidor MCP (exitosas, fallidas y bloqueadas)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Pagina de registros de auditoria_mcp
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/RegistroAuditoriaMcp' }
+                  page: { type: integer }
+                  size: { type: integer }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: 'El rol del token no alcanza (requiere ejecutivo|gerente)' }
+
+  /mcp:
+    post:
+      tags: [mcp]
+      summary: >
+        Transporte Streamable HTTP del servidor MCP real (SDK oficial `mcp`). Expone 4
+        herramientas tipadas de solo lectura contra vista_mcp_*: consultar_campanas,
+        facturas_por_vencer, clientes_morosos, resumen_gasto_campana — ver
+        documentacion/03-contratos.md "MCP (ms-ia)". No es un endpoint REST
+        convencional (sigue el protocolo MCP, no este schema de request/response);
+        se documenta aqui solo para dejar constancia de que existe y requiere JWT
+        (roles ejecutivo|gerente|creativo).
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200': { description: Respuesta del protocolo MCP (Streamable HTTP) }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: El rol del token no alcanza }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    RegistroAuditoriaMcp:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        agente_id: { type: string, format: uuid, nullable: true }
+        usuario_id: { type: string, format: uuid, nullable: true }
+        herramienta: { type: string }
+        parametros: { type: object }
+        resultado_resumen: { type: object, nullable: true }
+        exito: { type: boolean }
+        bloqueado: { type: boolean }
+        motivo_bloqueo: { type: string, nullable: true }
+        error: { type: string, nullable: true }
+        duracion_ms: { type: integer }
+        creado_en: { type: string, format: date-time }
