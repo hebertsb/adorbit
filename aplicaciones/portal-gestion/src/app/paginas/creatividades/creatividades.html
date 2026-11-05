@@ -1,0 +1,64 @@
+<div class="encabezado">
+  <h1>Briefs y piezas de creatividad</h1>
+  <p>Gestión de piezas publicitarias y control de aprobación.</p>
+</div>
+
+<div class="rejilla">
+  <ao-tarjeta [compacta]="true" class="lista-briefs">
+    <h2>Briefs activos ({{ briefs().length }})</h2>
+    <ul>
+      @for (brief of briefs(); track brief.idCampana) {
+        <li>
+          <button
+            type="button"
+            class="item-brief"
+            [class.item-brief--activo]="brief.idCampana === idBriefSeleccionado()"
+            (click)="idBriefSeleccionado.set(brief.idCampana)"
+          >
+            <strong>{{ brief.titulo }}</strong>
+            <span>{{ brief.cliente }} · {{ brief.piezas.length }} piezas</span>
+          </button>
+        </li>
+      }
+    </ul>
+  </ao-tarjeta>
+
+  @if (briefSeleccionado(); as brief) {
+    <div class="panel-piezas">
+      <h2>{{ brief.titulo }}</h2>
+      <p class="subtitulo">Cliente: {{ brief.cliente }}</p>
+
+      <div class="rejilla-piezas">
+        @for (pieza of brief.piezas; track pieza.nombreArchivo) {
+          <ao-tarjeta [compacta]="true" class="pieza">
+            <div class="pieza__vista" [style.background]="degradadoPieza[pieza.degradado]">
+              <span class="pieza__overlay">{{ pieza.overlay }}</span>
+            </div>
+            <ao-etiqueta-estado [texto]="pieza.estado" [tono]="tonoDe(pieza.estado)" />
+            <p class="pieza__nombre">{{ pieza.titulo }}</p>
+            <p class="dato-mono pieza__meta">
+              {{ pieza.nombreArchivo }} · v{{ pieza.version }} · {{ (pieza.confianzaMarca * 100).toFixed(0) }}% confianza
+            </p>
+
+            @if (pieza.estado === 'bloqueada') {
+              <p class="pieza__nota">
+                Bloqueada por contratación — no se puede editar ni re-aprobar en esta etapa.
+              </p>
+            }
+
+            @if (pieza.estado === 'rechazada' && pieza.observacion) {
+              <p class="pieza__observacion">{{ pieza.observacion }}</p>
+            }
+
+            @if (pieza.estado === 'pendiente') {
+              <div class="pieza__acciones">
+                <ao-boton variante="peligro">Rechazar</ao-boton>
+                <ao-boton variante="primario">Aprobar</ao-boton>
+              </div>
+            }
+          </ao-tarjeta>
+        }
+      </div>
+    </div>
+  }
+</div>

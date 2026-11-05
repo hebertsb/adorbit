@@ -1,0 +1,10 @@
+<span
+  class="etiqueta"
+  [class.etiqueta--ok]="tono() === 'ok'"
+  [class.etiqueta--aviso]="tono() === 'aviso'"
+  [class.etiqueta--peligro]="tono() === 'peligro'"
+  [class.etiqueta--info]="tono() === 'info'"
+  [class.etiqueta--neutro]="tono() === 'neutro'"
+>
+  {{ texto() }}
+</span>

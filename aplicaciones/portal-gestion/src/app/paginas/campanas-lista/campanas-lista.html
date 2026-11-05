@@ -1,0 +1,80 @@
+<div class="encabezado">
+  <div>
+    <h1>Campañas</h1>
+    <p>Gestión publicitaria, seguimiento de estados y control presupuestario.</p>
+  </div>
+  <ao-boton variante="primario" routerLink="/campanas/nueva">+ Nueva campaña</ao-boton>
+</div>
+
+<ao-tarjeta [compacta]="true">
+  <div class="filtros">
+    <input
+      id="buscar-campana"
+      name="buscar-campana"
+      type="search"
+      class="filtros__campo"
+      placeholder="Buscar por nombre de campaña..."
+      [value]="textoBusqueda()"
+      (input)="textoBusqueda.set($any($event.target).value)"
+      aria-label="Buscar campaña"
+    />
+    <select
+      id="filtro-estado"
+      name="filtro-estado"
+      class="filtros__campo"
+      [value]="filtroEstado()"
+      (change)="filtroEstado.set($any($event.target).value)"
+      aria-label="Filtrar por estado"
+    >
+      <option value="todos">Todos los estados</option>
+      @for (estado of estadosDisponibles; track estado) {
+        <option [value]="estado">{{ etiquetas[estado] }}</option>
+      }
+    </select>
+  </div>
+</ao-tarjeta>
+
+<ao-tarjeta [compacta]="true" class="tarjeta-tabla">
+  <table class="tabla">
+    <thead>
+      <tr>
+        <th>Nombre de campaña</th>
+        <th>Cliente</th>
+        <th>Estado</th>
+        <th class="num">Presupuesto (Bs)</th>
+        <th class="num">Gastado</th>
+        <th>Fecha fin</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (campana of campanasFiltradas(); track campana.id) {
+        <tr [routerLink]="['/campanas', campana.id]">
+          <td data-etiqueta="Nombre" class="celda-nombre">
+            <span class="celda-nombre__titulo">{{ campana.nombre }}</span>
+            <span class="dato-mono celda-nombre__id">ID: {{ campana.codigoReferencia }}</span>
+          </td>
+          <td data-etiqueta="Cliente">{{ campana.cliente }}</td>
+          <td data-etiqueta="Estado">
+            <ao-etiqueta-estado [texto]="etiquetas[campana.estado]" [tono]="tonoDe(campana.estado)" />
+          </td>
+          <td data-etiqueta="Presupuesto" class="num dato-mono">
+            {{ campana.presupuestoTotal | currency: 'BOB' : 'Bs ' : '1.2-2' }}
+          </td>
+          <td data-etiqueta="Gastado" class="num">
+            <div class="gastado">
+              <span class="dato-mono">{{ campana.montoGastado | currency: 'BOB' : 'Bs ' : '1.2-2' }}</span>
+              <div class="barra-progreso">
+                <span [style.width.%]="porcentajeGastado(campana.presupuestoTotal, campana.montoGastado)"></span>
+              </div>
+            </div>
+          </td>
+          <td data-etiqueta="Fecha fin" class="dato-mono">{{ campana.fechaFin }}</td>
+        </tr>
+      } @empty {
+        <tr class="fila-vacia">
+          <td colspan="6">No hay campañas que coincidan con el filtro.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</ao-tarjeta>

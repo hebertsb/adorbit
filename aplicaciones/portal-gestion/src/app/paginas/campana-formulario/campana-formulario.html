@@ -1,0 +1,83 @@
+<a routerLink="/campanas" class="volver">← Volver a campañas</a>
+
+<h1>{{ modoEdicion ? 'Editar campaña' : 'Crear nueva campaña' }}</h1>
+<p class="subtitulo">
+  {{ modoEdicion ? 'Actualiza los parámetros de la campaña.' : 'Ingresa los parámetros iniciales de la campaña. Se registrará en estado Borrador.' }}
+</p>
+
+<ao-tarjeta class="tarjeta-formulario">
+  <form [formGroup]="formulario" (ngSubmit)="guardar()">
+    <div class="campo">
+      <div class="campo__cabecera">
+        <label for="nombre">Nombre de la campaña *</label>
+        <span class="contador">{{ caracteresNombre() }}/200</span>
+      </div>
+      <input id="nombre" type="text" formControlName="nombre" aria-describedby="error-nombre" />
+      @if (intentoEnviar() && formulario.controls.nombre.invalid) {
+        <p id="error-nombre" class="error">Este campo es obligatorio (máximo 200 caracteres).</p>
+      }
+    </div>
+
+    <div class="campo">
+      <label for="cliente">Cliente *</label>
+      <input id="cliente" type="text" formControlName="cliente" placeholder="Buscar o escribir el cliente..." />
+      @if (intentoEnviar() && formulario.controls.cliente.invalid) {
+        <p class="error">Selecciona un cliente.</p>
+      }
+    </div>
+
+    <div class="campo">
+      <div class="campo__cabecera">
+        <label for="descripcion">Descripción (opcional)</label>
+        <span class="contador">{{ caracteresDescripcion() }}/2000</span>
+      </div>
+      <textarea
+        id="descripcion"
+        formControlName="descripcion"
+        rows="3"
+        placeholder="Objetivos de comunicación, público meta y alcance esperado..."
+      ></textarea>
+    </div>
+
+    <div class="campo-doble">
+      <div class="campo">
+        <label for="fechaInicio">Fecha de inicio *</label>
+        <input id="fechaInicio" type="date" formControlName="fechaInicio" />
+      </div>
+      <div class="campo">
+        <label for="fechaFin">Fecha de fin *</label>
+        <input id="fechaFin" type="date" formControlName="fechaFin" />
+      </div>
+    </div>
+    @if (intentoEnviar() && formulario.hasError('fechaFinAnterior')) {
+      <p class="error">La fecha de fin debe ser igual o posterior a la fecha de inicio.</p>
+    }
+
+    <div class="campo-doble">
+      <div class="campo">
+        <label for="presupuesto">Presupuesto total *</label>
+        <input id="presupuesto" type="number" min="0" step="0.01" formControlName="presupuestoTotal" />
+        @if (intentoEnviar() && formulario.controls.presupuestoTotal.invalid) {
+          <p class="error">Debe ser mayor o igual a 0.</p>
+        }
+      </div>
+      <div class="campo">
+        <label for="moneda">Moneda *</label>
+        <select id="moneda" formControlName="moneda">
+          <option value="BOB">BOB · Boliviano</option>
+          <option value="USD">USD · Dólar</option>
+        </select>
+      </div>
+    </div>
+
+    <ao-tarjeta [compacta]="true" class="nota-auditoria">
+      El estado de la campaña no se modifica manualmente. Se inicia en "Borrador" y avanza mediante los flujos de
+      aprobación y contratación (SAGA).
+    </ao-tarjeta>
+
+    <div class="acciones">
+      <ao-boton variante="secundario" tipo="button" routerLink="/campanas">Cancelar</ao-boton>
+      <ao-boton variante="primario" tipo="submit">Guardar campaña</ao-boton>
+    </div>
+  </form>
+</ao-tarjeta>

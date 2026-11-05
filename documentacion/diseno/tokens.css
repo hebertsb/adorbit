@@ -71,7 +71,8 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  /* :not([data-theme="claro"]) deja que un toggle manual a modo claro gane sobre el SO */
+  :root:not([data-theme="claro"]) {
     --ao-fondo: #0f1220;
     --ao-plano: #0d0d0d;
     --ao-superficie: #181c2e;
@@ -102,7 +103,44 @@
     --ao-serie-2: #8b92ff;
 
     --ao-sombra: 0 1px 2px rgb(0 0 0 / 40%);
+    color-scheme: dark;
   }
+}
+
+/* Toggle manual: un atributo data-theme="oscuro" en <html> fuerza el tema sin importar
+   la preferencia del sistema operativo (gana en ambos sentidos sobre el bloque de arriba). */
+:root[data-theme="oscuro"] {
+  --ao-fondo: #0f1220;
+  --ao-plano: #0d0d0d;
+  --ao-superficie: #181c2e;
+  --ao-borde: #2a3049;
+
+  --ao-texto: #e8eaf3;
+  --ao-texto-suave: #a3abc0;
+  --ao-texto-tenue: #898781;
+
+  --ao-marca: #8b92ff;
+  --ao-marca-oscura: #a5abff;
+  --ao-marca-suave: #232852;
+
+  --ao-ok: #4ade80;
+  --ao-ok-fondo: #12372a;
+  --ao-aviso: #fbbf24;
+  --ao-aviso-fondo: #3d2f10;
+  --ao-peligro: #f87171;
+  --ao-peligro-fondo: #44191d;
+  --ao-info: #93b4ff;
+  --ao-info-fondo: #1c2a52;
+  --ao-neutro: #b6bdcc;
+  --ao-neutro-fondo: #262b40;
+
+  --ao-rejilla: #2c2c2a;
+  --ao-eje: #383835;
+  --ao-serie-1: #3987e5;
+  --ao-serie-2: #8b92ff;
+
+  --ao-sombra: 0 1px 2px rgb(0 0 0 / 40%);
+  color-scheme: dark;
 }
 
 /* Breakpoints del sistema (documentales; usar los valores literales en cada @media,

@@ -1,0 +1,44 @@
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ao-espacio-2);
+  min-height: var(--ao-objetivo-tactil);
+  padding: 0 var(--ao-espacio-4);
+  border: 1px solid transparent;
+  border-radius: var(--ao-radio);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.boton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.boton--primario {
+  background: var(--ao-marca);
+  color: #fff;
+}
+
+.boton--primario:hover:not(:disabled) {
+  background: var(--ao-marca-oscura);
+}
+
+.boton--secundario {
+  background: var(--ao-superficie);
+  color: var(--ao-marca);
+  border-color: var(--ao-borde);
+}
+
+.boton--fantasma {
+  background: transparent;
+  color: var(--ao-texto-suave);
+}
+
+.boton--peligro {
+  background: var(--ao-peligro-fondo);
+  color: var(--ao-peligro);
+}

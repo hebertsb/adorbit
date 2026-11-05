@@ -1,0 +1,84 @@
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ao-espacio-3);
+  margin-bottom: var(--ao-espacio-4);
+}
+
+.encabezado h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.encabezado p {
+  color: var(--ao-texto-suave);
+  margin-top: 4px;
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ao-espacio-3);
+}
+
+.filtros__campo {
+  min-height: var(--ao-objetivo-tactil);
+  padding: 0 var(--ao-espacio-3);
+  border: 1px solid var(--ao-borde);
+  border-radius: var(--ao-radio);
+  background: var(--ao-plano);
+  color: var(--ao-texto);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.filtros__campo[type='search'] {
+  flex: 1;
+  min-width: 200px;
+}
+
+.tarjeta-tabla {
+  margin-top: var(--ao-espacio-4);
+}
+
+.celda-nombre {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.celda-nombre__titulo {
+  font-weight: 600;
+}
+
+.celda-nombre__id {
+  color: var(--ao-texto-tenue);
+  font-size: 0.72rem;
+}
+
+.gastado {
+  display: grid;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.barra-progreso {
+  height: 6px;
+  border-radius: var(--ao-radio-pastilla);
+  background: var(--ao-neutro-fondo);
+  overflow: hidden;
+}
+
+.barra-progreso span {
+  display: block;
+  height: 100%;
+  background: var(--ao-marca);
+}
+
+.fila-vacia td {
+  text-align: center;
+  color: var(--ao-texto-suave);
+  padding: var(--ao-espacio-6);
+}

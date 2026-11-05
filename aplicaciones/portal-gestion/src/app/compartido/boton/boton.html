@@ -1,0 +1,11 @@
+<button
+  [type]="tipo()"
+  [disabled]="deshabilitado()"
+  class="boton"
+  [class.boton--primario]="variante() === 'primario'"
+  [class.boton--secundario]="variante() === 'secundario'"
+  [class.boton--fantasma]="variante() === 'fantasma'"
+  [class.boton--peligro]="variante() === 'peligro'"
+>
+  <ng-content />
+</button>

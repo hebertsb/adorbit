@@ -1,0 +1,48 @@
+.barra-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--ao-espacio-3);
+}
+
+.enlace {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-espacio-2);
+  min-height: var(--ao-objetivo-tactil);
+  padding: 0 var(--ao-espacio-3);
+  border-radius: var(--ao-radio);
+  color: var(--ao-texto);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.ic {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+.enlace:hover {
+  background: var(--ao-plano);
+}
+
+.enlace.activo {
+  background: var(--ao-marca);
+  color: #fff;
+}
+
+.enlace--pendiente {
+  color: var(--ao-texto-tenue);
+  cursor: default;
+}
+
+.enlace--pendiente:hover {
+  background: none;
+}

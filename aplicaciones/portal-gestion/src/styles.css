@@ -1,0 +1,123 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--ao-fondo);
+  color: var(--ao-texto);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+:focus-visible {
+  outline: 3px solid var(--ao-marca);
+  outline-offset: 2px;
+  border-radius: var(--ao-radio-chico);
+}
+
+/* Datos numericos/tecnicos (montos, fechas, IDs, especificaciones de archivo):
+   monoespaciada en toda la app, igual que en el mockup aprobado. */
+.dato-mono {
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Patron de tabla reutilizable en toda la app: tarjetas apiladas en celular,
+   tabla real desde 720px. Vive global para no repetirlo en cada pantalla.
+   --------------------------------------------------------------------------- */
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla thead {
+  display: none;
+}
+
+.tabla tbody tr {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px var(--ao-espacio-3);
+  margin-bottom: var(--ao-espacio-3);
+  padding: var(--ao-espacio-3) var(--ao-espacio-4);
+  background: var(--ao-plano);
+  border-radius: var(--ao-radio);
+}
+
+.tabla tbody tr[routerlink],
+.tabla tbody tr.filable {
+  cursor: pointer;
+}
+
+.tabla td {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tabla td[data-etiqueta]::before {
+  content: attr(data-etiqueta);
+  color: var(--ao-texto-suave);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+@media (min-width: 720px) {
+  .tabla thead {
+    display: table-header-group;
+  }
+
+  .tabla tbody tr {
+    display: table-row;
+    margin: 0;
+    padding: 0;
+    background: none;
+  }
+
+  .tabla tbody tr:hover {
+    background: var(--ao-plano);
+  }
+
+  .tabla th,
+  .tabla td {
+    display: table-cell;
+    padding: var(--ao-espacio-2) var(--ao-espacio-3);
+    text-align: left;
+    border-bottom: 1px solid var(--ao-borde);
+  }
+
+  .tabla th {
+    color: var(--ao-texto-suave);
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+
+  .tabla td[data-etiqueta]::before {
+    content: none;
+  }
+
+  .tabla .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}

@@ -1,0 +1,89 @@
+.barra-superior {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ao-espacio-3);
+  height: var(--ao-alto-barra);
+  padding: 0 var(--ao-espacio-4);
+  background: var(--ao-superficie);
+  border-bottom: 1px solid var(--ao-borde);
+}
+
+.buscador {
+  flex: 1;
+  max-width: 440px;
+}
+
+.buscador input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--ao-espacio-3);
+  border: 1px solid var(--ao-borde);
+  border-radius: var(--ao-radio);
+  background: var(--ao-plano);
+  color: var(--ao-texto);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-espacio-2);
+}
+
+.icono-boton {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ao-texto-suave);
+  cursor: pointer;
+}
+
+.icono-boton:hover {
+  background: var(--ao-plano);
+}
+
+.ic {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-espacio-2);
+  padding-left: var(--ao-espacio-2);
+}
+
+.usuario__avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--ao-marca);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.usuario__datos {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.usuario__datos small {
+  color: var(--ao-texto-suave);
+  font-size: 0.76rem;
+}

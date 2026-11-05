@@ -1,0 +1,173 @@
+@if (campana(); as c) {
+  <div class="encabezado">
+    <a routerLink="/campanas" class="volver">← Volver a campañas</a>
+    <div class="encabezado__acciones">
+      <ao-boton variante="secundario" [routerLink]="['/campanas', c.id, 'editar']">Editar campaña</ao-boton>
+      @if (puedeContratar()) {
+        <ao-boton variante="primario" [routerLink]="['/sagas', c.id]">Contratar campaña</ao-boton>
+      }
+    </div>
+  </div>
+
+  <ao-tarjeta class="ficha">
+    <div class="ficha__fila">
+      <div class="ficha__identidad">
+        <div class="ficha__titulo">
+          <h1>{{ c.nombre }}</h1>
+          <ao-etiqueta-estado [texto]="etiquetas[c.estado]" [tono]="tonoEstadoCampana(c.estado)" />
+        </div>
+        <p class="ficha__subtitulo">
+          Cliente: <strong>{{ c.cliente }}</strong> · ID: <span class="dato-mono">{{ c.codigoReferencia }}</span>
+        </p>
+      </div>
+      <div class="ficha__periodo">
+        <div>
+          <span class="ficha__etiqueta-chica">Período de vuelo</span>
+          <span class="dato-mono ficha__valor-chico">{{ periodoVuelo() }}</span>
+        </div>
+        <div>
+          <span class="ficha__etiqueta-chica">Vigencia</span>
+          @if (diasRestantes() > 0) {
+            <span class="ficha__vigencia">{{ diasRestantes() }} días restantes</span>
+          } @else {
+            <span class="ficha__vigencia ficha__vigencia--finalizado">Período finalizado</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (c.estado === 'pendiente_aprobacion' || c.estado === 'pendiente') {
+      <div class="banner-info">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></svg>
+        <span><strong>Condición operativa:</strong> Para contratar y pasar a ejecución plena necesitas saldo presupuestario reservado y al menos una pieza creativa aprobada por auditoría.</span>
+      </div>
+    }
+  </ao-tarjeta>
+
+  <ao-tarjeta class="seccion">
+    <div class="seccion__cabecera">
+      <h2>Resumen de ejecución presupuestaria</h2>
+      <span class="moneda">Moneda: {{ c.moneda }} (Bs)</span>
+    </div>
+
+    <div class="rejilla-presupuesto">
+      <div class="caja-dato">
+        <span class="caja-dato__etiqueta">Presupuesto total</span>
+        <span class="dato-mono caja-dato__valor">{{ c.presupuestoTotal | currency: 'BOB' : 'Bs ' : '1.2-2' }}</span>
+        <span class="caja-dato__pie">Monto asignado matriz</span>
+      </div>
+      <div class="caja-dato">
+        <div class="caja-dato__fila">
+          <span class="caja-dato__etiqueta">Monto gastado</span>
+          <span class="caja-dato__porcentaje caja-dato__porcentaje--marca">{{ porcentajeGastado() }}%</span>
+        </div>
+        <span class="dato-mono caja-dato__valor">{{ c.montoGastado | currency: 'BOB' : 'Bs ' : '1.2-2' }}</span>
+        <span class="caja-dato__pie caja-dato__pie--ok">En ritmo programado</span>
+      </div>
+      <div class="caja-dato">
+        <div class="caja-dato__fila">
+          <span class="caja-dato__etiqueta">Saldo disponible</span>
+          <span class="caja-dato__porcentaje">{{ porcentajeDisponible() }}%</span>
+        </div>
+        <span class="dato-mono caja-dato__valor">{{ saldoDisponible() | currency: 'BOB' : 'Bs ' : '1.2-2' }}</span>
+        <span class="caja-dato__pie">Para refuerzo final</span>
+      </div>
+    </div>
+
+    <div class="progreso">
+      <div class="progreso__cabecera">
+        <span>Progreso acumulado</span>
+        <span class="dato-mono">
+          {{ c.montoGastado | currency: 'BOB' : 'Bs ' : '1.2-2' }} de {{ c.presupuestoTotal | currency: 'BOB' : 'Bs ' : '1.2-2' }}
+        </span>
+      </div>
+      <div class="barra-progreso barra-progreso--grande">
+        <span [style.width.%]="porcentajeGastado()"></span>
+      </div>
+    </div>
+  </ao-tarjeta>
+
+  <ao-tarjeta [compacta]="true" class="seccion">
+    <div class="seccion__cabecera">
+      <div class="seccion__titulo-con-cuenta">
+        <h2>Calendario de medios</h2>
+        <span class="contador-chico">{{ calendario().length }} canales</span>
+      </div>
+      <ao-boton variante="secundario">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
+        Agregar medio
+      </ao-boton>
+    </div>
+
+    <table class="tabla tabla--medios">
+      <thead>
+        <tr>
+          <th>Medio</th>
+          <th>Fecha inicio</th>
+          <th>Fecha fin</th>
+          <th class="num">Costo (Bs)</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (medio of calendario(); track medio.medio) {
+          <tr>
+            <td data-etiqueta="Medio">
+              <span class="medio-nombre">
+                <span class="icono-cuadrado"><ao-icono-medio [medio]="medio.medio" /></span>
+                {{ etiquetaMedio[medio.medio] }}
+              </span>
+            </td>
+            <td data-etiqueta="Inicio" class="dato-mono">{{ fechaCorta(medio.fechaInicio) }}</td>
+            <td data-etiqueta="Fin" class="dato-mono">{{ fechaCorta(medio.fechaFin) }}</td>
+            <td data-etiqueta="Costo" class="num dato-mono">{{ medio.costo | currency: 'BOB' : 'Bs ' : '1.2-2' }}</td>
+            <td data-etiqueta="Estado">
+              <ao-etiqueta-estado [texto]="etiquetaEstadoMedio[medio.estado]" [tono]="tonoEstadoMedio(medio.estado)" />
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5">Todavía no hay medios en el calendario.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </ao-tarjeta>
+
+  <section class="seccion">
+    <div class="seccion__cabecera">
+      <h2>Piezas de creatividad <span class="seccion__contador">({{ piezas().length }} piezas cargadas)</span></h2>
+      <ao-boton variante="secundario">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M5 20h14" /></svg>
+        Subir creatividad
+      </ao-boton>
+    </div>
+
+    <div class="rejilla-piezas">
+      @for (pieza of piezas(); track pieza.nombreArchivo) {
+        <ao-tarjeta [compacta]="true" class="pieza">
+          <div class="pieza__vista" [style.background]="degradadoPieza[pieza.degradado]">
+            <span class="pieza__overlay" [class.pieza__overlay--grande]="pieza.degradado === 'valla'">{{ pieza.overlay }}</span>
+          </div>
+          <h3 class="pieza__titulo">{{ pieza.titulo }}</h3>
+          <p class="dato-mono pieza__formato">{{ pieza.formato }}</p>
+          <div class="pieza__pie">
+            <ao-etiqueta-estado
+              [texto]="pieza.estado === 'bloqueada' ? 'Bloqueada' : (pieza.estado | titlecase)"
+              [tono]="tonoEstadoPieza(pieza.estado)"
+            />
+            <svg class="ic pieza__ojo" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+          </div>
+          @if (pieza.estado === 'bloqueada') {
+            <p class="pieza__nota">Bloqueada por contratación — no se puede editar ni re-aprobar en esta etapa.</p>
+          }
+          @if (pieza.estado === 'rechazada' && pieza.observacion) {
+            <p class="pieza__observacion">{{ pieza.observacion }}</p>
+          }
+        </ao-tarjeta>
+      }
+    </div>
+  </section>
+} @else {
+  <p>No se encontró la campaña.</p>
+}

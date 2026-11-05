@@ -1,0 +1,34 @@
+.etiqueta {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px var(--ao-espacio-3);
+  border-radius: var(--ao-radio-pastilla);
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.etiqueta--ok {
+  background: var(--ao-ok-fondo);
+  color: var(--ao-ok);
+}
+
+.etiqueta--aviso {
+  background: var(--ao-aviso-fondo);
+  color: var(--ao-aviso);
+}
+
+.etiqueta--peligro {
+  background: var(--ao-peligro-fondo);
+  color: var(--ao-peligro);
+}
+
+.etiqueta--info {
+  background: var(--ao-info-fondo);
+  color: var(--ao-info);
+}
+
+.etiqueta--neutro {
+  background: var(--ao-neutro-fondo);
+  color: var(--ao-neutro);
+}

@@ -1,0 +1,11 @@
+.tarjeta {
+  background: var(--ao-superficie);
+  border: 1px solid var(--ao-borde);
+  border-radius: var(--ao-radio-grande);
+  box-shadow: var(--ao-sombra);
+  padding: var(--ao-espacio-4);
+}
+
+.tarjeta--compacta {
+  padding: var(--ao-espacio-3);
+}

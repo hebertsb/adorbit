@@ -1,0 +1,32 @@
+<header class="barra-superior">
+  <div class="buscador">
+    <input id="buscador-global" name="buscador-global" type="search" placeholder="Buscar campañas, creatividades o clientes..." aria-label="Buscar" />
+  </div>
+
+  <div class="acciones">
+    <button
+      type="button"
+      class="icono-boton"
+      (click)="tema.alternar()"
+      [attr.aria-label]="tema.temaActual() === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+    >
+      @if (tema.temaActual() === 'oscuro') {
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" /></svg>
+      } @else {
+        <svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" /></svg>
+      }
+    </button>
+
+    <button type="button" class="icono-boton" aria-label="Notificaciones">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z" /><path d="M10 19a2 2 0 0 0 4 0" /></svg>
+    </button>
+
+    <div class="usuario">
+      <span class="usuario__avatar" aria-hidden="true">{{ nombreUsuario.charAt(0) }}</span>
+      <span class="usuario__datos">
+        <strong>{{ nombreUsuario }}</strong>
+        <small>{{ rolUsuario }}</small>
+      </span>
+    </div>
+  </div>
+</header>

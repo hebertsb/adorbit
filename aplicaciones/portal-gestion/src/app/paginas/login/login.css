@@ -1,0 +1,54 @@
+.pantalla-login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: var(--ao-espacio-4);
+  padding: var(--ao-espacio-4);
+}
+
+.tarjeta-login {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  justify-items: center;
+  gap: var(--ao-espacio-3);
+  text-align: center;
+  background: var(--ao-superficie);
+  border: 1px solid var(--ao-borde);
+  border-radius: var(--ao-radio-grande);
+  box-shadow: var(--ao-sombra);
+  padding: var(--ao-espacio-8) var(--ao-espacio-6);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: var(--ao-espacio-3);
+  font-size: 1.5rem;
+}
+
+h1 {
+  font-size: 1.2rem;
+}
+
+.sub {
+  color: var(--ao-texto-suave);
+  font-size: 0.86rem;
+  margin-top: -4px;
+}
+
+ao-boton {
+  width: 100%;
+  margin-top: var(--ao-espacio-2);
+}
+
+.nota {
+  color: var(--ao-texto-tenue);
+  font-size: 0.76rem;
+  margin: 0;
+}
+
+.pie {
+  color: var(--ao-texto-suave);
+  font-size: 0.76rem;
+}

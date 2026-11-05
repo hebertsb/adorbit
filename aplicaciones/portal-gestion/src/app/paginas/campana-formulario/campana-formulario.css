@@ -1,0 +1,95 @@
+.volver {
+  display: inline-block;
+  color: var(--ao-texto);
+  text-decoration: none;
+  font-weight: 600;
+  margin-bottom: var(--ao-espacio-3);
+}
+
+h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.subtitulo {
+  color: var(--ao-texto-suave);
+  margin-top: 4px;
+  margin-bottom: var(--ao-espacio-4);
+}
+
+.tarjeta-formulario {
+  max-width: 560px;
+}
+
+form {
+  display: grid;
+  gap: var(--ao-espacio-4);
+}
+
+.campo {
+  display: grid;
+  gap: 6px;
+}
+
+.campo__cabecera {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.campo label {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.contador {
+  color: var(--ao-texto-suave);
+  font-size: 0.76rem;
+}
+
+.campo input,
+.campo select,
+.campo textarea {
+  min-height: var(--ao-objetivo-tactil);
+  padding: 0 var(--ao-espacio-3);
+  border: 1px solid var(--ao-borde);
+  border-radius: var(--ao-radio);
+  background: var(--ao-plano);
+  color: var(--ao-texto);
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.campo textarea {
+  padding: var(--ao-espacio-3);
+  resize: vertical;
+}
+
+.campo-doble {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ao-espacio-3);
+}
+
+@media (max-width: 480px) {
+  .campo-doble {
+    grid-template-columns: 1fr;
+  }
+}
+
+.error {
+  color: var(--ao-peligro);
+  font-size: 0.8rem;
+}
+
+.nota-auditoria {
+  background: var(--ao-info-fondo);
+  color: var(--ao-info);
+  font-size: 0.85rem;
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ao-espacio-2);
+}

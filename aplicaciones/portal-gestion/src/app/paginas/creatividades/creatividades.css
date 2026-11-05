@@ -1,0 +1,160 @@
+.encabezado {
+  margin-bottom: var(--ao-espacio-6);
+}
+
+.encabezado h1 {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.encabezado p {
+  color: var(--ao-texto-suave);
+  margin-top: 4px;
+}
+
+.rejilla {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--ao-espacio-6);
+  align-items: start;
+}
+
+@media (max-width: 760px) {
+  .rejilla {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lista-briefs h2 {
+  font-size: 0.95rem;
+  margin-bottom: var(--ao-espacio-3);
+}
+
+.lista-briefs ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ao-espacio-2);
+}
+
+.item-brief {
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+  padding: var(--ao-espacio-3);
+  border: 1px solid var(--ao-borde);
+  border-radius: var(--ao-radio);
+  background: var(--ao-plano);
+  color: var(--ao-texto);
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--ao-objetivo-tactil);
+}
+
+.item-brief span {
+  color: var(--ao-texto-suave);
+  font-size: 0.78rem;
+}
+
+.item-brief--activo {
+  border-color: var(--ao-marca);
+  background: var(--ao-marca-suave);
+}
+
+.panel-piezas h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.subtitulo {
+  color: var(--ao-texto-suave);
+  margin: 4px 0 var(--ao-espacio-4);
+}
+
+.rejilla-piezas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ao-espacio-3);
+}
+
+.pieza {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.pieza__vista {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--ao-espacio-2);
+}
+
+.pieza__overlay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: rgb(255 255 255 / 20%);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 0.78rem;
+}
+
+.pieza > ao-etiqueta-estado,
+.pieza > .pieza__nombre,
+.pieza > .pieza__meta,
+.pieza > .pieza__nota,
+.pieza > .pieza__observacion,
+.pieza > .pieza__acciones {
+  margin-left: var(--ao-espacio-3);
+  margin-right: var(--ao-espacio-3);
+}
+
+.pieza > ao-etiqueta-estado {
+  display: inline-block;
+}
+
+.pieza__nombre {
+  margin-top: var(--ao-espacio-2);
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.pieza__meta {
+  color: var(--ao-texto-suave);
+  font-size: 0.78rem;
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.pieza__nota {
+  margin-top: var(--ao-espacio-2);
+  padding: var(--ao-espacio-2);
+  background: var(--ao-neutro-fondo);
+  color: var(--ao-texto-suave);
+  border-radius: var(--ao-radio-chico);
+  font-size: 0.78rem;
+}
+
+.pieza__observacion {
+  margin-top: var(--ao-espacio-2);
+  padding: var(--ao-espacio-2);
+  background: var(--ao-peligro-fondo);
+  color: var(--ao-peligro);
+  border-radius: var(--ao-radio-chico);
+  font-size: 0.78rem;
+}
+
+.pieza__acciones {
+  display: flex;
+  gap: var(--ao-espacio-2);
+  margin-top: var(--ao-espacio-3);
+}
+
+.pieza__acciones ao-boton {
+  flex: 1;
+}
