@@ -17,12 +17,12 @@ dist/
 .next/
 out/
 
-# Modelos y datos locales (no versionar pesos ni datasets)
+# Modelos y datos locales (no versionar pesos ni datasets de ms-ia)
 *.pt
 *.onnx
 *.tflite
 *.h5
-datos/
+/servicios/**/datos/
 *.db
 *.sqlite
 
