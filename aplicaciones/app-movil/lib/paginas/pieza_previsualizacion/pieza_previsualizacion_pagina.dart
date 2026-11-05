@@ -1,0 +1,202 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:cross_file/cross_file.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../core/datos_locales/bandeja_salida_dao.dart';
+import '../../core/sync/sincronizacion_background.dart';
+import '../../core/sync/sincronizador_service.dart';
+import '../../core/tema/colores_ao.dart';
+import '../../datos/repos/briefs_repo.dart';
+
+class PiezaPrevisualizacionPagina extends StatefulWidget {
+  const PiezaPrevisualizacionPagina({super.key, required this.briefId, this.archivo});
+
+  final String briefId;
+
+  /// Foto real tomada en camara_captura_pagina (o elegida de galeria). Nulo solo si se
+  /// navega directo a esta ruta sin pasar por la camara (ej. pruebas manuales).
+  final XFile? archivo;
+
+  @override
+  State<PiezaPrevisualizacionPagina> createState() => _PiezaPrevisualizacionPaginaState();
+}
+
+class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagina> {
+  final _notaControlador = TextEditingController();
+  final Set<String> _etiquetas = {};
+  bool _guardando = false;
+  Uint8List? _bytes;
+
+  static const _etiquetasDisponibles = ['Acceso principal', 'Buena visibilidad', 'Requiere reubicación'];
+
+  @override
+  void initState() {
+    super.initState();
+    widget.archivo?.readAsBytes().then((b) {
+      if (mounted) setState(() => _bytes = b);
+    });
+  }
+
+  Future<void> _descartar() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Descartar captura?'),
+        content: const Text('Esta fotografía se eliminará de la sesión actual.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Descartar')),
+        ],
+      ),
+    );
+    if (confirmar == true && mounted) context.pop();
+  }
+
+  Future<void> _usarFoto() async {
+    setState(() => _guardando = true);
+
+    // Escritura real en la bandeja de salida local (outbox offline-first, ver
+    // 01-arquitectura.md "Offline y conflictos"). El drenado real lo hace
+    // SincronizacionBackground: en segundo plano (workmanager) o aqui mismo si
+    // ya hay red, sin bloquear al usuario.
+    final clave = const Uuid().v4();
+    await BandejaSalidaDao().encolar(
+      ElementoBandeja(
+        claveIdempotencia: clave,
+        tipo: 'pieza_subida',
+        carga: jsonEncode({
+          'briefId': widget.briefId,
+          'nota': _notaControlador.text,
+          'etiquetas': _etiquetas.toList(),
+        }),
+        estado: 'pendiente',
+        intentos: 0,
+        creadoEn: DateTime.now(),
+      ),
+    );
+
+    if (kIsWeb) {
+      // Sin workmanager en web: se drena inline, igual que haria el background task.
+      unawaited(SincronizadorService().drenarPendientes());
+    } else {
+      unawaited(SincronizacionBackground.sincronizarAhora());
+    }
+
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    setState(() => _guardando = false);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto adjuntada')));
+    context.push('/validacion-ia/${widget.briefId}');
+  }
+
+  @override
+  void dispose() {
+    _notaControlador.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.aoColores;
+    final brief = BriefsRepo().buscarPorId(widget.briefId);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Revisión de pieza'),
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: _descartar),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          AspectRatio(
+            aspectRatio: 9 / 16,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: _bytes != null
+                        ? Image.memory(_bytes!, fit: BoxFit.cover)
+                        : Container(
+                            color: c.plano,
+                            child: Icon(Icons.image_outlined, color: c.textoTenue, size: 48),
+                          ),
+                  ),
+                ),
+                Positioned(left: 10, top: 10, child: _chip('JPG · Alta resolución')),
+                Positioned(right: 10, top: 10, child: _chip('1080 × 1920')),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Para: ${brief?.campana ?? ''}',
+                  style: TextStyle(color: c.texto, fontWeight: FontWeight.w700),
+                ),
+              ),
+              _chip('POP / Tótem'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _notaControlador,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              hintText: 'Ej: Foto de tótem en tienda sucursal Centro...',
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _etiquetasDisponibles.map((e) {
+              final activo = _etiquetas.contains(e);
+              return FilterChip(
+                label: Text(e),
+                selected: activo,
+                onSelected: (sel) => setState(() => sel ? _etiquetas.add(e) : _etiquetas.remove(e)),
+                selectedColor: c.marcaSuave,
+                labelStyle: TextStyle(color: activo ? c.marca : c.textoSuave, fontSize: 12),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => context.pop(),
+                  child: const Text('Volver a tomar foto'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _guardando ? null : _usarFoto,
+                  child: _guardando ? const Text('Guardando...') : const Text('Usar esta foto'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String texto) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(999)),
+      child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 10)),
+    );
+  }
+}
