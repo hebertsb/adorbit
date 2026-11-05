@@ -1,0 +1,250 @@
+openapi: 3.0.3
+info:
+  title: ms-creatividades
+  version: '1'
+  description: >
+    Briefs y piezas creativas, aprobacion/validacion de marca, bloqueo de piezas para
+    la SAGA, subida de archivos via URL firmada. Ver servicios/ms-creatividades/README.md.
+servers:
+  - url: http://localhost:8083
+tags:
+  - name: salud
+  - name: briefs
+  - name: piezas
+
+paths:
+  /salud:
+    get:
+      tags: [salud]
+      summary: Liveness
+      security: []
+      responses:
+        '200':
+          description: El proceso esta arriba
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: { estado: { type: string, example: ok } }
+
+  /listo:
+    get:
+      tags: [salud]
+      summary: Readiness (ping real a Mongo)
+      security: []
+      responses:
+        '200':
+          description: Listo para atender trafico
+        '503':
+          description: Mongo no disponible
+
+  /api/v1/briefs:
+    get:
+      tags: [briefs]
+      summary: Listar briefs
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: campana_id, in: query, schema: { type: string, format: uuid } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+        - { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        '200':
+          description: Pagina de briefs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Brief' } }
+                  total: { type: integer }
+                  page: { type: integer }
+                  size: { type: integer }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '403': { $ref: '#/components/responses/SinPermiso' }
+    post:
+      tags: [briefs]
+      summary: Crear brief
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campana_id, titulo]
+              additionalProperties: false
+              properties:
+                campana_id: { type: string, format: uuid }
+                cliente_id: { type: string, format: uuid }
+                titulo: { type: string, maxLength: 200 }
+                descripcion: { type: string, maxLength: 2000 }
+      responses:
+        '201': { description: Brief creado, content: { application/json: { schema: { $ref: '#/components/schemas/Brief' } } } }
+        '200': { description: 'Replay: ya se habia procesado esta Idempotency-Key' }
+        '400': { $ref: '#/components/responses/SolicitudInvalida' }
+        '422': { description: 'idempotencia_conflicto: misma clave, datos distintos' }
+
+  /api/v1/briefs/{id}/piezas:
+    post:
+      tags: [piezas]
+      summary: Subir una nueva version de pieza para un brief
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nombre, tipo]
+              additionalProperties: false
+              properties:
+                nombre: { type: string, maxLength: 200 }
+                tipo: { type: string, enum: [imagen, video, copy, audio] }
+                archivo:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    ruta: { type: string }
+                    mime: { type: string }
+                    tamano: { type: number }
+                huella_imagen: { type: string }
+      responses:
+        '201': { description: Pieza creada, content: { application/json: { schema: { $ref: '#/components/schemas/Pieza' } } } }
+        '404': { description: brief_no_encontrado }
+
+  /api/v1/piezas/{id}:
+    get:
+      tags: [piezas]
+      summary: Obtener una pieza
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Pieza, content: { application/json: { schema: { $ref: '#/components/schemas/Pieza' } } } }
+        '404': { description: pieza_no_encontrada }
+
+  /api/v1/piezas/{id}/aprobar:
+    post:
+      tags: [piezas]
+      summary: Aprobar o rechazar una pieza
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              additionalProperties: false
+              properties:
+                decision: { type: string, enum: [aprobar, rechazar] }
+      responses:
+        '200': { description: Pieza actualizada, content: { application/json: { schema: { $ref: '#/components/schemas/Pieza' } } } }
+        '409': { description: pieza_bloqueada }
+
+  /api/v1/piezas/{id}/validaciones:
+    post:
+      tags: [piezas]
+      summary: Registrar una comprobacion de marca (manual o de ms-ia)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resultado, origen]
+              additionalProperties: false
+              properties:
+                resultado: { type: string, enum: [ok, observada, rechazada] }
+                origen: { type: string, enum: [manual, ia] }
+                detalles: { type: object }
+      responses:
+        '201': { description: Validacion registrada }
+
+  /api/v1/piezas/{id}/archivo:
+    post:
+      tags: [piezas]
+      summary: Pedir una URL firmada para subir el archivo de una pieza
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mime, tamano]
+              additionalProperties: false
+              properties:
+                mime: { type: string, enum: [image/jpeg, image/png, video/mp4, application/pdf] }
+                tamano: { type: number, description: bytes }
+                huella_imagen: { type: string }
+      responses:
+        '201':
+          description: URL firmada generada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ruta: { type: string }
+                  urlSubida: { type: string }
+                  token: { type: string }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 120 }
+  responses:
+    NoAutenticado:
+      description: Falta o es invalido el token
+    SinPermiso:
+      description: El rol del token no alcanza para este endpoint
+    SolicitudInvalida:
+      description: Cuerpo invalido segun el esquema
+  schemas:
+    Brief:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        campanaId: { type: string, format: uuid }
+        clienteId: { type: string, format: uuid }
+        titulo: { type: string }
+        descripcion: { type: string }
+        estado: { type: string, enum: [recibido, en_creacion, en_revision, aprobado, rechazado] }
+        version: { type: integer }
+        creadoEn: { type: string, format: date-time }
+        actualizadoEn: { type: string, format: date-time }
+    Pieza:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        briefId: { type: string, format: uuid }
+        campanaId: { type: string, format: uuid }
+        nombre: { type: string }
+        tipo: { type: string, enum: [imagen, video, copy, audio] }
+        versionNumero: { type: integer }
+        estado: { type: string, enum: [en_revision, aprobada, bloqueada_saga, rechazada] }
+        version: { type: integer }

@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BloqueoFallido",
+  "description": "Respuesta de fallo de NEGOCIO al comando BloquearPiezas (ej. sin piezas aprobadas) — no es un fallo de mensajeria, el comando se proceso normalmente. Consume ms-campanas, que pasa la SAGA a compensando.",
+  "type": "object",
+  "required": ["id_evento", "tipo_evento", "version_esquema", "ocurrido_en", "agregado_id", "correlacion_id", "carga"],
+  "properties": {
+    "id_evento": { "type": "string", "format": "uuid" },
+    "tipo_evento": { "const": "BloqueoFallido" },
+    "version_esquema": { "type": "integer", "const": 1 },
+    "ocurrido_en": { "type": "string", "format": "date-time" },
+    "agregado_id": { "type": "string", "format": "uuid", "description": "campana_id" },
+    "correlacion_id": { "type": "string", "format": "uuid", "description": "saga_id" },
+    "carga": {
+      "type": "object",
+      "required": ["saga_id", "campana_id", "motivo"],
+      "properties": {
+        "saga_id": { "type": "string", "format": "uuid" },
+        "campana_id": { "type": "string", "format": "uuid" },
+        "motivo": { "type": "string", "enum": ["sin_piezas_aprobadas"] },
+        "detalle": { "type": "string" }
+      }
+    }
+  }
+}

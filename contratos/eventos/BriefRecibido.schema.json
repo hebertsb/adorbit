@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BriefRecibido",
+  "description": "Publica ms-creatividades cuando se crea un brief nuevo.",
+  "type": "object",
+  "required": ["id_evento", "tipo_evento", "version_esquema", "ocurrido_en", "agregado_id", "correlacion_id", "carga"],
+  "properties": {
+    "id_evento": { "type": "string", "format": "uuid" },
+    "tipo_evento": { "const": "BriefRecibido" },
+    "version_esquema": { "type": "integer", "const": 1 },
+    "ocurrido_en": { "type": "string", "format": "date-time" },
+    "agregado_id": { "type": "string", "format": "uuid", "description": "brief_id" },
+    "correlacion_id": { "type": "string", "format": "uuid" },
+    "carga": {
+      "type": "object",
+      "required": ["brief_id", "campana_id", "titulo"],
+      "properties": {
+        "brief_id": { "type": "string", "format": "uuid" },
+        "campana_id": { "type": "string", "format": "uuid" },
+        "titulo": { "type": "string" }
+      }
+    }
+  }
+}

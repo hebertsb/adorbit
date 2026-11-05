@@ -31,12 +31,18 @@ Publica: `BriefRecibido`, `PiezaSubida`, `PiezaAprobada`, `PiezasBloqueadas`, `B
 Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos (ver `AGENTS.md`).
 
 ## Tareas (en orden)
-1. [ ] Esqueleto Next.js + JWT + `/api/salud`
-2. [ ] Casos de uso de briefs/piezas y repos Mongo
-3. [ ] Idempotencia (colección + TTL `vence_en`)
-4. [ ] Bloqueo atómico y liberación con `saga_id`; job de expiración
-5. [ ] Outbox + relay RabbitMQ
-6. [ ] Subida de archivos (URL firmada) y evento `PiezaSubida` con `huella_imagen`
+1. [x] Esqueleto Next.js + JWT + `/salud` + `/listo`
+2. [x] Casos de uso de briefs/piezas y repos Mongo
+3. [x] Idempotencia (colección + TTL `vence_en`)
+4. [x] Bloqueo atómico y liberación con `saga_id`; job de expiración
+5. [x] Outbox + relay RabbitMQ
+6. [x] Subida de archivos (URL firmada) y evento `PiezaSubida` con `huella_imagen`
+
+Pendiente antes de la demo (necesita infraestructura real, no se pudo probar en esta
+maquina — Docker Desktop no estaba disponible): levantar Mongo/RabbitMQ (locales o
+Atlas/CloudAMQP), completar `.env` a partir de `.env.ejemplo`, crear el bucket real de
+Supabase Storage, y correr los 5 casos de prueba de `documentacion/02-saga.md` contra el
+orquestador real de ms-campanas.
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

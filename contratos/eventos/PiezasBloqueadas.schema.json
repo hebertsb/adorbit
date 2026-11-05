@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PiezasBloqueadas",
+  "description": "Respuesta de exito al comando BloquearPiezas (paso 3 del SAGA de contratacion). Consume ms-campanas.",
+  "type": "object",
+  "required": ["id_evento", "tipo_evento", "version_esquema", "ocurrido_en", "agregado_id", "correlacion_id", "carga"],
+  "properties": {
+    "id_evento": { "type": "string", "format": "uuid" },
+    "tipo_evento": { "const": "PiezasBloqueadas" },
+    "version_esquema": { "type": "integer", "const": 1 },
+    "ocurrido_en": { "type": "string", "format": "date-time" },
+    "agregado_id": { "type": "string", "format": "uuid", "description": "campana_id" },
+    "correlacion_id": { "type": "string", "format": "uuid", "description": "saga_id" },
+    "carga": {
+      "type": "object",
+      "required": ["saga_id", "campana_id", "pieza_ids"],
+      "properties": {
+        "saga_id": { "type": "string", "format": "uuid" },
+        "campana_id": { "type": "string", "format": "uuid" },
+        "pieza_ids": { "type": "array", "items": { "type": "string", "format": "uuid" }, "minItems": 1 }
+      }
+    }
+  }
+}
