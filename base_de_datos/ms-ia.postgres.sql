@@ -131,6 +131,22 @@ CREATE TABLE vision_resultados (
 CREATE INDEX indice_vision_pieza ON vision_resultados (pieza_id, creado_en DESC);
 CREATE INDEX indice_vision_campana ON vision_resultados (campana_id);
 
+-- ------------------------------------------------ reportes NL (tarea 4, nueva)
+CREATE TABLE reportes_generados (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usuario_id UUID,
+  pregunta TEXT NOT NULL,
+  respuesta_nl TEXT,
+  herramientas_usadas JSONB NOT NULL DEFAULT '[]',
+  columnas JSONB NOT NULL DEFAULT '[]',
+  filas JSONB NOT NULL DEFAULT '[]',
+  estado VARCHAR(15) NOT NULL DEFAULT 'listo'
+    CHECK (estado IN ('listo','fallido')),
+  error TEXT,
+  creado_en TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX indice_reportes_usuario ON reportes_generados (usuario_id, creado_en DESC);
+
 -- ------------------------------------------------- idempotencia y outbox
 CREATE TABLE claves_idempotencia (
   clave VARCHAR(120) PRIMARY KEY,
@@ -199,7 +215,7 @@ CREATE TRIGGER disparador_rep_fact_upd BEFORE UPDATE ON reporte_facturacion
 DO $$ DECLARE t text; BEGIN
   FOREACH t IN ARRAY ARRAY['reporte_campanas','reporte_clientes','reporte_facturacion',
     'eventos_procesados','agentes','ejecuciones_agente','modelos_aprendizaje','auditoria_mcp',
-    'vision_resultados','claves_idempotencia','bandeja_salida_eventos'] LOOP
+    'vision_resultados','claves_idempotencia','bandeja_salida_eventos','reportes_generados'] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
   END LOOP;
 END $$;

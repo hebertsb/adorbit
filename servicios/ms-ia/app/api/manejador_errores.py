@@ -14,6 +14,8 @@ _STATUS_POR_CODIGO: dict[str, int] = {
     "brief_no_encontrado": 404,
     "pieza_no_encontrada": 404,
     "parametro_invalido": 400,
+    "reporte_no_encontrado": 404,
+    "idempotencia_conflicto": 409,
 }
 
 

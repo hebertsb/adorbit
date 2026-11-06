@@ -4,14 +4,14 @@ info:
   version: '1'
   description: >
     Read model de reportes, servidor MCP (unica via de acceso de IA a los datos),
-    reportes en lenguaje natural, agentes LangGraph, ML/DL. Este contrato cubre solo
-    lo que ya existe (tareas 1-3 del README); /reportes, /vision/analizar, /agentes
-    (tareas 4-6) se agregan cuando se decida el proveedor de LLM.
+    reportes en lenguaje natural (tarea 4, proveedor Groq), agentes LangGraph, ML/DL.
+    /vision/analizar y /agentes (tareas 5-6) se agregan en una pasada aparte.
 servers:
   - url: http://localhost:8085
 tags:
   - name: salud
   - name: mcp
+  - name: reportes
 
 paths:
   /salud:
@@ -80,6 +80,66 @@ paths:
         '401': { description: Falta o es invalido el token }
         '403': { description: El rol del token no alcanza }
 
+  /api/v1/reportes:
+    post:
+      tags: [reportes]
+      summary: >
+        Genera un reporte a partir de una pregunta en lenguaje natural. El LLM (Groq)
+        decide que herramienta(s) MCP llamar -- nunca toca SQL directo, pasa por la
+        misma ConsultasMcp auditada que usa el servidor MCP real (ver /mcp).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pregunta]
+              properties: { pregunta: { type: string } }
+      responses:
+        '201':
+          description: Reporte generado (o repetido, si la Idempotency-Key ya se uso con los mismos datos)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReporteGenerado' }
+        '400': { description: 'Falta pregunta o Idempotency-Key' }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: 'El rol del token no alcanza (requiere ejecutivo|gerente|creativo)' }
+        '409': { description: 'La Idempotency-Key ya se uso con una pregunta distinta' }
+
+  /api/v1/reportes/{id}:
+    get:
+      tags: [reportes]
+      summary: Recupera un reporte ya generado
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Reporte encontrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReporteGenerado' }
+        '404': { description: No existe un reporte con ese id }
+
+  /api/v1/reportes/{id}/exportar:
+    get:
+      tags: [reportes]
+      summary: Exporta un reporte ya generado a PDF o Excel (tabla + grafico cuando aplica)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: formato, in: query, required: false, schema: { type: string, enum: [pdf, xlsx], default: pdf } }
+      responses:
+        '200':
+          description: Archivo binario (application/pdf o application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
+        '404': { description: No existe un reporte con ese id }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -102,3 +162,20 @@ components:
         error: { type: string, nullable: true }
         duracion_ms: { type: integer }
         creado_en: { type: string, format: date-time }
+    ReporteGenerado:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        pregunta: { type: string }
+        respuesta_nl: { type: string, nullable: true }
+        herramientas_usadas:
+          type: array
+          items: { type: object }
+        columnas:
+          type: array
+          items: { type: string }
+        filas:
+          type: array
+          items: { type: object }
+        estado: { type: string, enum: [listo, fallido] }
+        creado_en: { type: string, format: date-time, nullable: true }

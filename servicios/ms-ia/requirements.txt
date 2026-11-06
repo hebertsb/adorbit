@@ -7,3 +7,6 @@ pyjwt[crypto]==2.15.1
 cryptography==50.0.2
 mcp==1.29.0
 httpx==0.28.1
+groq==1.7.0
+openpyxl==3.1.5
+reportlab==5.1.0

@@ -8,8 +8,10 @@ luego [`AGENTS.md`](./AGENTS.md) (mapa de documentos, stack y convenciones). La 
 `documentacion/` es la fuente de verdad: si algo cambia, se cambia ahí en el mismo PR.
 
 ## Estado actual
-Estructura del monorepo creada (ver abajo); microservicios, frontends e infraestructura todavía
-sin implementar. Fases, fechas y reparto por integrante en
+`ms-creatividades` (completo) y `ms-ia` (tareas 1-4/6) implementados; `app-movil` (Flutter) con
+cámara y sincronización en curso; `portal-cliente`/`panel-inteligencia` (React) en la rama de
+Luis. Ver el checklist de cada servicio en `servicios/<servicio>/README.md`. Fases, fechas y
+reparto por integrante en
 [`documentacion/04-reparto-equipo.md`](./documentacion/04-reparto-equipo.md).
 
 ## Documentación

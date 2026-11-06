@@ -3,11 +3,13 @@ solo estas formas. Los adaptadores en app/adapters/ los implementan."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date
 from typing import Any, Protocol
 from uuid import UUID
 
 from .reporte import ReporteCampana, ReporteCliente, ReporteFacturacion
+from .reporte_generado import ReporteGenerado
 
 
 class EventosProcesadosPuerto(Protocol):
@@ -62,3 +64,33 @@ class VistaMcpPuerto(Protocol):
     async def clientes_morosos(self) -> list[dict[str, Any]]: ...
 
     async def resumen_gasto_campana(self, campana_id: UUID) -> dict[str, Any] | None: ...
+
+
+class ReporteGeneradoRepositorio(Protocol):
+    async def crear(self, reporte: ReporteGenerado, conexion: Any) -> None: ...
+    async def buscar(self, id_reporte: UUID) -> ReporteGenerado | None: ...
+
+
+class ClienteLlmPuerto(Protocol):
+    """LLM con tool-calling (ver app/adapters/llm/groq_cliente.py). Devuelve el mensaje
+    crudo del modelo: o bien `tool_calls` (el LLM quiere llamar una herramienta MCP) o
+    `contenido` (la respuesta final en lenguaje natural)."""
+
+    def mensaje_sistema(self) -> dict[str, Any]: ...
+
+    async def completar_con_herramientas(
+        self, mensajes: list[dict[str, Any]]
+    ) -> "RespuestaLlm": ...
+
+
+@dataclass
+class LlamadaHerramientaLlm:
+    id: str
+    nombre: str
+    argumentos_crudos: str
+
+
+@dataclass
+class RespuestaLlm:
+    contenido: str | None
+    llamadas_herramienta: list[LlamadaHerramientaLlm]

@@ -19,7 +19,7 @@ app/
 ```
 
 ## API
-`/reportes`, `/reportes/{id}/exportar`, `/vision/analizar`, `/agentes`, `/agentes/{id}/ejecutar`, `/mcp/auditoria`.
+`/reportes`, `/reportes/{id}`, `/reportes/{id}/exportar`, `/vision/analizar`, `/agentes`, `/agentes/{id}/ejecutar`, `/mcp/auditoria`.
 
 ## Eventos
 Consume: todos los eventos de dominio (`CampanaCreada`, `ClienteCreado`, `FacturaEmitida`, `PiezaSubida`, ...). Publica: `AlertaCampana`, `PiezaAnalizada`.
@@ -33,15 +33,13 @@ Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos 
 1. [x] Esqueleto FastAPI + JWT + `/salud` + `/listo` (con ping real a Postgres)
 2. [x] Consumidor de eventos con dedupe y read model
 3. [x] MCP: herramientas parametrizadas, rol `lector_mcp`, auditoría (incluye bloqueadas) + prueba de intento de inyección
-4. [ ] Reportes NL → MCP → tabla/gráfico → PDF/Excel
+4. [x] Reportes NL → MCP → tabla/gráfico → PDF/Excel (proveedor LLM: Groq, ver decisión D14)
 5. [ ] Agentes (monitor y cobranza primero) y disparadores n8n
 6. [ ] ML (ROI/impago, K-Means, Isolation Forest) y visión YOLO; registrar en `modelos_aprendizaje`
 
-Tareas 4-6 bloqueadas por una decisión de producto/costo que todavía no se tomó: **qué
-proveedor de LLM usar** para los reportes en lenguaje natural y los agentes LangGraph —
-no hay ninguno elegido en ningún doc del proyecto, ni variable de entorno, ni decisión
-registrada. La tarea 6 ademas necesita datos de entrenamiento reales que no existen
-todavia. Se retoman en una pasada aparte una vez resuelto el proveedor.
+Tareas 5-6 quedan para una pasada aparte: la 5 reusa el mismo cliente Groq de la tarea 4
+pero necesita los disparadores de n8n de Roly; la 6 además necesita datos de
+entrenamiento reales que no existen todavía.
 
 Pendiente antes de la demo (necesita infraestructura real, no se pudo probar en esta
 maquina — Docker Desktop no estaba disponible): levantar Postgres/RabbitMQ reales (o
