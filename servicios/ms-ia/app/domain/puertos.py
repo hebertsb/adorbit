@@ -8,6 +8,7 @@ from datetime import date
 from typing import Any, Protocol
 from uuid import UUID
 
+from .agente import Agente, EjecucionAgente
 from .reporte import ReporteCampana, ReporteCliente, ReporteFacturacion
 from .reporte_generado import ReporteGenerado
 
@@ -94,3 +95,35 @@ class LlamadaHerramientaLlm:
 class RespuestaLlm:
     contenido: str | None
     llamadas_herramienta: list[LlamadaHerramientaLlm]
+
+
+class AgenteRepositorio(Protocol):
+    async def buscar(self, id_agente: UUID) -> Agente | None: ...
+    async def listar(self) -> list[Agente]: ...
+
+
+class EjecucionAgenteRepositorio(Protocol):
+    async def crear(self, ejecucion: EjecucionAgente, conexion: Any) -> None: ...
+
+    async def finalizar(
+        self, id_ejecucion: UUID, *, estado: str, salida: dict[str, Any] | None, error: str | None, conexion: Any
+    ) -> None: ...
+
+    async def buscar(self, id_ejecucion: UUID) -> EjecucionAgente | None: ...
+
+
+class OutboxEventosPuerto(Protocol):
+    """Escribe en bandeja_salida_eventos dentro de la MISMA transaccion del caso de uso
+    que publica -- patron de outbox transaccional (CLAUDE.md), igual que
+    relevoBandejaSalida.ts/outboxRepositorioMongo.ts en ms-creatividades. Un relevo
+    aparte (app/adapters/rabbitmq/relevo_bandeja_salida.py) la vacia hacia RabbitMQ."""
+
+    async def publicar(
+        self,
+        *,
+        conexion: Any,
+        tipo_agregado: str,
+        agregado_id: UUID,
+        tipo_evento: str,
+        carga: dict[str, Any],
+    ) -> None: ...
