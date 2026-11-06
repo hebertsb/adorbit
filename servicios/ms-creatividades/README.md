@@ -55,11 +55,14 @@ distinto a como la declaró su propio `definiciones.json` — ver
 integrantes" — así que un comando real desde ms-campanas no va a llegar aquí hasta que
 eso se corrija del otro lado, aunque el consumidor en sí ya es correcto.
 
-Pendiente antes de la demo: crear el bucket real de Supabase Storage (`piezas-creatividades`,
-reusa el mismo proyecto Supabase de ms-ia) y completar `ADORBIT_CREATIVIDADES_SUPABASE_URL`/
-`_SERVICE_KEY` en `.env` — sin eso, `POST /piezas/{id}/archivo` falla (probado: da 500).
-Correr los 5 casos de prueba de `documentacion/02-saga.md` contra el orquestador real de ms-campanas
-sigue pendiente de ese lado.
+El bucket real de Supabase Storage (`piezas-creatividades`, mismo proyecto Supabase de
+ms-ia) ya está creado y probado en vivo (6 nov): pedir la URL firmada
+(`POST /piezas/{id}/archivo`), subir los bytes directo ahí, y que la pieza quede con
+`archivo` completo — las 3 partes del flujo real, de punta a punta.
+
+Pendiente: correr los 5 casos de prueba de `documentacion/02-saga.md` contra el
+orquestador real de ms-campanas sigue bloqueado por el bug de enrutamiento del otro lado
+(ver arriba).
 
 ## Probar local sin Keycloak
 Mismo simulador compartido de todo el proyecto (`herramientas/keycloak-simulado.mjs`,
