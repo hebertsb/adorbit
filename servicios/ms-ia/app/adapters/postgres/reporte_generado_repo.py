@@ -10,12 +10,13 @@ from .conexion import obtener_pool_principal
 
 class ReporteGeneradoRepositorioPg:
     async def crear(self, reporte: ReporteGenerado, conexion: Any) -> None:
-        await conexion.execute(
+        creado_en = await conexion.fetchval(
             """
             INSERT INTO reportes_generados
               (id, usuario_id, pregunta, respuesta_nl, herramientas_usadas, columnas,
                filas, estado, error)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING creado_en
             """,
             reporte.id,
             reporte.usuario_id,
@@ -27,6 +28,7 @@ class ReporteGeneradoRepositorioPg:
             reporte.estado,
             reporte.error,
         )
+        reporte.creado_en = creado_en
 
     async def buscar(self, id_reporte: UUID) -> ReporteGenerado | None:
         pool = await obtener_pool_principal()

@@ -41,11 +41,23 @@ Tareas 5-6 quedan para una pasada aparte: la 5 reusa el mismo cliente Groq de la
 pero necesita los disparadores de n8n de Roly; la 6 además necesita datos de
 entrenamiento reales que no existen todavía.
 
-Pendiente antes de la demo (necesita infraestructura real, no se pudo probar en esta
-maquina — Docker Desktop no estaba disponible): levantar Postgres/RabbitMQ reales (o
-confirmar que Supabase/CloudAMQP ya alcanzan), crear el usuario `LOGIN` con
-`GRANT lector_mcp` en Supabase (ver `.env.ejemplo`), y completar `ADORBIT_IA_JWKS_URI`/
-`ADORBIT_IA_RABBITMQ_URL` cuando Roly tenga Keycloak y las colas listas.
+Pendiente antes de la demo: levantar RabbitMQ real (o confirmar que CloudAMQP ya
+alcanza), crear el usuario `LOGIN` con `GRANT lector_mcp` en Supabase (ver
+`.env.ejemplo`), y completar `ADORBIT_IA_JWKS_URI`/`ADORBIT_IA_RABBITMQ_URL` cuando
+Roly tenga Keycloak y las colas listas. El Postgres de Supabase SÍ está disponible y
+probado en vivo (incluida la tabla nueva `reportes_generados` de la tarea 4).
+
+## Probar local sin Keycloak
+Roly todavía no tiene Keycloak real corriendo, pero los endpoints protegidos
+(`/reportes`, `/mcp`) exigen JWT igual. `herramientas/emisor_jwt_prueba.py` genera un
+JWKS de juguete + un token firmado válido, usando el mismo código de verificación real
+(no es un bypass). En `.env` (temporalmente, mientras pruebas local):
+```
+ADORBIT_IA_JWKS_URI=http://127.0.0.1:8099/certs
+ADORBIT_IA_EMISOR=http://127.0.0.1:8099/prueba
+```
+Luego `python herramientas/emisor_jwt_prueba.py` (deja la terminal abierta) y usa el
+`Authorization: Bearer ...` que imprime.
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

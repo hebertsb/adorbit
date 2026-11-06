@@ -26,7 +26,7 @@ async def con_idempotencia(
     conexion: Any,
     clave: str,
     datos_huella: Any,
-    reconstruir_replay: Callable[[dict[str, Any]], T],
+    reconstruir_replay: Callable[[dict[str, Any]], Awaitable[T]],
     ejecutar: Callable[[], Awaitable[tuple[T, dict[str, Any]]]],
 ) -> T:
     """Misma clave + mismos datos => replay (reconstruye sin repetir el trabajo); misma
@@ -44,7 +44,7 @@ async def con_idempotencia(
                 "idempotencia_conflicto", "La clave de idempotencia ya se uso con datos distintos"
             )
         datos_guardados = json.loads(fila_existente["respuesta"] or "{}")
-        return reconstruir_replay(datos_guardados)
+        return await reconstruir_replay(datos_guardados)
 
     resultado, datos_guardados = await ejecutar()
     await conexion.execute(
