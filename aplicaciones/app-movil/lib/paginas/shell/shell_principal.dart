@@ -15,11 +15,14 @@ class ShellPrincipal extends StatelessWidget {
   Widget build(BuildContext context) {
     var indice = NavInferior.rutas.indexWhere((r) => rutaActual.startsWith(r));
     if (indice < 0) indice = 0;
-    final pendientes = ColaSyncRepo().pendientes;
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavInferior(indiceActual: indice, pendientesSync: pendientes),
+      bottomNavigationBar: FutureBuilder<int>(
+        future: ColaSyncRepo().pendientes,
+        builder: (context, snapshot) =>
+            NavInferior(indiceActual: indice, pendientesSync: snapshot.data ?? 0),
+      ),
     );
   }
 }

@@ -2,9 +2,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
-/// Base SQLite local. Hoy solo persiste bandeja_salida_local (ver 01-arquitectura.md
-/// "Offline y conflictos"): cada escritura offline queda aqui hasta poder reenviarse
-/// con el mismo Idempotency-Key.
+/// Base SQLite local. Persiste bandeja_salida_local (outbox offline, ver
+/// 01-arquitectura.md "Offline y conflictos") y cache_lectura (ultima respuesta buena
+/// de cada GET, para que listas/detalle sigan mostrando algo sin red -- nunca para
+/// escrituras, esas solo viven en la bandeja de salida).
 class SqliteDb {
   SqliteDb._();
 
@@ -22,7 +23,7 @@ class SqliteDb {
 
     final db = await openDatabase(
       'adorbit_local.db',
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE bandeja_salida_local (
@@ -35,6 +36,24 @@ class SqliteDb {
             creado_en TEXT NOT NULL
           )
         ''');
+        await db.execute('''
+          CREATE TABLE cache_lectura (
+            clave TEXT PRIMARY KEY,
+            valor TEXT NOT NULL,
+            guardado_en TEXT NOT NULL
+          )
+        ''');
+      },
+      onUpgrade: (db, versionAnterior, versionNueva) async {
+        if (versionAnterior < 2) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS cache_lectura (
+              clave TEXT PRIMARY KEY,
+              valor TEXT NOT NULL,
+              guardado_en TEXT NOT NULL
+            )
+          ''');
+        }
       },
     );
     _db = db;

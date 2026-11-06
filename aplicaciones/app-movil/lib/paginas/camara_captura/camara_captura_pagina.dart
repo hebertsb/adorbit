@@ -1,27 +1,30 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../../core/auth/sesion_controller.dart';
 import '../../datos/repos/briefs_repo.dart';
 
 /// Captura real con package:camera. En web el navegador pide permiso de camara solo
 /// (getUserMedia); en Android/iOS se pide con permission_handler antes de abrir el
 /// CameraController (ver AndroidManifest.xml / Info.plist).
-class CamaraCapturaPagina extends StatefulWidget {
+class CamaraCapturaPagina extends ConsumerStatefulWidget {
   const CamaraCapturaPagina({super.key, required this.briefId});
 
   final String briefId;
 
   @override
-  State<CamaraCapturaPagina> createState() => _CamaraCapturaPaginaState();
+  ConsumerState<CamaraCapturaPagina> createState() => _CamaraCapturaPaginaState();
 }
 
-class _CamaraCapturaPaginaState extends State<CamaraCapturaPagina> with WidgetsBindingObserver {
+class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with WidgetsBindingObserver {
   static const _nivelesZoom = [0.5, 1.0, 2.0];
   static const _modos = ['Panorámica', 'Valla OOH', 'Inspección'];
+  String? _tituloBrief;
 
   List<CameraDescription> _camaras = [];
   CameraController? _controlador;
@@ -39,6 +42,12 @@ class _CamaraCapturaPaginaState extends State<CamaraCapturaPagina> with WidgetsB
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _inicializar();
+    final token = ref.read(sesionControllerProvider).token;
+    if (token != null) {
+      BriefsRepo(token: token).obtener(widget.briefId).then((b) {
+        if (mounted) setState(() => _tituloBrief = b.titulo);
+      }).catchError((_) {});
+    }
   }
 
   Future<void> _inicializar() async {
@@ -176,8 +185,6 @@ class _CamaraCapturaPaginaState extends State<CamaraCapturaPagina> with WidgetsB
 
   @override
   Widget build(BuildContext context) {
-    final brief = BriefsRepo().buscarPorId(widget.briefId);
-
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -203,7 +210,7 @@ class _CamaraCapturaPaginaState extends State<CamaraCapturaPagina> with WidgetsB
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              'Para: ${brief?.campana ?? ''}',
+                              'Para: ${_tituloBrief ?? '...'}',
                               style: const TextStyle(color: Colors.white, fontSize: 11),
                               overflow: TextOverflow.ellipsis,
                             ),

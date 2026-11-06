@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../compartido/logo_adorbit.dart';
 import '../../compartido/tarjeta_ao.dart';
+import '../../core/auth/sesion_controller.dart';
+import '../../core/red/api_excepcion.dart';
 import '../../core/tema/colores_ao.dart';
 import '../../core/tema/tema_controller.dart';
 
@@ -17,14 +19,39 @@ class LoginPagina extends ConsumerStatefulWidget {
 class _LoginPaginaState extends ConsumerState<LoginPagina> {
   bool _conectando = false;
   bool _bannerVisible = true;
+  String? _error;
 
-  // TODO Hebert: reemplazar por flutter_appauth contra el realm real de Keycloak (OIDC/OAuth2).
+  @override
+  void initState() {
+    super.initState();
+    // Sesion ya restaurada (ver main.dart) -- si habia un token guardado, nos saltamos
+    // el boton. post-frame porque go_router no navega de forma segura desde initState.
+    if (ref.read(sesionControllerProvider).autenticado) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.go('/briefs');
+      });
+    }
+  }
+
+  /// Mientras Roly no tenga el Keycloak real corriendo, inicia sesion contra el emisor
+  /// de JWT de prueba (ver core/auth/sesion_controller.dart) -- el mismo que ya usa
+  /// ms-ia. No es un bypass: ms-creatividades verifica el token con su codigo real.
+  /// TODO Hebert: reemplazar por flutter_appauth contra el realm real de Keycloak (OIDC/OAuth2).
   Future<void> _iniciarSesion() async {
-    setState(() => _conectando = true);
-    await Future.delayed(const Duration(milliseconds: 900));
-    if (!mounted) return;
-    setState(() => _conectando = false);
-    context.go('/briefs');
+    setState(() {
+      _conectando = true;
+      _error = null;
+    });
+    try {
+      await ref.read(sesionControllerProvider.notifier).iniciarSesionDev(rol: 'creativo');
+      if (!mounted) return;
+      context.go('/briefs');
+    } on ApiExcepcion catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error.mensaje);
+    } finally {
+      if (mounted) setState(() => _conectando = false);
+    }
   }
 
   @override
@@ -114,6 +141,21 @@ class _LoginPaginaState extends ConsumerState<LoginPagina> {
                       textAlign: TextAlign.center,
                       style: TextStyle(color: c.textoTenue, fontSize: 12),
                     ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 14),
+                      TarjetaAo(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline, color: c.peligro, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(_error!, style: TextStyle(color: c.peligro, fontSize: 12)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

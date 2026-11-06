@@ -3,18 +3,21 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cross_file/cross_file.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/auth/sesion_controller.dart';
 import '../../core/datos_locales/bandeja_salida_dao.dart';
 import '../../core/sync/sincronizacion_background.dart';
 import '../../core/sync/sincronizador_service.dart';
 import '../../core/tema/colores_ao.dart';
 import '../../datos/repos/briefs_repo.dart';
 
-class PiezaPrevisualizacionPagina extends StatefulWidget {
+class PiezaPrevisualizacionPagina extends ConsumerStatefulWidget {
   const PiezaPrevisualizacionPagina({super.key, required this.briefId, this.archivo});
 
   final String briefId;
@@ -24,14 +27,15 @@ class PiezaPrevisualizacionPagina extends StatefulWidget {
   final XFile? archivo;
 
   @override
-  State<PiezaPrevisualizacionPagina> createState() => _PiezaPrevisualizacionPaginaState();
+  ConsumerState<PiezaPrevisualizacionPagina> createState() => _PiezaPrevisualizacionPaginaState();
 }
 
-class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagina> {
+class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizacionPagina> {
   final _notaControlador = TextEditingController();
   final Set<String> _etiquetas = {};
   bool _guardando = false;
   Uint8List? _bytes;
+  String? _tituloBrief;
 
   static const _etiquetasDisponibles = ['Acceso principal', 'Buena visibilidad', 'Requiere reubicación'];
 
@@ -41,6 +45,12 @@ class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagin
     widget.archivo?.readAsBytes().then((b) {
       if (mounted) setState(() => _bytes = b);
     });
+    final token = ref.read(sesionControllerProvider).token;
+    if (token != null) {
+      BriefsRepo(token: token).obtener(widget.briefId).then((b) {
+        if (mounted) setState(() => _tituloBrief = b.titulo);
+      }).catchError((_) {});
+    }
   }
 
   Future<void> _descartar() async {
@@ -59,12 +69,24 @@ class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagin
   }
 
   Future<void> _usarFoto() async {
+    final bytes = _bytes;
+    if (bytes == null) return;
     setState(() => _guardando = true);
+
+    final mime = widget.archivo?.mimeType ?? 'image/jpeg';
+    final nombre = _notaControlador.text.trim().isNotEmpty
+        ? _notaControlador.text.trim()
+        : 'Pieza capturada ${DateTime.now().toIso8601String()}';
+    // Huella SHA-256 del archivo -- mismo concepto que vision_resultados.huella_imagen
+    // en ms-ia (dedupe/auditoria), calculada aqui porque el servicio nunca ve los bytes.
+    final huella = sha256.convert(bytes).toString();
 
     // Escritura real en la bandeja de salida local (outbox offline-first, ver
     // 01-arquitectura.md "Offline y conflictos"). El drenado real lo hace
     // SincronizacionBackground: en segundo plano (workmanager) o aqui mismo si
-    // ya hay red, sin bloquear al usuario.
+    // ya hay red, sin bloquear al usuario. Los bytes viajan en base64 dentro de la
+    // propia fila (ver SincronizadorService) para no depender de que el archivo
+    // temporal siga existiendo cuando se drene la cola mas tarde.
     final clave = const Uuid().v4();
     await BandejaSalidaDao().encolar(
       ElementoBandeja(
@@ -72,8 +94,13 @@ class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagin
         tipo: 'pieza_subida',
         carga: jsonEncode({
           'briefId': widget.briefId,
-          'nota': _notaControlador.text,
+          'nombre': nombre,
+          'tipo': 'imagen',
+          'mime': mime,
+          'tamano': bytes.length,
+          'huellaImagen': huella,
           'etiquetas': _etiquetas.toList(),
+          'archivoBase64': base64Encode(bytes),
         }),
         estado: 'pendiente',
         intentos: 0,
@@ -83,12 +110,12 @@ class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagin
 
     if (kIsWeb) {
       // Sin workmanager en web: se drena inline, igual que haria el background task.
-      unawaited(SincronizadorService().drenarPendientes());
+      final token = ref.read(sesionControllerProvider).token;
+      if (token != null) unawaited(SincronizadorService(token: token).drenarPendientes());
     } else {
       unawaited(SincronizacionBackground.sincronizarAhora());
     }
 
-    await Future.delayed(const Duration(milliseconds: 400));
     if (!mounted) return;
     setState(() => _guardando = false);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto adjuntada')));
@@ -104,7 +131,6 @@ class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagin
   @override
   Widget build(BuildContext context) {
     final c = context.aoColores;
-    final brief = BriefsRepo().buscarPorId(widget.briefId);
 
     return Scaffold(
       appBar: AppBar(
@@ -139,7 +165,7 @@ class _PiezaPrevisualizacionPaginaState extends State<PiezaPrevisualizacionPagin
             children: [
               Expanded(
                 child: Text(
-                  'Para: ${brief?.campana ?? ''}',
+                  'Para: ${_tituloBrief ?? '...'}',
                   style: TextStyle(color: c.texto, fontWeight: FontWeight.w700),
                 ),
               ),

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/auth/sesion_controller.dart';
 import 'core/red/conectividad_service.dart';
 import 'core/router/app_router.dart';
 import 'core/sync/sincronizacion_background.dart';
@@ -15,7 +16,13 @@ Future<void> main() async {
   if (!kIsWeb) {
     await SincronizacionBackground.inicializar();
   }
-  runApp(const ProviderScope(child: AdOrbitApp()));
+
+  // Restaura el token guardado (si lo hay) ANTES de runApp, para que LoginPagina ya
+  // vea el estado final de sesion en su primer build y pueda saltarse el boton.
+  final contenedor = ProviderContainer();
+  await contenedor.read(sesionControllerProvider.notifier).restaurar();
+
+  runApp(UncontrolledProviderScope(container: contenedor, child: const AdOrbitApp()));
 }
 
 class AdOrbitApp extends ConsumerWidget {
