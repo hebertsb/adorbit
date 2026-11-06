@@ -19,7 +19,7 @@ app/
 ```
 
 ## API
-`/reportes`, `/reportes/{id}`, `/reportes/{id}/exportar`, `/vision/analizar`, `/agentes`, `/agentes/{id}/ejecutar`, `/mcp/auditoria`.
+`/reportes`, `/reportes/{id}`, `/reportes/{id}/exportar`, `/agentes`, `/agentes/{id}/ejecutar`, `/mcp/auditoria`, `/vision/analizar` (tarea 6, pendiente).
 
 ## Eventos
 Consume: todos los eventos de dominio (`CampanaCreada`, `ClienteCreado`, `FacturaEmitida`, `PiezaSubida`, ...). Publica: `AlertaCampana`, `PiezaAnalizada`.
@@ -34,18 +34,29 @@ Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos 
 2. [x] Consumidor de eventos con dedupe y read model
 3. [x] MCP: herramientas parametrizadas, rol `lector_mcp`, auditoría (incluye bloqueadas) + prueba de intento de inyección
 4. [x] Reportes NL → MCP → tabla/gráfico → PDF/Excel (proveedor LLM: Groq, ver decisión D14)
-5. [ ] Agentes (monitor y cobranza primero) y disparadores n8n
+5. [x] Agentes (`monitor_campanas`, `cobranza`) vía `POST /agentes/{id}/ejecutar`; ver decisión D16
 6. [ ] ML (ROI/impago, K-Means, Isolation Forest) y visión YOLO; registrar en `modelos_aprendizaje`
 
-Tareas 5-6 quedan para una pasada aparte: la 5 reusa el mismo cliente Groq de la tarea 4
-pero necesita los disparadores de n8n de Roly; la 6 además necesita datos de
-entrenamiento reales que no existen todavía.
+La tarea 5 queda con la lógica y el endpoint completos y probados contra Supabase real
+(ver D16); lo único que falta y no depende de ms-ia es que Roly configure el nodo cron
+de n8n que llama `POST /agentes/{id}/ejecutar` y el binding de la cola que consume
+`AlertaCampana`. La tarea 6 además necesita datos de entrenamiento reales que no existen
+todavía.
 
 Pendiente antes de la demo: levantar RabbitMQ real (o confirmar que CloudAMQP ya
-alcanza), crear el usuario `LOGIN` con `GRANT lector_mcp` en Supabase (ver
-`.env.ejemplo`), y completar `ADORBIT_IA_JWKS_URI`/`ADORBIT_IA_RABBITMQ_URL` cuando
-Roly tenga Keycloak y las colas listas. El Postgres de Supabase SÍ está disponible y
-probado en vivo (incluida la tabla nueva `reportes_generados` de la tarea 4).
+alcanza) para que `RelevoBandejaSalida` tenga a quién publicarle `AlertaCampana`, y
+completar `ADORBIT_IA_JWKS_URI`/`ADORBIT_IA_RABBITMQ_URL` cuando Roly tenga Keycloak y
+las colas listas. El Postgres de Supabase SÍ está disponible y probado en vivo
+(incluidas `reportes_generados` de la tarea 4 y `agentes`/`ejecuciones_agente`/
+`bandeja_salida_eventos` de la tarea 5).
+
+El usuario `LOGIN` real para el pool `lector_mcp` (rol `lector_mcp_app`, ver D12) ya
+está creado en Supabase con `GRANT lector_mcp` + `statement_timeout = '5s'`, y
+`ADORBIT_IA_URL_BD_LECTOR_MCP` en `.env` ya apunta a ese usuario (antes apuntaba, por
+error, al mismo superusuario que `ADORBIT_IA_URL_BD`). Verificado en vivo: con ese
+usuario SÍ se puede leer `vista_mcp_campanas` y NO se puede leer `reporte_campanas`
+directo (`InsufficientPrivilegeError`) — la frontera de seguridad del servidor MCP ya
+es real, no solo teórica.
 
 ## Probar local sin Keycloak
 Roly todavía no tiene Keycloak real corriendo, pero los endpoints protegidos

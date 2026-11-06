@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AlertaCampana",
-  "description": "Publica ms-ia (agente monitor, tarea 5 — todavia no implementado). Consume n8n.",
+  "description": "Publica ms-ia (agente monitor_campanas, tarea 5) via el outbox transaccional (bandeja_salida_eventos -> RelevoBandejaSalida). Consume n8n.",
   "type": "object",
   "required": ["id_evento", "tipo_evento", "version_esquema", "ocurrido_en", "agregado_id", "correlacion_id", "carga"],
   "properties": {

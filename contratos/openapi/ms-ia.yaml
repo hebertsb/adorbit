@@ -4,14 +4,16 @@ info:
   version: '1'
   description: >
     Read model de reportes, servidor MCP (unica via de acceso de IA a los datos),
-    reportes en lenguaje natural (tarea 4, proveedor Groq), agentes LangGraph, ML/DL.
-    /vision/analizar y /agentes (tareas 5-6) se agregan en una pasada aparte.
+    reportes en lenguaje natural (tarea 4, proveedor Groq), agentes internos (tarea 5:
+    monitor_campanas, cobranza) y ML/DL. /vision/analizar (tarea 6) se agrega en una
+    pasada aparte.
 servers:
   - url: http://localhost:8085
 tags:
   - name: salud
   - name: mcp
   - name: reportes
+  - name: agentes
 
 paths:
   /salud:
@@ -140,6 +142,60 @@ paths:
           description: Archivo binario (application/pdf o application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
         '404': { description: No existe un reporte con ese id }
 
+  /api/v1/agentes:
+    get:
+      tags: [agentes]
+      summary: Lista los agentes internos configurados (monitor_campanas, cobranza, ...)
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Lista de agentes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Agente' }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: 'El rol del token no alcanza (requiere ejecutivo|gerente)' }
+
+  /api/v1/agentes/{id}/ejecutar:
+    post:
+      tags: [agentes]
+      summary: >
+        Dispara una corrida del agente (disparador de n8n: cron -> HTTP Request node ->
+        este endpoint). monitor_campanas revisa campanas activas y publica AlertaCampana
+        (via outbox) si el gasto llega al 90% del presupuesto; cobranza revisa facturas
+        por vencer/vencidas y clientes morosos y devuelve el resumen en la propia
+        respuesta, sin publicar evento (vista_mcp_facturacion no expone campana_id).
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { disparador: { type: string, example: 'cron (n8n)' } }
+      responses:
+        '201':
+          description: Ejecucion creada (o repetida, si la Idempotency-Key ya se uso con los mismos datos)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EjecucionAgente' }
+        '400': { description: 'Falta Idempotency-Key' }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: 'El rol del token no alcanza (requiere ejecutivo|gerente)' }
+        '404': { description: No existe un agente activo con ese id }
+        '409': { description: 'La Idempotency-Key ya se uso con una entrada distinta' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -198,3 +254,23 @@ components:
             y: { type: string }
         respuesta_nl: { type: string, nullable: true }
         estado: { type: string, enum: [listo, fallido] }
+    Agente:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        nombre: { type: string, example: monitor_campanas }
+        mision: { type: string }
+        habilidades: { type: array, items: { type: string } }
+        disparador: { type: string, nullable: true, example: 'cron (n8n)' }
+        activo: { type: boolean }
+    EjecucionAgente:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        agente_id: { type: string, format: uuid }
+        disparador: { type: string, nullable: true }
+        estado: { type: string, enum: [en_curso, exitosa, fallida] }
+        salida: { type: object, nullable: true }
+        error: { type: string, nullable: true }
+        started_at: { type: string, format: date-time, nullable: true }
+        finished_at: { type: string, format: date-time, nullable: true }

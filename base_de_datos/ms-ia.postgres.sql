@@ -77,6 +77,16 @@ CREATE TABLE ejecuciones_agente (
 );
 CREATE INDEX indice_ejec_agente ON ejecuciones_agente (agente_id, started_at DESC);
 
+-- tarea 5: agentes internos (n8n los dispara via POST /agentes/{id}/ejecutar)
+INSERT INTO agentes (nombre, mision, habilidades, disparador, activo) VALUES
+  ('monitor_campanas',
+   'Vigila campanas activas y alerta cuando el gasto se acerca al presupuesto (publica AlertaCampana, tipo presupuesto_90_porciento).',
+   '["consultar_campanas"]', 'cron (n8n)', true),
+  ('cobranza',
+   'Revisa facturas por vencer/vencidas y clientes morosos; devuelve el resumen en la propia ejecucion para que n8n notifique.',
+   '["facturas_por_vencer", "clientes_morosos"]', 'cron (n8n)', true)
+ON CONFLICT (nombre) DO NOTHING;
+
 CREATE TABLE modelos_aprendizaje (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre VARCHAR(80) NOT NULL,                     -- roi_xgboost, kmeans_audiencias, yolo_marca...

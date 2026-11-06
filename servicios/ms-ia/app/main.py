@@ -21,7 +21,8 @@ from .adapters.postgres.reporte_repos import (
     ReporteFacturacionRepositorioPg,
 )
 from .adapters.rabbitmq.consumidor import ConsumidorEventos
-from .api import listo, mcp_auditoria, reportes, salud
+from .adapters.rabbitmq.relevo_bandeja_salida import RelevoBandejaSalida
+from .api import agentes, listo, mcp_auditoria, reportes, salud
 from .api.manejador_errores import registrar_manejadores_error
 from .use_cases.procesar_evento import ProcesarEvento
 
@@ -49,8 +50,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception:
             logger.exception("No se pudo iniciar el consumidor de RabbitMQ (RabbitMQ no disponible?)")
 
+        relevo = RelevoBandejaSalida()
+        try:
+            await relevo.iniciar()
+        except Exception:
+            logger.exception("No se pudo iniciar el relevo de bandeja_salida_eventos (RabbitMQ no disponible?)")
+
         yield
 
+        await relevo.detener()
         await consumidor.detener()
         await cerrar_pools()
 
@@ -61,6 +69,7 @@ app.include_router(salud.router)
 app.include_router(listo.router)
 app.include_router(mcp_auditoria.router)
 app.include_router(reportes.router)
+app.include_router(agentes.router)
 # FastMCP ya expone su propia ruta en /mcp (streamable_http_path), por eso se monta en
 # la raiz y no en /mcp — montarlo ahi duplicaria el prefijo (/mcp/mcp). Va al final para
 # que las rutas especificas de arriba se resuelvan primero.
