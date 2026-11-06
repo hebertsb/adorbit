@@ -23,6 +23,8 @@ out/
 *.tflite
 *.h5
 *.joblib
+/servicios/ms-ia/herramientas/_dataset_logo/
+/servicios/ms-ia/herramientas/_runs_entrenamiento/
 /servicios/**/datos/
 *.db
 *.sqlite

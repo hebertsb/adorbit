@@ -1,0 +1,8 @@
+{
+  "fuente": "yolov8n.pt afinado con dataset sintetico (logo real compuesto sobre fondos procedurales)",
+  "mAP50": 0.995,
+  "mAP50-95": 0.9035,
+  "precision": 0.9981,
+  "recall": 1.0,
+  "limitacion": "entrenado con el logo compuesto sobre fondos sinteticos, no fotos reales de piezas -- reentrenar con piezas reales en cuanto existan"
+}

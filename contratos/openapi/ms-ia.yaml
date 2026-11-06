@@ -381,8 +381,8 @@ components:
         modelo_id: { type: string, format: uuid }
         huella_imagen: { type: string }
         origen: { type: string, enum: [web_local, movil_local, servidor] }
-        detecta_logo: { type: boolean, nullable: true, description: 'null: COCO no tiene esa clase, ver D20' }
-        detecta_texto: { type: boolean, nullable: true }
+        detecta_logo: { type: boolean, nullable: true, description: 'prediccion real de yolo_logo_adorbit (modelo afinado), ver D21; null solo si ese modelo no esta cargado' }
+        detecta_texto: { type: boolean, nullable: true, description: 'null siempre: ningun modelo hace OCR, ver D20' }
         manual_marca_ok: { type: boolean, nullable: true }
         confianza: { type: number, nullable: true }
         objetos_detectados:

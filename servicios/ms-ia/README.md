@@ -48,10 +48,16 @@ La tarea 6 usa `herramientas/entrenar_modelos_ml.py` (scikit-learn + XGBoost, da
 (anomalías de gasto); los 3 quedan registrados en `modelos_aprendizaje` contra el
 Supabase real y expuestos en `/ml/riesgo-cliente/{id}` y `/ml/segmentacion-campanas`.
 `/vision/analizar` usa YOLOv8n **pre-entrenado** (COCO-80, sin afinar — ver D20) para
-detección de objetos real; `detecta_logo`/`detecta_texto` quedan en `null` a propósito
-porque COCO no tiene esas clases. Correr `python herramientas/entrenar_modelos_ml.py`
-para regenerar/registrar los 4 modelos (los artefactos `.joblib`/`.pt` no se versionan,
-ver `.gitignore`).
+detección de objetos real; `detecta_texto` queda en `null` a propósito porque ningún
+modelo de acá hace OCR. `detecta_logo` sí es una predicción real: `yolo_logo_adorbit`,
+el mismo YOLOv8n afinado con `herramientas/generar_dataset_logo.py` +
+`herramientas/entrenar_yolo_logo.py` sobre un dataset sintético que compone el logo
+REAL de AdOrbit sobre fondos variados (mAP50 0.995 en validación sintética, ver D21 —
+la precisión en piezas reales fotografiadas será más baja, pendiente reentrenar cuando
+existan). Correr `python herramientas/entrenar_modelos_ml.py` para regenerar/registrar
+los 3 modelos tabulares; `python herramientas/generar_dataset_logo.py --n 250` y luego
+`python herramientas/entrenar_yolo_logo.py` para el detector de logo (los artefactos
+`.joblib`/`.pt` y el dataset generado no se versionan, ver `.gitignore`).
 
 Pendiente antes de la demo: levantar RabbitMQ real (o confirmar que CloudAMQP ya
 alcanza) para que `RelevoBandejaSalida` tenga a quién publicarle `AlertaCampana`, y
