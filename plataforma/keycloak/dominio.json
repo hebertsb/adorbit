@@ -1,0 +1,200 @@
+{
+  "id": "adorbit",
+  "realm": "adorbit",
+  "displayName": "AdOrbit SSO",
+  "displayNameHtml": "<b>AdOrbit</b> SSO",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "ejecutivo",
+        "description": "Ejecutivo de cuentas publicitario"
+      },
+      {
+        "name": "creativo",
+        "description": "Disenador y creativo de piezas publicitarias"
+      },
+      {
+        "name": "cliente",
+        "description": "Cliente anunciante"
+      },
+      {
+        "name": "gerente",
+        "description": "Gerencia general y auditoria BI"
+      }
+    ]
+  },
+  "defaultRoles": [
+    "cliente"
+  ],
+  "clients": [
+    {
+      "clientId": "adorbit-frontend",
+      "name": "AdOrbit Portales Web y Movil",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "rootUrl": "http://localhost:4200",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:4200/*",
+        "http://localhost:3000/*",
+        "http://localhost:8000/*",
+        "http://localhost:8080/*",
+        "http://127.0.0.1:*",
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "attributes": {
+        "access.token.lifespan": "7200"
+      }
+    },
+    {
+      "clientId": "ms-campanas",
+      "name": "Microservicio Campanas",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "ms-facturacion",
+      "name": "Microservicio Facturacion",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "ms-creatividades",
+      "name": "Microservicio Creatividades",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "ms-clientes-crm",
+      "name": "Microservicio Clientes CRM",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "ms-ia",
+      "name": "Microservicio IA y MCP",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "pasarela-api",
+      "name": "API Gateway y GraphQL Federado",
+      "enabled": true,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "ejecutivo@adorbit.com",
+      "email": "ejecutivo@adorbit.com",
+      "firstName": "Roly",
+      "lastName": "Ejecutivo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Adorbit2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ejecutivo"
+      ]
+    },
+    {
+      "username": "creativo@adorbit.com",
+      "email": "creativo@adorbit.com",
+      "firstName": "Hebert",
+      "lastName": "Creativo",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Adorbit2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "creativo"
+      ]
+    },
+    {
+      "username": "cliente@adorbit.com",
+      "email": "cliente@adorbit.com",
+      "firstName": "Carlos",
+      "lastName": "Anunciante",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Adorbit2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "cliente"
+      ]
+    },
+    {
+      "username": "gerente@adorbit.com",
+      "email": "gerente@adorbit.com",
+      "firstName": "Luis",
+      "lastName": "Gerente",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Adorbit2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "gerente"
+      ]
+    },
+    {
+      "username": "admin@adorbit.com",
+      "email": "admin@adorbit.com",
+      "firstName": "Administrador",
+      "lastName": "AdOrbit",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Adorbit2026!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ejecutivo",
+        "creativo",
+        "cliente",
+        "gerente"
+      ]
+    }
+  ]
+}

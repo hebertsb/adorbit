@@ -1,0 +1,123 @@
+"""
+Esquema GraphQL unificado (Apollo Federation) para el Portal de Gestión de AdOrbit.
+Permite consultas compuestas reuniendo Campaña + Cliente + Facturas + Piezas Creativas.
+"""
+
+enum EstadoCampana {
+  borrador
+  pendiente
+  activa
+  pausada
+  completada
+  cancelada
+  rechazada
+}
+
+enum Moneda {
+  BOB
+  USD
+}
+
+enum MedioPublicitario {
+  television
+  radio
+  prensa
+  digital
+  valla_exterior
+}
+
+type Presupuesto {
+  id: ID!
+  montoTotal: Float!
+  montoGastado: Float!
+  moneda: Moneda!
+  anticipoPorcentaje: Float!
+}
+
+type CalendarioMedio {
+  id: ID!
+  medio: MedioPublicitario!
+  fechaInicio: String!
+  fechaFin: String!
+  costoEstimado: Float!
+  estado: String!
+}
+
+type Cliente {
+  id: ID!
+  razonSocial: String!
+  nit: String
+  estado: String!
+  lineaCredito: Float
+}
+
+type PiezaCreativa {
+  id: ID!
+  titulo: String!
+  tipoMedio: String!
+  estado: String!
+  urlArchivo: String
+  version: Int!
+}
+
+type Factura {
+  id: ID!
+  total: Float!
+  moneda: Moneda!
+  estado: String!
+  fechaEmision: String!
+  fechaVencimiento: String
+}
+
+type SagaTransaccion {
+  sagaId: ID!
+  campanaId: ID!
+  estado: String!
+  pasoActual: String!
+  motivoFallo: String
+  creadoEn: String!
+}
+
+type Campana {
+  id: ID!
+  clienteId: ID!
+  nombre: String!
+  descripcion: String
+  estado: EstadoCampana!
+  fechaInicio: String!
+  fechaFin: String!
+  version: Int!
+  creadoEn: String!
+  actualizadoEn: String!
+  presupuesto: Presupuesto
+  calendario: [CalendarioMedio!]!
+  cliente: Cliente
+  piezas: [PiezaCreativa!]!
+  facturas: [Factura!]!
+}
+
+type Query {
+  campanas(estado: EstadoCampana, limite: Int, pagina: Int): [Campana!]!
+  campana(id: ID!): Campana
+  cliente(id: ID!): Cliente
+  saga(id: ID!): SagaTransaccion
+}
+
+input CrearCampanaInput {
+  clienteId: ID!
+  nombre: String!
+  descripcion: String
+  fechaInicio: String!
+  fechaFin: String!
+}
+
+input ContratarCampanaRespuesta {
+  sagaId: ID!
+  estado: String!
+  mensaje: String!
+}
+
+type Mutation {
+  crearCampana(input: CrearCampanaInput!): Campana!
+  contratarCampana(id: ID!): ContratarCampanaRespuesta!
+}

@@ -1,0 +1,90 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: adorbit-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - ../plataforma/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ../plataforma/rabbitmq/definiciones.json:/etc/rabbitmq/definiciones.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - adorbit-red
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: adorbit-keycloak
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_HTTP_RELATIVE_PATH: "/"
+    volumes:
+      - ../plataforma/keycloak/dominio.json:/opt/keycloak/data/import/dominio.json:ro
+    command: ["start-dev", "--import-realm"]
+    networks:
+      - adorbit-red
+
+  ms-campanas:
+    build:
+      context: ../servicios/ms-campanas
+      dockerfile: Dockerfile
+    container_name: adorbit-ms-campanas
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: 8081
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/adorbit
+      ADORBIT_CAMPANAS_URL_BD: ${ADORBIT_CAMPANAS_URL_BD:-postgresql://postgres.wzsdqnltypjasnbiwtxi:reemplazar_con_supabase@aws-0-us-east-1.pooler.supabase.com:5432/postgres}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    networks:
+      - adorbit-red
+
+  pasarela:
+    build:
+      context: ../plataforma/pasarela
+      dockerfile: Dockerfile
+    container_name: adorbit-pasarela
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: 8000
+      ADORBIT_PASARELA_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_PASARELA_EMISOR: http://localhost:8080/realms/adorbit
+      URL_MS_CAMPANAS: http://ms-campanas:8081
+      URL_MS_CLIENTES_CRM: http://ms-clientes-crm:8082
+      URL_MS_FACTURACION: http://ms-facturacion:8083
+      URL_MS_CREATIVIDADES: http://ms-creatividades:8084
+      URL_MS_IA: http://ms-ia:8085
+    depends_on:
+      keycloak:
+        condition: service_started
+      ms-campanas:
+        condition: service_started
+    networks:
+      - adorbit-red
+
+networks:
+  adorbit-red:
+    name: adorbit-red
+    driver: bridge
