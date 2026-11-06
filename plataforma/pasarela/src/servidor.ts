@@ -111,3 +111,4 @@ iniciarServidor().catch((error) => {
   console.error("[Pasarela] Error fatal al iniciar:", error);
   process.exit(1);
 });
+

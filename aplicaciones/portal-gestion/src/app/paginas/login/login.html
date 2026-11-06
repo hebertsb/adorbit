@@ -5,9 +5,50 @@
       <strong>AdOrbit</strong>
     </div>
     <h1>Iniciar sesión</h1>
-    <p class="sub">Autenticación centralizada mediante Keycloak (OIDC/OAuth2).</p>
+    <p class="sub">Autenticación centralizada mediante Keycloak SSO (OIDC/OAuth2).</p>
 
-    <ao-boton variante="primario" (click)="iniciarSesion()">Iniciar sesión con Keycloak</ao-boton>
+    @if (error()) {
+      <div class="error-alerta">
+        {{ error() }}
+      </div>
+    }
+
+    <form (ngSubmit)="iniciarSesion()" class="formulario-login">
+      <div class="campo">
+        <label for="email">Correo electrónico</label>
+        <input id="email" type="email" [(ngModel)]="email" name="email" required />
+      </div>
+
+      <div class="campo">
+        <label for="contrasena">Contraseña</label>
+        <input id="contrasena" type="password" [(ngModel)]="contrasena" name="contrasena" required />
+      </div>
+
+      <ao-boton variante="primario" [deshabilitado]="cargando()">
+        {{ cargando() ? 'Autenticando…' : 'Ingresar al Portal' }}
+      </ao-boton>
+    </form>
+
+    <div class="separador">
+      <span>o selecciona un usuario de demo</span>
+    </div>
+
+    <div class="botones-demo">
+      @for (u of usuariosDemo; track u.email) {
+        <button type="button" class="btn-demo" (click)="seleccionarDemo(u.email)">
+          <strong>{{ u.nombre }}</strong>
+          <span>{{ u.email }}</span>
+        </button>
+      }
+    </div>
+
+    <div class="separador">
+      <span>SSO Federado</span>
+    </div>
+
+    <ao-boton variante="secundario" (click)="iniciarConKeycloak()">
+      Iniciar sesión con Keycloak Redirect
+    </ao-boton>
 
     <p class="nota">Acceso exclusivo para miembros y cuentas autorizadas de la agencia.</p>
   </div>

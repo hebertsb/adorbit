@@ -121,3 +121,4 @@ type Mutation {
   crearCampana(input: CrearCampanaInput!): Campana!
   contratarCampana(id: ID!): ContratarCampanaRespuesta!
 }
+

@@ -1,9 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Boton } from '../../compartido/boton/boton';
 import { Tarjeta } from '../../compartido/tarjeta/tarjeta';
 import { SagaDatos } from '../../core/datos/saga.datos';
-import { EstadoPasoSaga } from '../../core/datos/saga.modelo';
+import { EstadoPasoSaga, EstadoSaga } from '../../core/datos/saga.modelo';
 
 @Component({
   selector: 'ao-pagina-saga-estado',
@@ -11,21 +11,51 @@ import { EstadoPasoSaga } from '../../core/datos/saga.modelo';
   templateUrl: './saga-estado.html',
   styleUrl: './saga-estado.css',
 })
-export class SagaEstado {
+export class SagaEstado implements OnInit, OnDestroy {
+  private readonly ruta = inject(ActivatedRoute);
   private readonly sagaDatos = inject(SagaDatos);
 
-  // TODO Roly: reemplazar por GET /api/v1/sagas/{id} con polling (o suscripción GraphQL)
-  // contra el id real de la ruta. El selector de escenario de abajo es solo para esta
-  // demo, para mostrar las dos variantes (en progreso / con fallo) sin dos rutas distintas.
-  protected readonly escenario = signal<'en_progreso' | 'fallo'>('en_progreso');
+  private readonly idSaga = this.ruta.snapshot.paramMap.get('id') ?? '';
+  private intervaloPolling: any = null;
 
-  protected readonly saga = computed(() =>
-    this.escenario() === 'en_progreso' ? this.sagaDatos.enProgreso() : this.sagaDatos.conFallo(),
-  );
+  protected readonly escenario = signal<'en_progreso' | 'fallo'>('en_progreso');
+  protected readonly sagaReal = signal<EstadoSaga | null>(null);
+
+  protected readonly saga = computed(() => {
+    if (this.escenario() === 'fallo') {
+      return this.sagaDatos.conFallo();
+    }
+    return this.sagaReal() ?? this.sagaDatos.enProgreso(this.idSaga);
+  });
 
   protected readonly pasosCompletados = computed(
     () => this.saga().pasos.filter((p) => p.estado === 'completado').length,
   );
+
+  async ngOnInit(): Promise<void> {
+    await this.cargarEstadoSaga();
+    // Polling cada 2.5 segundos mientras esté en progreso
+    this.intervaloPolling = setInterval(async () => {
+      const actual = this.sagaReal();
+      if (actual && actual.resultado !== 'en_progreso') {
+        clearInterval(this.intervaloPolling);
+        return;
+      }
+      await this.cargarEstadoSaga();
+    }, 2500);
+  }
+
+  ngOnDestroy(): void {
+    if (this.intervaloPolling) {
+      clearInterval(this.intervaloPolling);
+    }
+  }
+
+  private async cargarEstadoSaga(): Promise<void> {
+    if (!this.idSaga) return;
+    const datos = await this.sagaDatos.consultarSaga(this.idSaga);
+    this.sagaReal.set(datos);
+  }
 
   etiquetaEstadoPaso(estado: EstadoPasoSaga): string {
     const etiquetas: Record<EstadoPasoSaga, string> = {

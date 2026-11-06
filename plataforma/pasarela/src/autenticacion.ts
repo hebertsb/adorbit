@@ -88,3 +88,4 @@ export function middlewareAutenticacion(req: PeticionAutenticada, res: Response,
     }
   );
 }
+

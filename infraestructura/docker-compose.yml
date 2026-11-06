@@ -88,3 +88,4 @@ networks:
   adorbit-red:
     name: adorbit-red
     driver: bridge
+

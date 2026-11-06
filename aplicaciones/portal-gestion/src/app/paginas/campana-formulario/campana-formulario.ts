@@ -62,14 +62,20 @@ export class CampanaFormulario {
     }
   }
 
-  guardar(): void {
+  async guardar(): Promise<void> {
     this.intentoEnviar.set(true);
     if (this.formulario.invalid) {
       return;
     }
-    // TODO Roly: reemplazar por POST/PUT real a /api/v1/campanas (mutation GraphQL),
-    // con el header Idempotency-Key y el campo version en ediciones.
-    console.info('TODO: guardar campaña', this.formulario.getRawValue());
+    const valores = this.formulario.getRawValue();
+    await this.campanasDatos.crearCampana({
+      nombre: valores.nombre,
+      descripcion: valores.descripcion,
+      fechaInicio: valores.fechaInicio,
+      fechaFin: valores.fechaFin,
+      presupuestoTotal: valores.presupuestoTotal,
+      moneda: valores.moneda,
+    });
     this.router.navigateByUrl('/campanas');
   }
 }

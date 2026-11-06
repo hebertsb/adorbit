@@ -29,3 +29,4 @@ Al arrancar la imagen oficial con `rabbitmq.conf` y `definiciones.json`, las col
 ## Conexión
 - **AMQP**: `amqp://guest:guest@localhost:5672/`
 - **Panel de control**: `http://localhost:15672` (usuario: `guest`, contraseña: `guest`)
+

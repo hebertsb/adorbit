@@ -15,3 +15,4 @@ assert(schema.getMutationType().getFields()["crearCampana"], "Debe existir la mu
 assert(schema.getMutationType().getFields()["contratarCampana"], "Debe existir la mutacion contratarCampana");
 
 console.log("¡Esquema GraphQL verificado exitosamente!");
+

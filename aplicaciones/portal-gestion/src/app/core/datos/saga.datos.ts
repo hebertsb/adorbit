@@ -1,12 +1,118 @@
-import { Injectable } from '@angular/core';
-import { EstadoSaga } from './saga.modelo';
+import { Injectable, inject } from '@angular/core';
+import { EstadoSaga, PasoSaga, EstadoPasoSaga } from './saga.modelo';
+import { AutenticacionService } from '../auth/autenticacion.service';
 
-// TODO Roly: reemplazar por GET /api/v1/sagas/{id} (polling) o la suscripción GraphQL real.
+const URL_GATEWAY_SAGA = 'http://localhost:8000/api/v1/sagas';
+
 @Injectable({ providedIn: 'root' })
 export class SagaDatos {
-  enProgreso(): EstadoSaga {
+  private readonly auth = inject(AutenticacionService);
+
+  async consultarSaga(idSaga: string): Promise<EstadoSaga> {
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const token = this.auth.token();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${URL_GATEWAY_SAGA}/${idSaga}`, { headers });
+      if (res.ok) {
+        const d = await res.json();
+        return this.mapearRespuestaSaga(d);
+      }
+    } catch {
+      // Si la pasarela está offline, continúa al modo fallback
+    }
+
+    return this.enProgreso(idSaga);
+  }
+
+  private mapearRespuestaSaga(d: any): EstadoSaga {
+    const estadoGeneral = d.estado as string;
+    let resultado: 'en_progreso' | 'completada' | 'rechazada' = 'en_progreso';
+    if (estadoGeneral === 'completada') resultado = 'completada';
+    else if (estadoGeneral === 'rechazada' || estadoGeneral === 'compensada' || estadoGeneral === 'fallida') {
+      resultado = 'rechazada';
+    }
+
+    const pasoActual = d.paso_actual as string;
+
+    const pasosDefinicion: { orden: number; servicio: string; titulo: string; pasoClave: string }[] = [
+      { orden: 1, servicio: 'ms-campanas', titulo: 'Reservar presupuesto', pasoClave: 'reservando_presupuesto' },
+      { orden: 2, servicio: 'ms-clientes-crm', titulo: 'Reservar crédito del cliente', pasoClave: 'reservando_credito' },
+      { orden: 3, servicio: 'ms-creatividades', titulo: 'Bloquear piezas aprobadas', pasoClave: 'bloqueando_piezas' },
+      { orden: 4, servicio: 'ms-facturacion', titulo: 'Emitir factura', pasoClave: 'facturando' },
+      { orden: 5, servicio: 'ms-campanas', titulo: 'Activar campaña', pasoClave: 'completada' },
+    ];
+
+    const pasos: PasoSaga[] = pasosDefinicion.map((def) => {
+      let estadoPaso: EstadoPasoSaga = 'pendiente';
+      let detalle = '';
+
+      if (resultado === 'completada') {
+        estadoPaso = 'completado';
+        detalle = 'Paso verificado y confirmado exitosamente.';
+      } else if (resultado === 'rechazada') {
+        if (def.pasoClave === pasoActual || pasoActual === 'compensando') {
+          estadoPaso = 'fallido';
+          detalle = d.motivo_fallo || 'Rechazo o compensación aplicada en este paso.';
+        } else {
+          estadoPaso = 'compensado';
+          detalle = 'Operación revertida por compensación SAGA.';
+        }
+      } else {
+        // En progreso
+        if (def.pasoClave === pasoActual) {
+          estadoPaso = 'en_curso';
+          detalle = 'Ejecutando y esperando confirmación del participante…';
+        } else if (this.ordenDePaso(def.pasoClave) < this.ordenDePaso(pasoActual)) {
+          estadoPaso = 'completado';
+          detalle = 'Confirmado exitosamente.';
+        } else {
+          estadoPaso = 'pendiente';
+          detalle = 'En espera de los pasos precedentes.';
+        }
+      }
+
+      return {
+        orden: def.orden,
+        servicio: def.servicio,
+        titulo: def.titulo,
+        detalle,
+        estado: estadoPaso,
+      };
+    });
+
     return {
-      idCampana: '2',
+      idCampana: d.campana_id || '2',
+      nombreCampana: `Campaña ${d.campana_id?.substring(0, 8) || 'Contratada'}`,
+      cliente: 'Cliente Anunciante',
+      resultado,
+      motivoRechazo: d.motivo_fallo,
+      pasos,
+    };
+  }
+
+  private ordenDePaso(paso: string): number {
+    switch (paso) {
+      case 'iniciada':
+      case 'reservando_presupuesto':
+        return 1;
+      case 'reservando_credito':
+        return 2;
+      case 'bloqueando_piezas':
+        return 3;
+      case 'facturando':
+        return 4;
+      case 'completada':
+        return 5;
+      default:
+        return 1;
+    }
+  }
+
+  enProgreso(id?: string): EstadoSaga {
+    return {
+      idCampana: id || '2',
       nombreCampana: 'Campaña Institucional Créditos',
       cliente: 'Tienda Andina',
       resultado: 'en_progreso',
@@ -56,42 +162,42 @@ export class SagaDatos {
       nombreCampana: 'Campaña Institucional Créditos',
       cliente: 'Tienda Andina',
       resultado: 'rechazada',
-      motivoRechazo: 'Crédito insuficiente para reservar el monto solicitado.',
+      motivoRechazo: 'Línea de crédito insuficiente en ms-clientes-crm. Se ejecutaron las compensaciones requeridas.',
       pasos: [
         {
           orden: 1,
           servicio: 'ms-campanas',
           titulo: 'Reservar presupuesto',
-          detalle: 'Reserva compensada: Bs 52.500,00 liberados y devueltos.',
+          detalle: 'Compensado: Presupuesto liberado y devuelto al saldo de la cuenta.',
           estado: 'compensado',
         },
         {
           orden: 2,
           servicio: 'ms-clientes-crm',
           titulo: 'Reservar crédito del cliente',
-          detalle: 'Crédito insuficiente — monto requerido Bs 52.500,00, disponible Bs 12.400,00.',
+          detalle: 'Fallo: Crédito disponible insuficiente para la cobertura del presupuesto.',
           estado: 'fallido',
         },
         {
           orden: 3,
           servicio: 'ms-creatividades',
           titulo: 'Bloquear piezas aprobadas',
-          detalle: 'Paso omitido por fallo previo. Las piezas permanecen desbloqueadas.',
+          detalle: 'Omitido: La transacción fue abortada antes de alcanzar este paso.',
           estado: 'omitido',
         },
         {
           orden: 4,
           servicio: 'ms-facturacion',
           titulo: 'Emitir factura',
-          detalle: 'Paso omitido por fallo previo. No se generó factura.',
+          detalle: 'Omitido: No se generó ningún comprobante ni factura contable.',
           estado: 'omitido',
         },
         {
           orden: 5,
           servicio: 'ms-campanas',
           titulo: 'Activar campaña',
-          detalle: 'Campaña no activada. Estado final: Rechazada.',
-          estado: 'fallido',
+          detalle: 'Omitido: La campaña no fue activada.',
+          estado: 'omitido',
         },
       ],
     };

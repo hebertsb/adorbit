@@ -1,0 +1,16 @@
+{
+  "name": "modulo-campanas",
+  "version": "1.0.0",
+  "description": "Remote de Module Federation para gestion de campanas publicitarias en AdOrbit",
+  "private": true,
+  "scripts": {
+    "start": "echo 'Modulo campanas listo como remote federado'",
+    "build": "echo 'Compilacion de microfrontend campanas'"
+  },
+  "dependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/router": "^22.2.0"
+  }
+}
+

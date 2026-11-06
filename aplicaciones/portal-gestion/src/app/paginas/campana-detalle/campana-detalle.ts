@@ -1,6 +1,6 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, TitleCasePipe } from '@angular/common';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Boton } from '../../compartido/boton/boton';
 import { Tarjeta } from '../../compartido/tarjeta/tarjeta';
 import { EtiquetaEstado, TonoEtiqueta } from '../../compartido/etiqueta-estado/etiqueta-estado';
@@ -58,7 +58,10 @@ const ETIQUETA_MEDIO: Record<string, string> = {
 })
 export class CampanaDetalle {
   private readonly ruta = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly campanasDatos = inject(CampanasDatos);
+
+  protected readonly contratando = signal(false);
 
   protected readonly etiquetas = ETIQUETAS_ESTADO_CAMPANA;
   protected readonly etiquetaMedio = ETIQUETA_MEDIO;
@@ -129,5 +132,12 @@ export class CampanaDetalle {
 
   tonoEstadoPieza(estado: string): TonoEtiqueta {
     return TONO_ESTADO_PIEZA[estado] ?? 'neutro';
+  }
+
+  async contratar(): Promise<void> {
+    this.contratando.set(true);
+    const res = await this.campanasDatos.contratarCampana(this.idCampana);
+    this.contratando.set(false);
+    this.router.navigate(['/sagas', res.sagaId]);
   }
 }

@@ -43,3 +43,4 @@ Todos los usuarios tienen la contraseña: **`Adorbit2026!`**
 ## Administración
 - **Consola de administración**: `http://localhost:8080`
 - **Credenciales master**: `admin` / `admin`
+

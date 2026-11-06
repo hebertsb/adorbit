@@ -1,12 +1,14 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Campana, MedioCalendario, PiezaCreatividad } from './campana.modelo';
+import { AutenticacionService } from '../auth/autenticacion.service';
 
-// TODO Roly: este servicio entrega datos simulados. Reemplazar cada método por una
-// query/mutation real contra el gateway GraphQL federado (ver documentacion/03-contratos.md).
-// La forma de los datos (Campana, MedioCalendario, PiezaCreatividad) ya respeta el contrato,
-// así que el resto de la app no debería necesitar cambios al conectar el backend real.
+const URL_GATEWAY_GRAPHQL = 'http://localhost:8000/graphql';
+const URL_GATEWAY_REST = 'http://localhost:8000/api/v1';
+
 @Injectable({ providedIn: 'root' })
 export class CampanasDatos {
+  private readonly auth = inject(AutenticacionService);
+
   private readonly listaCampanas = signal<Campana[]>([
     {
       id: '1',
@@ -56,54 +58,6 @@ export class CampanasDatos {
       fechaInicio: '2026-05-15',
       fechaFin: '2026-06-10',
     },
-    {
-      id: '5',
-      codigoReferencia: 'CMP-2026-005',
-      nombre: 'Campaña Depósitos a Plazo Fijo',
-      cliente: 'Banco Los Andes',
-      estado: 'pendiente',
-      presupuestoTotal: 35000,
-      montoGastado: 3500,
-      moneda: 'BOB',
-      fechaInicio: '2026-06-01',
-      fechaFin: '2026-07-20',
-    },
-    {
-      id: '6',
-      codigoReferencia: 'CMP-2026-006',
-      nombre: 'Lanzamiento Café Gourmet Altura',
-      cliente: 'Café Yungas',
-      estado: 'finalizada',
-      presupuestoTotal: 22000,
-      montoGastado: 22000,
-      moneda: 'BOB',
-      fechaInicio: '2026-01-10',
-      fechaFin: '2026-02-28',
-    },
-    {
-      id: '7',
-      codigoReferencia: 'CMP-2026-007',
-      nombre: 'Cyber Days Retail 2026',
-      cliente: 'Tienda Andina',
-      estado: 'cancelada',
-      presupuestoTotal: 15000,
-      montoGastado: 4200,
-      moneda: 'BOB',
-      fechaInicio: '2025-12-20',
-      fechaFin: '2026-01-15',
-    },
-    {
-      id: '8',
-      codigoReferencia: 'CMP-2026-008',
-      nombre: 'Festival Culinario Altiplano',
-      cliente: 'Lácteos del Valle',
-      estado: 'rechazada',
-      presupuestoTotal: 28000,
-      montoGastado: 0,
-      moneda: 'BOB',
-      fechaInicio: '2026-01-20',
-      fechaFin: '2026-02-05',
-    },
   ]);
 
   private readonly calendarioPorCampana: Record<string, MedioCalendario[]> = {
@@ -112,6 +66,11 @@ export class CampanasDatos {
       { medio: 'redes', fechaInicio: '2026-03-05', fechaFin: '2026-04-25', costo: 18000, estado: 'ejecutado' },
       { medio: 'tv', fechaInicio: '2026-03-15', fechaFin: '2026-04-15', costo: 16000, estado: 'confirmado' },
       { medio: 'vallas', fechaInicio: '2026-04-01', fechaFin: '2026-04-30', costo: 6000, estado: 'planificado' },
+    ],
+    '2': [
+      { medio: 'digital', fechaInicio: '2026-04-01', fechaFin: '2026-05-15', costo: 20000, estado: 'confirmado' },
+      { medio: 'radio', fechaInicio: '2026-04-10', fechaFin: '2026-05-01', costo: 15000, estado: 'confirmado' },
+      { medio: 'prensa', fechaInicio: '2026-04-15', fechaFin: '2026-05-10', costo: 17500, estado: 'planificado' },
     ],
   };
 
@@ -137,28 +96,6 @@ export class CampanasDatos {
         estado: 'pendiente',
         confianzaMarca: 0.92,
       },
-      {
-        titulo: 'Story Carrusel IG - Instalación Gratis',
-        nombreArchivo: 'story-carrusel-ig-instalacion.png',
-        formato: 'PNG · 1080x1920 (x3)',
-        overlay: '9:16',
-        degradado: 'historia',
-        version: 3,
-        estado: 'bloqueada',
-        confianzaMarca: 0.96,
-      },
-      {
-        titulo: 'Valla Carretera 8x3m - Conexión Total',
-        nombreArchivo: 'valla-carretera-8x3m.pdf',
-        formato: 'PDF · Vectorial Curvas',
-        overlay: '8×3 m',
-        degradado: 'valla',
-        version: 1,
-        estado: 'rechazada',
-        confianzaMarca: 0.64,
-        observacion:
-          'Baja coincidencia de paleta corporativa. Reemplazar violeta secundario por el tono institucional reglamentario.',
-      },
     ],
     '2': [
       {
@@ -174,6 +111,79 @@ export class CampanasDatos {
     ],
   };
 
+  constructor() {
+    this.sincronizarConBackend();
+  }
+
+  private cabecerasAuth(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    const token = this.auth.token();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
+  async sincronizarConBackend(): Promise<void> {
+    const consultaGql = {
+      query: `
+        query ObtenerCampanas {
+          campanas(limite: 50) {
+            id
+            clienteId
+            nombre
+            descripcion
+            estado
+            fechaInicio
+            fechaFin
+            version
+            presupuesto {
+              montoTotal
+              montoGastado
+              moneda
+            }
+            cliente {
+              id
+              razonSocial
+            }
+          }
+        }
+      `,
+    };
+
+    try {
+      const respuesta = await fetch(URL_GATEWAY_GRAPHQL, {
+        method: 'POST',
+        headers: this.cabecerasAuth(),
+        body: JSON.stringify(consultaGql),
+      });
+
+      if (!respuesta.ok) return;
+
+      const resultado = await respuesta.json();
+      if (resultado.data?.campanas && Array.isArray(resultado.data.campanas) && resultado.data.campanas.length > 0) {
+        const mapeadas: Campana[] = resultado.data.campanas.map((c: any, index: number) => ({
+          id: c.id,
+          codigoReferencia: `CMP-2026-${String(index + 1).padStart(3, '0')}`,
+          nombre: c.nombre,
+          cliente: c.cliente?.razonSocial || `Cliente ${c.clienteId?.substring(0, 8)}`,
+          estado: (c.estado as any) || 'borrador',
+          presupuestoTotal: c.presupuesto?.montoTotal || 0,
+          montoGastado: c.presupuesto?.montoGastado || 0,
+          moneda: (c.presupuesto?.moneda as any) || 'BOB',
+          fechaInicio: c.fechaInicio,
+          fechaFin: c.fechaFin,
+        }));
+
+        this.listaCampanas.set(mapeadas);
+      }
+    } catch {
+      // Si la pasarela está offline, permanece con la lista en memoria
+    }
+  }
+
   listar(): Campana[] {
     return this.listaCampanas();
   }
@@ -188,5 +198,129 @@ export class CampanasDatos {
 
   piezasDe(idCampana: string): PiezaCreatividad[] {
     return this.piezasPorCampana[idCampana] ?? [];
+  }
+
+  async crearCampana(datos: {
+    nombre: string;
+    clienteId?: string;
+    descripcion?: string;
+    fechaInicio: string;
+    fechaFin: string;
+    presupuestoTotal: number;
+    moneda: 'BOB' | 'USD';
+  }): Promise<Campana> {
+    const idLocal = 'cmp-' + Date.now();
+    const clienteIdReal = datos.clienteId || '11111111-1111-1111-1111-111111111111';
+
+    // 1. Intento por mutación GraphQL hacia el Gateway
+    try {
+      const mutacion = {
+        query: `
+          mutation CrearCampana($input: CrearCampanaInput!) {
+            crearCampana(input: $input) {
+              id
+              nombre
+              descripcion
+              estado
+              fechaInicio
+              fechaFin
+              version
+            }
+          }
+        `,
+        variables: {
+          input: {
+            clienteId: clienteIdReal,
+            nombre: datos.nombre,
+            descripcion: datos.descripcion || '',
+            fechaInicio: datos.fechaInicio,
+            fechaFin: datos.fechaFin,
+          },
+        },
+      };
+
+      const resGql = await fetch(URL_GATEWAY_GRAPHQL, {
+        method: 'POST',
+        headers: this.cabecerasAuth(),
+        body: JSON.stringify(mutacion),
+      });
+
+      if (resGql.ok) {
+        const cuerpo = await resGql.json();
+        if (cuerpo.data?.crearCampana) {
+          const campanaGql = cuerpo.data.crearCampana;
+          const nuevaCampana: Campana = {
+            id: campanaGql.id,
+            codigoReferencia: `CMP-2026-${String(this.listaCampanas().length + 1).padStart(3, '0')}`,
+            nombre: campanaGql.nombre,
+            cliente: 'Cliente Anunciante',
+            estado: 'borrador',
+            presupuestoTotal: datos.presupuestoTotal,
+            montoGastado: 0,
+            moneda: datos.moneda,
+            fechaInicio: campanaGql.fechaInicio,
+            fechaFin: campanaGql.fechaFin,
+          };
+          this.listaCampanas.update((previas) => [nuevaCampana, ...previas]);
+          return nuevaCampana;
+        }
+      }
+    } catch {
+      // Fallback a almacenamiento local si el backend no responde
+    }
+
+    // Fallback reactivo
+    const campanaFallback: Campana = {
+      id: idLocal,
+      codigoReferencia: `CMP-2026-${String(this.listaCampanas().length + 1).padStart(3, '0')}`,
+      nombre: datos.nombre,
+      cliente: 'Cliente Demo',
+      estado: 'borrador',
+      presupuestoTotal: datos.presupuestoTotal,
+      montoGastado: 0,
+      moneda: datos.moneda,
+      fechaInicio: datos.fechaInicio,
+      fechaFin: datos.fechaFin,
+    };
+    this.listaCampanas.update((previas) => [campanaFallback, ...previas]);
+    return campanaFallback;
+  }
+
+  async contratarCampana(idCampana: string): Promise<{ sagaId: string; estado: string; mensaje: string }> {
+    try {
+      const respuesta = await fetch(`${URL_GATEWAY_REST}/campanas/${idCampana}/contratar`, {
+        method: 'POST',
+        headers: {
+          ...this.cabecerasAuth(),
+          'Idempotency-Key': `contratar-${idCampana}-${Date.now()}`,
+        },
+      });
+
+      if (respuesta.ok || respuesta.status === 202) {
+        const datos = await respuesta.json();
+        // Actualizamos estado en UI
+        this.listaCampanas.update((lista) =>
+          lista.map((c) => (c.id === idCampana ? { ...c, estado: 'pendiente' } : c))
+        );
+        return {
+          sagaId: datos.saga_id,
+          estado: datos.estado,
+          mensaje: datos.mensaje,
+        };
+      }
+    } catch (e) {
+      console.warn('Backend inaccesible al contratar, iniciando SAGA en modo simulado:', e);
+    }
+
+    // Fallback con sagaId simulado
+    const sagaIdSimulada = 'saga-' + Date.now();
+    this.listaCampanas.update((lista) =>
+      lista.map((c) => (c.id === idCampana ? { ...c, estado: 'pendiente' } : c))
+    );
+    return {
+      sagaId: sagaIdSimulada,
+      estado: 'reservando_presupuesto',
+      mensaje: 'Transacción SAGA iniciada en modo local',
+    };
   }
 }

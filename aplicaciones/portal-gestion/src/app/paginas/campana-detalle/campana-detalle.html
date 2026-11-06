@@ -4,7 +4,9 @@
     <div class="encabezado__acciones">
       <ao-boton variante="secundario" [routerLink]="['/campanas', c.id, 'editar']">Editar campaña</ao-boton>
       @if (puedeContratar()) {
-        <ao-boton variante="primario" [routerLink]="['/sagas', c.id]">Contratar campaña</ao-boton>
+        <ao-boton variante="primario" [deshabilitado]="contratando()" (click)="contratar()">
+          {{ contratando() ? 'Iniciando SAGA…' : 'Contratar campaña' }}
+        </ao-boton>
       }
     </div>
   </div>
