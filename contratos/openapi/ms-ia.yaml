@@ -163,19 +163,38 @@ components:
         duracion_ms: { type: integer }
         creado_en: { type: string, format: date-time }
     ReporteGenerado:
+      description: >
+        Forma acordada con aplicaciones/panel-inteligencia (React, ya construido en la
+        rama del companero sobre este mismo contrato) -- ver decision D15.
       type: object
       properties:
         id: { type: string, format: uuid }
         pregunta: { type: string }
-        respuesta_nl: { type: string, nullable: true }
-        herramientas_usadas:
-          type: array
-          items: { type: object }
+        titulo: { type: string }
+        generado_en: { type: string, format: date-time, nullable: true }
+        interpretacion:
+          type: object
+          properties:
+            herramienta: { type: string }
+            parametros: { type: object }
         columnas:
           type: array
-          items: { type: string }
+          items:
+            type: object
+            properties:
+              clave: { type: string }
+              etiqueta: { type: string }
+              tipo: { type: string, enum: [texto, numero, dinero, fecha, porcentaje] }
+              moneda: { type: string, enum: [BOB, USD] }
         filas:
           type: array
           items: { type: object }
+        grafico:
+          type: object
+          nullable: true
+          properties:
+            tipo: { type: string, enum: [barras, linea] }
+            x: { type: string }
+            y: { type: string }
+        respuesta_nl: { type: string, nullable: true }
         estado: { type: string, enum: [listo, fallido] }
-        creado_en: { type: string, format: date-time, nullable: true }

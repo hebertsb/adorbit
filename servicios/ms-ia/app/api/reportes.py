@@ -7,6 +7,7 @@ usuario.
 
 from __future__ import annotations
 
+import json
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from ..adapters.postgres.vista_mcp_repo import VistaMcpRepositorioPg
 from ..adapters.seguridad.verificar_jwt import IdentidadAutenticada, exigir_rol, verificar_jwt
 from ..domain.errores import ExcepcionDominio
 from ..domain.reporte_generado import ReporteGenerado
+from ..use_cases.compartido.forma_tabla import columna_dto, grafico_dto, titulo_desde_herramienta
 from ..use_cases.consultas_mcp import ConsultasMcp
 from ..use_cases.exportar_reporte import ExportarReporte
 from ..use_cases.generar_reporte import GenerarReporte
@@ -36,15 +38,34 @@ _exportar_reporte = ExportarReporte(_repositorio)
 
 
 def _a_dict(reporte: ReporteGenerado) -> dict[str, Any]:
+    """Forma del `Reporte` que ya consume aplicaciones/panel-inteligencia (React, ver
+    src/api/tipos.ts) -- ver documentacion/05-decisiones-y-pendientes.md D15. `titulo`/
+    `interpretacion`/`columnas` (como objetos)/`grafico` se derivan aqui, en la capa de
+    API, a partir de los datos crudos del dominio; no se persisten calculados."""
+    ultima_herramienta = reporte.herramientas_usadas[-1] if reporte.herramientas_usadas else None
+    parametros: dict[str, Any] = {}
+    if ultima_herramienta is not None:
+        try:
+            parametros = json.loads(ultima_herramienta.get("argumentos") or "{}")
+        except (ValueError, TypeError):
+            parametros = {}
+
     return {
         "id": str(reporte.id),
         "pregunta": reporte.pregunta,
-        "respuesta_nl": reporte.respuesta_nl,
-        "herramientas_usadas": reporte.herramientas_usadas,
-        "columnas": reporte.columnas,
+        "titulo": titulo_desde_herramienta(
+            ultima_herramienta["herramienta"] if ultima_herramienta else None, reporte.pregunta
+        ),
+        "generado_en": reporte.creado_en.isoformat() if reporte.creado_en else None,
+        "interpretacion": {
+            "herramienta": ultima_herramienta["herramienta"] if ultima_herramienta else "ninguna",
+            "parametros": parametros,
+        },
+        "columnas": [columna_dto(c) for c in reporte.columnas],
         "filas": reporte.filas,
+        "grafico": grafico_dto(reporte.columnas, reporte.filas),
+        "respuesta_nl": reporte.respuesta_nl,
         "estado": reporte.estado,
-        "creado_en": reporte.creado_en.isoformat() if reporte.creado_en else None,
     }
 
 

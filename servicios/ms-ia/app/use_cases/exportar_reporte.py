@@ -13,6 +13,7 @@ from uuid import UUID
 from ..domain.errores import ExcepcionDominio
 from ..domain.puertos import ReporteGeneradoRepositorio
 from ..domain.reporte_generado import ReporteGenerado
+from .compartido.forma_tabla import columna_numerica_y_texto as _columna_numerica_y_texto
 
 FORMATOS_VALIDOS = {"pdf", "xlsx"}
 
@@ -33,25 +34,6 @@ class ExportarReporte:
         if formato == "xlsx":
             return _exportar_xlsx(reporte)
         return _exportar_pdf(reporte)
-
-
-def _columna_numerica_y_texto(columnas: list[str], filas: list[dict[str, Any]]) -> tuple[str, str] | None:
-    """Detecta la forma simple (1 columna de texto + 1 numerica) que amerita un grafico."""
-    if len(columnas) < 2 or not filas:
-        return None
-    col_texto: str | None = None
-    col_numero: str | None = None
-    for columna in columnas:
-        valor = filas[0].get(columna)
-        if isinstance(valor, bool):
-            continue
-        if isinstance(valor, (int, float)) and col_numero is None:
-            col_numero = columna
-        elif isinstance(valor, str) and col_texto is None:
-            col_texto = columna
-    if col_texto and col_numero:
-        return col_texto, col_numero
-    return None
 
 
 def _exportar_xlsx(reporte: ReporteGenerado) -> tuple[bytes, str, str]:
