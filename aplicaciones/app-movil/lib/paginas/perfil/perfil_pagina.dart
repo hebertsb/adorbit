@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../compartido/tarjeta_ao.dart';
+import '../../core/auth/sesion_controller.dart';
 import '../../core/tema/colores_ao.dart';
 import '../../core/tema/tema_controller.dart';
 
@@ -31,6 +32,8 @@ class _PerfilPaginaState extends ConsumerState<PerfilPagina> {
       ),
     );
     if (confirmar != true || !mounted) return;
+    await ref.read(sesionControllerProvider.notifier).cerrarSesion();
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('Sesión finalizada en Keycloak OIDC.')));
     context.go('/login');

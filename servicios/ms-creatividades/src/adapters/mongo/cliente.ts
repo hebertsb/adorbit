@@ -15,7 +15,13 @@ function crearClientePromesa(): Promise<MongoClient> {
   if (!url) {
     throw new Error('Falta la variable de entorno ADORBIT_CREATIVIDADES_URL_BD');
   }
-  return new MongoClient(url).connect();
+  // ignoreUndefined: sin esto, el driver serializa un campo opcional en `undefined`
+  // (ej. cliente_id cuando no viene) como BSON null en vez de omitirlo -- y el
+  // validador $jsonSchema de Mongo (ver base_de_datos/ms-creatividades.mongo.js) solo
+  // acepta `bsonType: "string"` o ausencia del campo, nunca null, asi que cualquier
+  // escritura con un campo opcional vacio tumbaba con "Document failed validation"
+  // (encontrado probando en vivo POST /briefs sin cliente_id).
+  return new MongoClient(url, { ignoreUndefined: true }).connect();
 }
 
 // Modulo cargado una sola vez en produccion (sin HMR); en dev se cachea en globalThis

@@ -60,15 +60,18 @@ es real, no solo teórica.
 
 ## Probar local sin Keycloak
 Roly todavía no tiene Keycloak real corriendo, pero los endpoints protegidos
-(`/reportes`, `/mcp`) exigen JWT igual. `herramientas/emisor_jwt_prueba.py` genera un
-JWKS de juguete + un token firmado válido, usando el mismo código de verificación real
-(no es un bypass). En `.env` (temporalmente, mientras pruebas local):
+(`/reportes`, `/agentes`, `/mcp`) exigen JWT igual. `herramientas/emisor_jwt_prueba.py`
+genera un JWKS de juguete + un token firmado válido, usando el mismo código de
+verificación real (no es un bypass). Es genérico para todo el proyecto (otros
+servicios, como `ms-creatividades`, también lo usan — ver el parámetro `aud` de
+`/emitir` y el README de `app-movil`). En `.env` (temporalmente, mientras pruebas local):
 ```
 ADORBIT_IA_JWKS_URI=http://127.0.0.1:8099/certs
 ADORBIT_IA_EMISOR=http://127.0.0.1:8099/prueba
 ```
 Luego `python herramientas/emisor_jwt_prueba.py` (deja la terminal abierta) y usa el
-`Authorization: Bearer ...` que imprime.
+`Authorization: Bearer ...` que imprime, o pide uno nuevo con
+`GET /emitir?roles=...&aud=...` para otro servicio.
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

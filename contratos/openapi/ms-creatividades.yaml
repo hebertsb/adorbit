@@ -86,7 +86,34 @@ paths:
         '400': { $ref: '#/components/responses/SolicitudInvalida' }
         '422': { description: 'idempotencia_conflicto: misma clave, datos distintos' }
 
+  /api/v1/briefs/{id}:
+    get:
+      tags: [briefs]
+      summary: Obtener un brief
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: Brief, content: { application/json: { schema: { $ref: '#/components/schemas/Brief' } } } }
+        '404': { description: brief_no_encontrado }
+
   /api/v1/briefs/{id}/piezas:
+    get:
+      tags: [piezas]
+      summary: Listar las piezas de un brief (todas las versiones, mas reciente primero)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Piezas del brief
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/Pieza' } }
+        '404': { description: brief_no_encontrado }
     post:
       tags: [piezas]
       summary: Subir una nueva version de pieza para un brief

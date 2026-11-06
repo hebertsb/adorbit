@@ -20,7 +20,7 @@ src/
 Dependencias hacia adentro: los casos de uso no conocen Next.js ni Mongo.
 
 ## API
-`/briefs`, `/briefs/{id}/piezas`, `/piezas/{id}`, `/piezas/{id}/aprobar`, `/piezas/{id}/validaciones`, `/piezas/{id}/archivo`.
+`/briefs`, `/briefs/{id}`, `/briefs/{id}/piezas` (GET lista + POST crea), `/piezas/{id}`, `/piezas/{id}/aprobar`, `/piezas/{id}/validaciones`, `/piezas/{id}/archivo`.
 
 ## Eventos
 Publica: `BriefRecibido`, `PiezaSubida`, `PiezaAprobada`, `PiezasBloqueadas`, `BloqueoFallido`, `PiezasDesbloqueadas`. Consume: `BloquearPiezas`, `DesbloquearPiezas`, `PiezaAnalizada`.
@@ -38,11 +38,27 @@ Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos 
 5. [x] Outbox + relay RabbitMQ
 6. [x] Subida de archivos (URL firmada) y evento `PiezaSubida` con `huella_imagen`
 
-Pendiente antes de la demo (necesita infraestructura real, no se pudo probar en esta
-maquina — Docker Desktop no estaba disponible): levantar Mongo/RabbitMQ (locales o
-Atlas/CloudAMQP), completar `.env` a partir de `.env.ejemplo`, crear el bucket real de
-Supabase Storage, y correr los 5 casos de prueba de `documentacion/02-saga.md` contra el
-orquestador real de ms-campanas.
+El Mongo Atlas real (`adorbit_creatividades`) YA está provisionado y probado en vivo
+(6 nov): `GET/POST /briefs`, `GET /briefs/{id}`, `GET/POST /briefs/{id}/piezas`,
+`POST /piezas/{id}/aprobar` e idempotencia (replay + conflicto 422), todo contra la
+base real — ver decisión en `documentacion/05-decisiones-y-pendientes.md` sobre el bug
+real que encontró esa prueba (`MongoClient` sin `ignoreUndefined`, ya corregido).
+
+Pendiente antes de la demo: crear el bucket real de Supabase Storage (`piezas-creatividades`,
+reusa el mismo proyecto Supabase de ms-ia) y completar `ADORBIT_CREATIVIDADES_SUPABASE_URL`/
+`_SERVICE_KEY` en `.env` — sin eso, `POST /piezas/{id}/archivo` falla (probado: da 500).
+RabbitMQ real (CloudAMQP) también pendiente para esta instancia local — mientras tanto el
+HTTP funciona igual, solo se pierde el consumo/publicación de eventos SAGA. Correr los
+5 casos de prueba de `documentacion/02-saga.md` contra el orquestador real de ms-campanas
+sigue pendiente de ese lado.
+
+## Probar local sin Keycloak
+Mismo emisor de JWT de prueba que usa ms-ia (`servicios/ms-ia/herramientas/
+emisor_jwt_prueba.py`, genérico para todo el proyecto vía el parámetro `aud`): con
+`ADORBIT_CREATIVIDADES_JWKS_URI=http://127.0.0.1:8099/certs` y
+`ADORBIT_CREATIVIDADES_EMISOR=http://127.0.0.1:8099/prueba` en `.env`, un token pedido
+con `GET http://127.0.0.1:8099/emitir?roles=creativo&aud=ms-creatividades` verifica
+igual que uno real de Keycloak.
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

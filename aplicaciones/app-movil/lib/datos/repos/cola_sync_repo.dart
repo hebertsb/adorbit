@@ -1,52 +1,65 @@
+import 'dart:convert';
+
+import '../../core/datos_locales/bandeja_salida_dao.dart';
 import '../modelos/cola_sync.dart';
 
-/// TODO Hebert: respaldar con BandejaSalidaDao (core/datos_locales) en vez de datos fijos,
-/// una vez que haya escrituras offline reales que encolar.
+/// Lee la bandeja de salida local real (core/datos_locales/bandeja_salida_dao.dart) en
+/// vez de datos de muestra -- cada fila es una pieza esperando subirse de verdad (ver
+/// SincronizadorService). No hay estados "enviando"/"conflicto" reales todavia (el
+/// envio es secuencial y sin merge de versiones); se infiere "error" de intentos > 0
+/// sobre una fila que sigue pendiente.
 class ColaSyncRepo {
-  static const List<ElementoColaSync> _items = [
-    ElementoColaSync(
-      titulo: 'Tótem entrada sucursal Centro',
-      subtitulo: 'Telecom Altiplano · Lanzamiento Fibra Óptica 500M',
-      estado: EstadoSincronizacion.sincronizado,
-    ),
-    ElementoColaSync(
-      titulo: 'Spot video sucursal — pantalla LED',
-      subtitulo: 'Telecom Altiplano · 1.6 MB de 2.4 MB transferidos',
-      estado: EstadoSincronizacion.enviando,
-      progreso: 0.68,
-      detalle: '142 KB/s',
-    ),
-    ElementoColaSync(
-      titulo: 'Campaña Institucional Créditos',
-      subtitulo: 'Banco del Valle',
-      estado: EstadoSincronizacion.conflicto,
-      detalle:
-          'El servidor ya tiene una versión más nueva de este registro guardada por otro auditor (11:15). Tu versión local se mantiene segura para evitar pérdida de datos.',
-    ),
-    ElementoColaSync(
-      titulo: 'Valla carretera — ruta Santa Cruz',
-      subtitulo: 'Promo Carnaval & Verano · Cervecería del Sur',
-      estado: EstadoSincronizacion.error,
-      intentos: 3,
-      detalle: 'Tiempo de espera agotado al enviar archivo pesado. Reintento automático en 5 min.',
-    ),
-    ElementoColaSync(
-      titulo: 'Vitrina digital — tótem escaparate',
-      subtitulo: 'Tienda Andina · Colección Verano Boutique',
+  final _dao = BandejaSalidaDao();
+
+  Future<List<ElementoColaSync>> listar() async {
+    final filas = await _dao.listar();
+    return filas.map(_aElementoColaSync).toList();
+  }
+
+  Future<int> get pendientes async {
+    final filas = await _dao.listar();
+    return filas.where((e) => e.estado == 'pendiente').length;
+  }
+
+  Future<int> get resueltos async {
+    final filas = await _dao.listar();
+    return filas.where((e) => e.estado == 'sincronizado').length;
+  }
+
+  Future<int> get errores async {
+    final filas = await _dao.listar();
+    return filas.where((e) => e.estado == 'pendiente' && e.intentos > 0).length;
+  }
+
+  ElementoColaSync _aElementoColaSync(ElementoBandeja item) {
+    Map<String, dynamic> carga;
+    try {
+      carga = jsonDecode(item.carga) as Map<String, dynamic>;
+    } catch (_) {
+      carga = const {};
+    }
+
+    final titulo = carga['nombre'] as String? ?? item.tipo;
+    final briefId = carga['briefId'] as String?;
+    final subtitulo = briefId != null ? 'Brief ${briefId.substring(0, briefId.length.clamp(0, 8))}…' : item.tipo;
+
+    if (item.estado == 'sincronizado') {
+      return ElementoColaSync(titulo: titulo, subtitulo: subtitulo, estado: EstadoSincronizacion.sincronizado);
+    }
+    if (item.intentos > 0) {
+      return ElementoColaSync(
+        titulo: titulo,
+        subtitulo: subtitulo,
+        estado: EstadoSincronizacion.error,
+        intentos: item.intentos,
+        detalle: 'No se pudo sincronizar todavía. Se reintentará automáticamente.',
+      );
+    }
+    return ElementoColaSync(
+      titulo: titulo,
+      subtitulo: subtitulo,
       estado: EstadoSincronizacion.pendiente,
-      detalle: 'En cola para procesar al finalizar subidas actuales.',
-    ),
-  ];
-
-  List<ElementoColaSync> listar() => _items;
-
-  int get pendientes => _items
-      .where((e) =>
-          e.estado != EstadoSincronizacion.sincronizado && e.estado != EstadoSincronizacion.error)
-      .length;
-
-  int get resueltos =>
-      _items.where((e) => e.estado == EstadoSincronizacion.sincronizado).length;
-
-  int get errores => _items.where((e) => e.estado == EstadoSincronizacion.error).length;
+      detalle: 'En cola para enviar al servidor.',
+    );
+  }
 }
