@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:cross_file/cross_file.dart';
 import 'package:go_router/go_router.dart';
 
@@ -36,7 +38,10 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/validacion-ia/:briefId',
-      builder: (context, state) => ValidacionIaPagina(briefId: state.pathParameters['briefId']!),
+      builder: (context, state) => ValidacionIaPagina(
+        briefId: state.pathParameters['briefId']!,
+        bytesImagen: state.extra as Uint8List?,
+      ),
     ),
     ShellRoute(
       builder: (context, state, child) =>

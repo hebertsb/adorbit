@@ -119,7 +119,7 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
     if (!mounted) return;
     setState(() => _guardando = false);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto adjuntada')));
-    context.push('/validacion-ia/${widget.briefId}');
+    context.push('/validacion-ia/${widget.briefId}', extra: bytes);
   }
 
   @override

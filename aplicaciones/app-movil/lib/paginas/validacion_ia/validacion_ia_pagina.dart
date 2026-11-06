@@ -1,27 +1,69 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../compartido/tarjeta_ao.dart';
+import '../../core/ia_local/detector_logo_local.dart';
 import '../../core/tema/colores_ao.dart';
 
-/// Resultado de la validacion de IA local (TFLite/ML Kit) tras capturar una pieza.
-/// El selector "Alta/Baja" de abajo es solo para esta demo (igual que el selector de
-/// escenario en saga-estado del portal web) — en real vendria del resultado del modelo.
-/// TODO Hebert/ms-ia: cargar modelo TFLite real y reemplazar el selector por el resultado
-/// efectivo de la inferencia on-device.
+/// Validacion con IA 100% local: corre DetectorLogoLocal (YOLOv8n afinado para el logo
+/// de AdOrbit, exportado a ONNX -- ver D21/D22 en documentacion/05-decisiones-y-pendientes.md)
+/// sobre la foto recien capturada, en el propio dispositivo y sin conexion. El resultado
+/// de "logo detectado" es real; "texto legible" y "manual de marca" no se evaluan aqui
+/// (harian falta OCR y un detector de paleta/tipografia que no existen todavia) y se
+/// muestran como tales en vez de inventar un resultado.
 class ValidacionIaPagina extends StatefulWidget {
-  const ValidacionIaPagina({super.key, required this.briefId});
+  const ValidacionIaPagina({super.key, required this.briefId, this.bytesImagen});
 
   final String briefId;
+  final Uint8List? bytesImagen;
 
   @override
   State<ValidacionIaPagina> createState() => _ValidacionIaPaginaState();
 }
 
 class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
-  bool _altaConfianza = true;
+  bool _analizando = true;
+  DeteccionLogo? _resultado;
+  String? _errorAnalisis;
   bool _enviando = false;
   String? _estadoEnvio;
+
+  @override
+  void initState() {
+    super.initState();
+    _analizar();
+  }
+
+  Future<void> _analizar() async {
+    final bytes = widget.bytesImagen;
+    if (bytes == null) {
+      setState(() {
+        _analizando = false;
+        _errorAnalisis = 'Esta pantalla necesita la foto recien capturada.';
+      });
+      return;
+    }
+    setState(() {
+      _analizando = true;
+      _errorAnalisis = null;
+    });
+    try {
+      final resultado = await DetectorLogoLocal.instancia.detectar(bytes);
+      if (!mounted) return;
+      setState(() {
+        _resultado = resultado;
+        _analizando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorAnalisis = 'No se pudo analizar la foto en este dispositivo.';
+        _analizando = false;
+      });
+    }
+  }
 
   Future<void> _subir(String mensajeFinal) async {
     setState(() {
@@ -42,22 +84,15 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
   @override
   Widget build(BuildContext context) {
     final c = context.aoColores;
+    final detecta = _resultado?.detectaLogo ?? false;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Validación con IA'),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Center(
-              child: SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(value: true, label: Text('Alta')),
-                  ButtonSegment(value: false, label: Text('Baja')),
-                ],
-                selected: {_altaConfianza},
-                onSelectionChanged: (s) => setState(() => _altaConfianza = s.first),
-              ),
-            ),
+          IconButton(
+            tooltip: 'Volver a analizar',
+            icon: const Icon(Icons.refresh),
+            onPressed: _analizando ? null : _analizar,
           ),
         ],
       ),
@@ -76,14 +111,12 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _altaConfianza ? 'Analizado en tu dispositivo · Sin conexión a internet' : 'Procesado en este dispositivo',
+                        'Analizado en tu dispositivo · Sin conexión a internet',
                         style: TextStyle(color: c.texto, fontWeight: FontWeight.w700, fontSize: 13),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _altaConfianza
-                            ? 'Procesamiento seguro en memoria local, máxima privacidad'
-                            : 'Sin subida de datos ni consumo de internet. Modelo neuronal perimetral en memoria caché.',
+                        'Inferencia on-device con el modelo de logo de AdOrbit (ONNX Runtime), sin subir la imagen a ningún servidor',
                         style: TextStyle(color: c.textoSuave, fontSize: 12),
                       ),
                     ],
@@ -93,11 +126,30 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
             ),
           ),
           const SizedBox(height: 16),
-          _altaConfianza ? _diagnosticoAlta(context) : _diagnosticoBaja(context),
-          const SizedBox(height: 16),
-          _altaConfianza ? _bannerExito(context) : _bannerAdvertencia(context),
+          if (_analizando)
+            const TarjetaAo(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.4)),
+                    SizedBox(width: 12),
+                    Text('Analizando con IA local...'),
+                  ],
+                ),
+              ),
+            )
+          else if (_errorAnalisis != null)
+            _bannerError(context, _errorAnalisis!)
+          else ...[
+            _diagnostico(context),
+            const SizedBox(height: 16),
+            detecta ? _bannerExito(context) : _bannerAdvertencia(context),
+          ],
           const SizedBox(height: 18),
-          if (_altaConfianza)
+          if (_analizando)
+            const SizedBox.shrink()
+          else if (detecta)
             Row(
               children: [
                 Expanded(
@@ -145,56 +197,83 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
 
   Widget _visorAnalizado(BuildContext context) {
     final c = context.aoColores;
+    final bytes = widget.bytesImagen;
+    final resultado = _resultado;
+    final aspecto = (resultado != null && resultado.altoImagen > 0)
+        ? resultado.anchoImagen / resultado.altoImagen
+        : 9 / 16;
+
     return AspectRatio(
-      aspectRatio: 9 / 16,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(color: c.plano, borderRadius: BorderRadius.circular(16)),
-              child: Icon(Icons.image_outlined, color: c.textoTenue, size: 48),
-            ),
-          ),
-          Positioned(
-            left: 10,
-            top: 10,
-            child: _etiquetaFlotante(
-              _altaConfianza ? 'CAPTURA ANALIZADA' : 'BAJA CONFIANZA',
-              _altaConfianza ? c.info : c.aviso,
-            ),
-          ),
-          Positioned(
-            right: 10,
-            top: 10,
-            child: _etiquetaFlotante(_altaConfianza ? 'NPU Local' : '9:16 · Roll-up vertical', c.ok),
-          ),
-          if (!_altaConfianza) ...[
+      aspectRatio: aspecto,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (bytes != null)
+              Image.memory(bytes, fit: BoxFit.fill)
+            else
+              Container(
+                color: c.plano,
+                child: Icon(Icons.image_outlined, color: c.textoTenue, size: 48),
+              ),
+            if (resultado?.cajaFraccion != null)
+              LayoutBuilder(
+                builder: (context, restricciones) {
+                  final caja = resultado!.cajaFraccion!;
+                  final ancho = restricciones.maxWidth;
+                  final alto = restricciones.maxHeight;
+                  return Positioned(
+                    left: caja[0] * ancho,
+                    top: caja[1] * alto,
+                    width: (caja[2] - caja[0]) * ancho,
+                    height: (caja[3] - caja[1]) * alto,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.greenAccent, width: 2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  );
+                },
+              ),
             Positioned(
-              left: 40,
-              top: 70,
-              child: _cajaDeteccion('Logo ?', Colors.redAccent),
+              left: 10,
+              top: 10,
+              child: _etiquetaFlotante(
+                _analizando
+                    ? 'ANALIZANDO...'
+                    : (_resultado?.detectaLogo ?? false)
+                        ? 'LOGO DETECTADO'
+                        : 'LOGO NO DETECTADO',
+                _analizando ? c.neutro : ((_resultado?.detectaLogo ?? false) ? c.ok : c.aviso),
+              ),
             ),
+            if (_resultado != null)
+              Positioned(
+                right: 10,
+                top: 10,
+                child: _etiquetaFlotante(
+                  '${(_resultado!.confianza * 100).toStringAsFixed(0)}% confianza',
+                  c.info,
+                ),
+              ),
             Positioned(
-              right: 30,
-              top: 140,
-              child: _cajaDeteccion('Paleta cromática · ΔE > 8.4', Colors.amber),
-            ),
-          ],
-          Positioned(
-            left: 10,
-            bottom: 10,
-            child: _etiquetaFlotante(
-              _altaConfianza ? 'Soporte tótem · Tienda Retail' : 'Local Vision v2.4',
-              Colors.black54,
-            ),
-          ),
-          if (!_altaConfianza)
-            Positioned(
-              right: 10,
+              left: 10,
               bottom: 10,
-              child: _etiquetaFlotante('1440 × 2560 px', Colors.black54),
+              child: _etiquetaFlotante('yolo_logo_adorbit · ONNX', Colors.black54),
             ),
-        ],
+            if (_resultado != null && _resultado!.anchoImagen > 0)
+              Positioned(
+                right: 10,
+                bottom: 10,
+                child: _etiquetaFlotante(
+                  '${_resultado!.anchoImagen} × ${_resultado!.altoImagen} px',
+                  Colors.black54,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -207,16 +286,11 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
     );
   }
 
-  Widget _cajaDeteccion(String texto, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(border: Border.all(color: color, width: 1.5), borderRadius: BorderRadius.circular(4)),
-      child: Text(texto, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w700)),
-    );
-  }
-
-  Widget _diagnosticoAlta(BuildContext context) {
+  Widget _diagnostico(BuildContext context) {
     final c = context.aoColores;
+    final resultado = _resultado!;
+    final porcentaje = resultado.confianza;
+    final color = resultado.detectaLogo ? c.ok : c.aviso;
     return TarjetaAo(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,90 +298,37 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
           Row(
             children: [
               Expanded(
-                child: Text('Confianza del análisis', style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
+                child: Text('Confianza del modelo de logo', style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
               ),
-              Text('94%', style: TextStyle(color: c.ok, fontSize: 22, fontWeight: FontWeight.w800)),
+              Text('${(porcentaje * 100).toStringAsFixed(0)}%',
+                  style: TextStyle(color: color, fontSize: 22, fontWeight: FontWeight.w800)),
             ],
           ),
-          Text('Tolerancia mínima superada (>85%)', style: TextStyle(color: c.textoSuave, fontSize: 12)),
+          Text(
+            'Umbral del modelo: ${(DetectorLogoLocal.umbralConfianza * 100).toStringAsFixed(0)}%',
+            style: TextStyle(color: c.textoSuave, fontSize: 12),
+          ),
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
-              value: 0.94,
+              value: porcentaje.clamp(0.0, 1.0),
               minHeight: 8,
               backgroundColor: c.plano,
-              valueColor: AlwaysStoppedAnimation(c.ok),
+              valueColor: AlwaysStoppedAnimation(color),
             ),
           ),
-          const SizedBox(height: 4),
-          Text('Umbral calificado 85%', style: TextStyle(color: c.textoTenue, fontSize: 11)),
           const Divider(height: 24),
           Text('Diagnóstico visual', style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          _itemDiagnostico(context, 'Logo detectado', 'Cabecera legible de marca', true),
-          _itemDiagnostico(context, 'Texto detectado', 'Legibilidad clara y óptima', true),
-          _itemDiagnostico(context, 'Cumple manual de marca', 'Cromática y tipografía acordes', true),
-        ],
-      ),
-    );
-  }
-
-  Widget _diagnosticoBaja(BuildContext context) {
-    final c = context.aoColores;
-    return TarjetaAo(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('Diagnóstico de conformidad',
-                    style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: c.neutroFondo, borderRadius: BorderRadius.circular(999)),
-                child: Text('3 comprobaciones', style: TextStyle(color: c.neutro, fontSize: 11)),
-              ),
-            ],
+          _itemDiagnostico(
+            context,
+            'Logo detectado',
+            resultado.detectaLogo ? 'Cabecera de marca reconocida' : 'No se reconoció el logo en la foto',
+            resultado.detectaLogo,
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text('58%', style: TextStyle(color: c.aviso, fontSize: 22, fontWeight: FontWeight.w800)),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: c.avisoFondo, borderRadius: BorderRadius.circular(999)),
-                child: Text('BAJA', style: TextStyle(color: c.aviso, fontSize: 11, fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: 0.58,
-                  minHeight: 8,
-                  backgroundColor: c.plano,
-                  valueColor: AlwaysStoppedAnimation(c.aviso),
-                ),
-              ),
-              Positioned(
-                left: 0.75 * 260,
-                child: Container(width: 2, height: 8, color: c.texto),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text('▲ 75% Aprobado auto', style: TextStyle(color: c.textoTenue, fontSize: 11)),
-          const Divider(height: 24),
-          _itemDiagnostico(context, 'Logo corporativo', 'No definido', false),
-          _itemDiagnostico(context, 'Texto legible (OCR)', 'Sí (contraste parcial)', true),
-          _itemDiagnostico(context, 'Manual de marca', 'No cumple manual', null),
+          _itemDiagnostico(context, 'Texto legible (OCR)', 'No evaluado en este dispositivo', null),
+          _itemDiagnostico(context, 'Cumple manual de marca', 'No evaluado en este dispositivo', null),
         ],
       ),
     );
@@ -318,7 +339,7 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
     final (icono, color) = switch (ok) {
       true => (Icons.check_circle, c.ok),
       false => (Icons.cancel, c.peligro),
-      null => (Icons.error, c.aviso),
+      null => (Icons.remove_circle_outline, c.textoTenue),
     };
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
@@ -345,10 +366,10 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Lista para subir', style: TextStyle(color: c.ok, fontWeight: FontWeight.w700)),
+                Text('Logo reconocido', style: TextStyle(color: c.ok, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
                 Text(
-                  'La pieza cumple con las pautas visuales requeridas por la campaña. Puedes subir la pieza al sistema inmediatamente.',
+                  'El modelo local reconoció el logo de AdOrbit en la pieza. Puedes subirla al sistema.',
                   style: TextStyle(color: c.textoSuave, fontSize: 12),
                 ),
               ],
@@ -378,7 +399,7 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
                         style: TextStyle(color: c.aviso, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 2),
                     Text(
-                      'El modelo local detectó discrepancias con la paleta de marca y ubicación de logo. Esta validación es puramente orientativa y no bloquea tu envío.',
+                      'El modelo local no reconoció el logo de AdOrbit con suficiente confianza. Esta validación es orientativa y no bloquea tu envío.',
                       style: TextStyle(color: c.textoSuave, fontSize: 12),
                     ),
                   ],
@@ -392,11 +413,34 @@ class _ValidacionIaPaginaState extends State<ValidacionIaPagina> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: c.infoFondo, borderRadius: BorderRadius.circular(12)),
           child: Text(
-            'Consejo: Da dos pasos hacia atrás para capturar el banner entero con iluminación uniforme y evitar reflejos en el logo.',
+            'Consejo: acércate o encuadra mejor el logo, con buena luz y sin reflejos.',
             style: TextStyle(color: c.info, fontSize: 12),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _bannerError(BuildContext context, String mensaje) {
+    final c = context.aoColores;
+    return TarjetaAo(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: c.peligro),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('No se pudo analizar', style: TextStyle(color: c.peligro, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(mensaje, style: TextStyle(color: c.textoSuave, fontSize: 12)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

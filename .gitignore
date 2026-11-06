@@ -25,6 +25,9 @@ out/
 *.joblib
 /servicios/ms-ia/herramientas/_dataset_logo/
 /servicios/ms-ia/herramientas/_runs_entrenamiento/
+# Excepcion: este .onnx SI se versiona -- es un asset que app-movil empaqueta
+# para inferencia on-device (ver D22), no un artefacto de entrenamiento de ms-ia.
+!/aplicaciones/app-movil/assets/modelos/yolo_logo_adorbit.onnx
 /servicios/**/datos/
 *.db
 *.sqlite
