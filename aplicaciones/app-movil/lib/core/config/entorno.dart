@@ -14,17 +14,18 @@ class Entorno {
         defaultValue: '',
       ).isNotEmpty
       ? const String.fromEnvironment('ADORBIT_CREATIVIDADES_BASE_URL')
-      : 'http://$_hostLocal:3000';
+      : 'http://$_hostLocal:8083';
 
-  /// Emisor de JWT de prueba (servicios/ms-ia/herramientas/emisor_jwt_prueba.py),
-  /// reusado aqui tal cual mientras Roly no tenga Keycloak real corriendo — ver su
-  /// docstring: "emisor JWKS GENERICO para todo el proyecto".
+  /// Simulador de Keycloak compartido de todo el proyecto
+  /// (herramientas/keycloak-simulado.mjs, de Luis) mientras Roly no tenga el Keycloak
+  /// real (plataforma/keycloak) corriendo. Ya usado por n8n, ms-ia, portal-cliente y
+  /// panel-inteligencia -- ver "Probar local sin Keycloak" en el README.
   static String get baseUrlEmisorPrueba => const String.fromEnvironment(
         'ADORBIT_EMISOR_PRUEBA_BASE_URL',
         defaultValue: '',
       ).isNotEmpty
       ? const String.fromEnvironment('ADORBIT_EMISOR_PRUEBA_BASE_URL')
-      : 'http://$_hostLocal:8099';
+      : 'http://$_hostLocal:8180';
 
   static String get _hostLocal {
     if (kIsWeb) return 'localhost';

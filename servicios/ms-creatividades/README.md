@@ -53,12 +53,16 @@ HTTP funciona igual, solo se pierde el consumo/publicación de eventos SAGA. Cor
 sigue pendiente de ese lado.
 
 ## Probar local sin Keycloak
-Mismo emisor de JWT de prueba que usa ms-ia (`servicios/ms-ia/herramientas/
-emisor_jwt_prueba.py`, genérico para todo el proyecto vía el parámetro `aud`): con
-`ADORBIT_CREATIVIDADES_JWKS_URI=http://127.0.0.1:8099/certs` y
-`ADORBIT_CREATIVIDADES_EMISOR=http://127.0.0.1:8099/prueba` en `.env`, un token pedido
-con `GET http://127.0.0.1:8099/emitir?roles=creativo&aud=ms-creatividades` verifica
-igual que uno real de Keycloak.
+Mismo simulador compartido de todo el proyecto (`herramientas/keycloak-simulado.mjs`,
+de Luis — ya lo usan n8n, ms-ia, portal-cliente, panel-inteligencia y app-movil). En
+`.env`:
+```
+ADORBIT_CREATIVIDADES_JWKS_URI=http://localhost:8180/realms/adorbit/protocol/openid-connect/certs
+ADORBIT_CREATIVIDADES_EMISOR=http://localhost:8180/realms/adorbit
+```
+`ms-creatividades` ya está en la lista de audiencias por defecto del simulador. Desde
+la raíz del repo: `node herramientas/keycloak-simulado.mjs`, y pide un token con
+`GET http://localhost:8180/emitir?roles=creativo` — verifica igual que uno real de Keycloak.
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

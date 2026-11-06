@@ -13,7 +13,7 @@
 //   - Atajo de desarrollo:                         GET  /emitir?roles=cliente&cliente_id=<uuid>
 //
 // Variables: PUERTO (8180) · ESCUCHAR (127.0.0.1) · EMISOR (http://localhost:8180/realms/adorbit)
-//   AUDIENCIAS (ms-facturacion,ms-clientes-crm,ms-ia) · CLIENTES (cuentas de servicio, JSON)
+//   AUDIENCIAS (ms-facturacion,ms-clientes-crm,ms-ia,ms-creatividades) · CLIENTES (cuentas de servicio, JSON)
 //   USUARIOS (JSON: [{"usuario":"ana","nombre":"Ana Rojas","roles":["cliente"],"cliente_id":"<uuid>"}])
 //   CLIENTES_PUBLICOS (portal-cliente,panel-inteligencia) · REDIRECCIONES (prefijos permitidos: puertos 5173/4173 y 5174/4174)
 import { createHash, createSign, generateKeyPairSync, randomUUID } from 'node:crypto';
@@ -22,7 +22,7 @@ import { createServer } from 'node:http';
 const PUERTO = Number(process.env.PUERTO ?? 8180);
 const ESCUCHAR = process.env.ESCUCHAR ?? '127.0.0.1';
 const EMISOR = process.env.EMISOR ?? `http://localhost:${PUERTO}/realms/adorbit`;
-const AUDIENCIAS = (process.env.AUDIENCIAS ?? 'ms-facturacion,ms-clientes-crm,ms-ia').split(',');
+const AUDIENCIAS = (process.env.AUDIENCIAS ?? 'ms-facturacion,ms-clientes-crm,ms-ia,ms-creatividades').split(',');
 const CLIENTES = JSON.parse(process.env.CLIENTES ?? '{"n8n":{"secret":"secreto-local","roles":["gerente"]}}');
 const USUARIOS = JSON.parse(process.env.USUARIOS ?? '[]');
 const CLIENTES_PUBLICOS = (process.env.CLIENTES_PUBLICOS ?? 'portal-cliente,panel-inteligencia').split(',');

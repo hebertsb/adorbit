@@ -13,10 +13,12 @@ import '../red/api_excepcion.dart';
 const clavePrefsToken = 'adorbit_token_acceso';
 const clavePrefsRol = 'adorbit_token_rol';
 
-/// Sesion del usuario actual. Mientras Roly no tenga Keycloak real corriendo, el unico
-/// camino para conseguir un token es el emisor de prueba (servicios/ms-ia/herramientas/
-/// emisor_jwt_prueba.py) -- NO es un bypass: ms-creatividades verifica ese token con el
-/// mismo codigo real (jose/jwtVerify contra un JWKS), solo que el JWKS es de juguete.
+/// Sesion del usuario actual. Mientras Roly no tenga el Keycloak real
+/// (plataforma/keycloak) corriendo, el unico camino para conseguir un token es el
+/// simulador compartido de todo el proyecto (herramientas/keycloak-simulado.mjs, de
+/// Luis -- ya usado por n8n, ms-ia, portal-cliente y panel-inteligencia) -- NO es un
+/// bypass: ms-creatividades verifica ese token con el mismo codigo real
+/// (jose/jwtVerify contra un JWKS), solo que el JWKS es de juguete.
 /// TODO Hebert: reemplazar iniciarSesionDev por flutter_appauth contra el realm real en
 /// cuanto Keycloak este arriba (ver login_pagina.dart).
 final sesionControllerProvider = NotifierProvider<SesionController, SesionEstado>(SesionController.new);
@@ -43,8 +45,10 @@ class SesionController extends Notifier<SesionEstado> {
   }
 
   Future<void> iniciarSesionDev({String rol = 'creativo'}) async {
+    // keycloak-simulado.mjs ya trae ms-creatividades en sus audiencias por defecto
+    // (ver AUDIENCIAS en el script), asi que el atajo /emitir no necesita parametro aud.
     final uri = Uri.parse('${Entorno.baseUrlEmisorPrueba}/emitir').replace(
-      queryParameters: {'roles': rol, 'aud': 'ms-creatividades'},
+      queryParameters: {'roles': rol},
     );
 
     http.Response respuesta;
@@ -55,8 +59,8 @@ class SesionController extends Notifier<SesionEstado> {
         status: 0,
         codigo: 'emisor_prueba_no_disponible',
         mensaje:
-            'No se pudo contactar el emisor de JWT de prueba en ${Entorno.baseUrlEmisorPrueba}. '
-            '¿Esta corriendo "python herramientas/emisor_jwt_prueba.py" en servicios/ms-ia?',
+            'No se pudo contactar el simulador de Keycloak en ${Entorno.baseUrlEmisorPrueba}. '
+            '¿Esta corriendo "node herramientas/keycloak-simulado.mjs" desde la raíz del repo?',
       );
     }
 

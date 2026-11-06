@@ -26,16 +26,17 @@ lib/
 ```
 
 ## Correr contra el backend real
-Mientras Roly no tenga Keycloak real corriendo, el login usa el mismo emisor de JWT de
-prueba que ya usa ms-ia (`servicios/ms-ia/herramientas/emisor_jwt_prueba.py`, genérico
-para todo el proyecto vía el parámetro `aud`) — no es un bypass, `ms-creatividades`
-verifica el token con su código real (`jose`/`jwtVerify` contra un JWKS), solo que el
-JWKS es de juguete.
+Mientras Roly no tenga el Keycloak real (`plataforma/keycloak`) corriendo, el login usa
+el simulador compartido de todo el proyecto (`herramientas/keycloak-simulado.mjs`, de
+Luis — ya lo usan n8n, ms-ia, portal-cliente y panel-inteligencia) — no es un bypass,
+`ms-creatividades` verifica el token con su código real (`jose`/`jwtVerify` contra un
+JWKS), solo que el JWKS es de juguete.
 
-1. En `servicios/ms-ia/.env`, deja `ADORBIT_IA_JWKS_URI`/`ADORBIT_IA_EMISOR` apuntando
-   al emisor (ver su README), y corre `python herramientas/emisor_jwt_prueba.py`.
-2. En `servicios/ms-creatividades/.env`, apunta `ADORBIT_CREATIVIDADES_JWKS_URI`/
-   `_EMISOR` al mismo emisor (`http://127.0.0.1:8099/certs` / `/prueba`) y completa
+1. Desde la **raíz del repo**: `node herramientas/keycloak-simulado.mjs` (deja la
+   terminal abierta; por defecto ya incluye `ms-ia` y `ms-creatividades` en las audiencias).
+2. En `servicios/ms-ia/.env` y `servicios/ms-creatividades/.env`, apunta
+   `..._JWKS_URI`/`..._EMISOR` a `http://localhost:8180/realms/adorbit/protocol/openid-connect/certs`
+   / `http://localhost:8180/realms/adorbit` (ver sus READMEs). Completa también
    `ADORBIT_CREATIVIDADES_URL_BD` (Mongo Atlas real).
 3. `npm run dev` en `servicios/ms-creatividades` (puerto 8083 por defecto).
 4. Corre la app:
@@ -45,7 +46,7 @@ JWKS es de juguete.
    - **Dispositivo físico**: pasa la IP LAN real del equipo:
      ```
      flutter run --dart-define=ADORBIT_CREATIVIDADES_BASE_URL=http://192.168.X.X:8083 \
-                  --dart-define=ADORBIT_EMISOR_PRUEBA_BASE_URL=http://192.168.X.X:8099
+                  --dart-define=ADORBIT_EMISOR_PRUEBA_BASE_URL=http://192.168.X.X:8180
      ```
 
 En la pantalla de login, "Iniciar sesión con Keycloak" pide un token real al emisor de

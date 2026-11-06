@@ -59,19 +59,19 @@ directo (`InsufficientPrivilegeError`) — la frontera de seguridad del servidor
 es real, no solo teórica.
 
 ## Probar local sin Keycloak
-Roly todavía no tiene Keycloak real corriendo, pero los endpoints protegidos
-(`/reportes`, `/agentes`, `/mcp`) exigen JWT igual. `herramientas/emisor_jwt_prueba.py`
-genera un JWKS de juguete + un token firmado válido, usando el mismo código de
-verificación real (no es un bypass). Es genérico para todo el proyecto (otros
-servicios, como `ms-creatividades`, también lo usan — ver el parámetro `aud` de
-`/emitir` y el README de `app-movil`). En `.env` (temporalmente, mientras pruebas local):
+Roly todavía no tiene el Keycloak real (`plataforma/keycloak`) corriendo, pero los
+endpoints protegidos (`/reportes`, `/agentes`, `/mcp`) exigen JWT igual. Se usa el
+simulador compartido de todo el proyecto, `herramientas/keycloak-simulado.mjs` (de
+Luis — ya lo usan n8n, portal-cliente y panel-inteligencia; `ms-creatividades` y
+`app-movil` también). Genera un JWKS real + tokens RS256 válidos, verificados con el
+mismo código real (no es un bypass). En `.env` (temporalmente, mientras pruebas local):
 ```
-ADORBIT_IA_JWKS_URI=http://127.0.0.1:8099/certs
-ADORBIT_IA_EMISOR=http://127.0.0.1:8099/prueba
+ADORBIT_IA_JWKS_URI=http://localhost:8180/realms/adorbit/protocol/openid-connect/certs
+ADORBIT_IA_EMISOR=http://localhost:8180/realms/adorbit
 ```
-Luego `python herramientas/emisor_jwt_prueba.py` (deja la terminal abierta) y usa el
-`Authorization: Bearer ...` que imprime, o pide uno nuevo con
-`GET /emitir?roles=...&aud=...` para otro servicio.
+Luego, desde la raíz del repo, `node herramientas/keycloak-simulado.mjs` (deja la
+terminal abierta; por defecto ya incluye `ms-ia` en las audiencias) y pide un token con
+`GET http://localhost:8180/emitir?roles=ejecutivo` (atajo de desarrollo, sin login).
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.
