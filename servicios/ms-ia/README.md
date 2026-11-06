@@ -19,7 +19,7 @@ app/
 ```
 
 ## API
-`/reportes`, `/reportes/{id}`, `/reportes/{id}/exportar`, `/agentes`, `/agentes/{id}/ejecutar`, `/mcp/auditoria`, `/vision/analizar` (tarea 6, pendiente).
+`/reportes`, `/reportes/{id}`, `/reportes/{id}/exportar`, `/agentes`, `/agentes/{id}/ejecutar`, `/mcp/auditoria`, `/ml/riesgo-cliente/{id}`, `/ml/segmentacion-campanas`, `/vision/analizar`.
 
 ## Eventos
 Consume: todos los eventos de dominio (`CampanaCreada`, `ClienteCreado`, `FacturaEmitida`, `PiezaSubida`, ...). Publica: `AlertaCampana`, `PiezaAnalizada`.
@@ -35,13 +35,23 @@ Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos 
 3. [x] MCP: herramientas parametrizadas, rol `lector_mcp`, auditoría (incluye bloqueadas) + prueba de intento de inyección
 4. [x] Reportes NL → MCP → tabla/gráfico → PDF/Excel (proveedor LLM: Groq, ver decisión D14)
 5. [x] Agentes (`monitor_campanas`, `cobranza`) vía `POST /agentes/{id}/ejecutar`; ver decisión D16
-6. [ ] ML (ROI/impago, K-Means, Isolation Forest) y visión YOLO; registrar en `modelos_aprendizaje`
+6. [x] ML (ROI/impago, K-Means, Isolation Forest) y visión YOLO; registrados en `modelos_aprendizaje` — ver D19/D20
 
 La tarea 5 queda con la lógica y el endpoint completos y probados contra Supabase real
 (ver D16); lo único que falta y no depende de ms-ia es que Roly configure el nodo cron
 de n8n que llama `POST /agentes/{id}/ejecutar` y el binding de la cola que consume
-`AlertaCampana`. La tarea 6 además necesita datos de entrenamiento reales que no existen
-todavía.
+`AlertaCampana` (su propio fix de rutas SAGA ya está mergeado).
+
+La tarea 6 usa `herramientas/entrenar_modelos_ml.py` (scikit-learn + XGBoost, datos
+**sintéticos** — no hay datos reales de producción todavía, ver D19) para `roi_xgboost`
+(riesgo de impago), `kmeans_campanas` (segmentación) e `isolation_forest_campanas`
+(anomalías de gasto); los 3 quedan registrados en `modelos_aprendizaje` contra el
+Supabase real y expuestos en `/ml/riesgo-cliente/{id}` y `/ml/segmentacion-campanas`.
+`/vision/analizar` usa YOLOv8n **pre-entrenado** (COCO-80, sin afinar — ver D20) para
+detección de objetos real; `detecta_logo`/`detecta_texto` quedan en `null` a propósito
+porque COCO no tiene esas clases. Correr `python herramientas/entrenar_modelos_ml.py`
+para regenerar/registrar los 4 modelos (los artefactos `.joblib`/`.pt` no se versionan,
+ver `.gitignore`).
 
 Pendiente antes de la demo: levantar RabbitMQ real (o confirmar que CloudAMQP ya
 alcanza) para que `RelevoBandejaSalida` tenga a quién publicarle `AlertaCampana`, y

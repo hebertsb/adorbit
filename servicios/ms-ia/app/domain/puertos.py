@@ -9,8 +9,10 @@ from typing import Any, Protocol
 from uuid import UUID
 
 from .agente import Agente, EjecucionAgente
+from .modelo_ml import ModeloAprendizaje
 from .reporte import ReporteCampana, ReporteCliente, ReporteFacturacion
 from .reporte_generado import ReporteGenerado
+from .vision_resultado import VisionResultado
 
 
 class EventosProcesadosPuerto(Protocol):
@@ -65,6 +67,8 @@ class VistaMcpPuerto(Protocol):
     async def clientes_morosos(self) -> list[dict[str, Any]]: ...
 
     async def resumen_gasto_campana(self, campana_id: UUID) -> dict[str, Any] | None: ...
+
+    async def buscar_cliente(self, cliente_id: UUID) -> dict[str, Any] | None: ...
 
 
 class ReporteGeneradoRepositorio(Protocol):
@@ -127,3 +131,18 @@ class OutboxEventosPuerto(Protocol):
         tipo_evento: str,
         carga: dict[str, Any],
     ) -> None: ...
+
+
+class ModeloAprendizajeRepositorio(Protocol):
+    """modelos_aprendizaje (tarea 6) -- se llena una sola vez por
+    herramientas/entrenar_modelos_ml.py; las inferencias solo leen el activo."""
+
+    async def buscar_activo_por_nombre(self, nombre: str) -> ModeloAprendizaje | None: ...
+
+
+class VisionResultadoRepositorio(Protocol):
+    async def buscar_por_huella(
+        self, pieza_id: UUID, huella_imagen: str, modelo_id: UUID
+    ) -> VisionResultado | None: ...
+
+    async def crear(self, resultado: VisionResultado) -> None: ...

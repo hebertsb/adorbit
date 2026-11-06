@@ -5,8 +5,9 @@ info:
   description: >
     Read model de reportes, servidor MCP (unica via de acceso de IA a los datos),
     reportes en lenguaje natural (tarea 4, proveedor Groq), agentes internos (tarea 5:
-    monitor_campanas, cobranza) y ML/DL. /vision/analizar (tarea 6) se agrega en una
-    pasada aparte.
+    monitor_campanas, cobranza) y ML/DL (tarea 6: riesgo de impago, segmentacion y
+    anomalias de campanas, vision por YOLO) -- ver D19/D20 en
+    documentacion/05-decisiones-y-pendientes.md sobre el alcance de los modelos.
 servers:
   - url: http://localhost:8085
 tags:
@@ -14,6 +15,8 @@ tags:
   - name: mcp
   - name: reportes
   - name: agentes
+  - name: ml
+  - name: vision
 
 paths:
   /salud:
@@ -196,6 +199,74 @@ paths:
         '404': { description: No existe un agente activo con ese id }
         '409': { description: 'La Idempotency-Key ya se uso con una entrada distinta' }
 
+  /api/v1/ml/riesgo-cliente/{id}:
+    get:
+      tags: [ml]
+      summary: Probabilidad de impago de un cliente (roi_xgboost, datos sinteticos -- ver D19)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid }, description: cliente_id }
+      responses:
+        '200':
+          description: Prediccion
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RiesgoCliente' }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: 'El rol del token no alcanza (requiere ejecutivo|gerente)' }
+        '404': { description: No existe el cliente }
+        '503': { description: El modelo no esta registrado/activo todavia }
+
+  /api/v1/ml/segmentacion-campanas:
+    get:
+      tags: [ml]
+      summary: Segmenta las campanas activas (kmeans_campanas) y marca anomalias de gasto (isolation_forest_campanas)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - { name: solo_anomalias, in: query, required: false, schema: { type: boolean, default: false } }
+      responses:
+        '200':
+          description: Lista de campanas segmentadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items: { type: array, items: { $ref: '#/components/schemas/SegmentoCampana' } }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: 'El rol del token no alcanza (requiere ejecutivo|gerente)' }
+
+  /api/v1/vision/analizar:
+    post:
+      tags: [vision]
+      summary: >
+        Deteccion de objetos sobre una pieza con YOLOv8n pre-entrenado (COCO-80, sin
+        afinar -- ver D20). Idempotente por contenido (huella SHA-256 de la imagen),
+        no por Idempotency-Key.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [pieza_id, archivo]
+              properties:
+                pieza_id: { type: string, format: uuid }
+                campana_id: { type: string, format: uuid, nullable: true }
+                origen: { type: string, enum: [web_local, movil_local, servidor], default: servidor }
+                archivo: { type: string, format: binary, description: 'image/jpeg o image/png, maximo 10 MB' }
+      responses:
+        '201':
+          description: Resultado del analisis (nuevo o el ya guardado para esa misma imagen+modelo)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/VisionResultado' }
+        '400': { description: 'parametro_invalido (mime no soportado, origen invalido, imagen demasiado grande)' }
+        '401': { description: Falta o es invalido el token }
+        '403': { description: 'El rol del token no alcanza (requiere ejecutivo|gerente|creativo)' }
+        '503': { description: El modelo no esta registrado/activo todavia }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -274,3 +345,53 @@ components:
         error: { type: string, nullable: true }
         started_at: { type: string, format: date-time, nullable: true }
         finished_at: { type: string, format: date-time, nullable: true }
+    RiesgoCliente:
+      type: object
+      properties:
+        cliente_id: { type: string, format: uuid }
+        cliente_nombre: { type: string }
+        features:
+          type: object
+          properties:
+            proporcion_uso: { type: number }
+            linea_credito_limite: { type: number }
+            monto_vencido_total: { type: number }
+            dias_vencida_max: { type: integer }
+            facturas_vencidas_count: { type: integer }
+        probabilidad_impago: { type: number, minimum: 0, maximum: 1 }
+        nivel_riesgo: { type: string, enum: [bajo, medio, alto] }
+        calculado_en: { type: string, format: date }
+    SegmentoCampana:
+      type: object
+      properties:
+        campana_id: { type: string, format: uuid }
+        nombre: { type: string }
+        presupuesto_total: { type: number }
+        gasto_actual: { type: number }
+        cluster: { type: integer }
+        segmento: { type: string, enum: [bajo_consumo, saludable, cerca_del_limite] }
+        es_anomalia: { type: boolean }
+        puntaje_anomalia: { type: number, description: 'mas negativo = mas anomalo' }
+    VisionResultado:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        pieza_id: { type: string, format: uuid }
+        campana_id: { type: string, format: uuid, nullable: true }
+        modelo_id: { type: string, format: uuid }
+        huella_imagen: { type: string }
+        origen: { type: string, enum: [web_local, movil_local, servidor] }
+        detecta_logo: { type: boolean, nullable: true, description: 'null: COCO no tiene esa clase, ver D20' }
+        detecta_texto: { type: boolean, nullable: true }
+        manual_marca_ok: { type: boolean, nullable: true }
+        confianza: { type: number, nullable: true }
+        objetos_detectados:
+          type: array
+          items:
+            type: object
+            properties:
+              clase: { type: string }
+              confianza: { type: number }
+              caja_xyxy: { type: array, items: { type: number }, minItems: 4, maxItems: 4 }
+        duracion_ms: { type: integer }
+        creado_en: { type: string, format: date-time, nullable: true }

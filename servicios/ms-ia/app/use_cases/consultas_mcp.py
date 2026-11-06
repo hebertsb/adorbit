@@ -136,3 +136,25 @@ class ConsultasMcp:
             agente_id=agente_id,
             trabajo=trabajo,
         )
+
+    async def buscar_cliente(
+        self, *, cliente_id: str, usuario_id: UUID | None, agente_id: UUID | None
+    ) -> dict[str, Any] | None:
+        """No es una herramienta del LLM (no esta en HERRAMIENTAS_MCP de groq_cliente.py)
+        -- la usa directo PredecirRiesgoCliente (tarea 6, ML) para traer los datos del
+        cliente antes de inferir. Pasa igual por el mismo camino auditado que el resto
+        de ConsultasMcp (CLAUDE.md: "todo acceso de IA a datos pasa por MCP")."""
+
+        async def trabajo() -> dict[str, Any] | None:
+            cliente_id_v = _validar_uuid(cliente_id, "cliente_id")
+            if cliente_id_v is None:
+                raise ExcepcionDominio("parametro_invalido", "cliente_id es obligatorio")
+            return await self._vista.buscar_cliente(cliente_id_v)
+
+        return await self._ejecutor.ejecutar(
+            herramienta="buscar_cliente_ml",
+            parametros={"cliente_id": cliente_id},
+            usuario_id=usuario_id,
+            agente_id=agente_id,
+            trabajo=trabajo,
+        )

@@ -87,3 +87,15 @@ class VistaMcpRepositorioPg:
             campana_id,
         )
         return filas[0] if filas else None
+
+    async def buscar_cliente(self, cliente_id: UUID) -> dict[str, Any] | None:
+        filas = await _consulta(
+            """
+            SELECT cliente_id, nombre, estado, linea_credito_limite, linea_credito_usado
+            FROM vista_mcp_clientes
+            WHERE cliente_id = $1
+            LIMIT 1
+            """,
+            cliente_id,
+        )
+        return filas[0] if filas else None

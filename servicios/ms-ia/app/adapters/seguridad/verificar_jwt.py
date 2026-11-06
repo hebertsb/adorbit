@@ -6,6 +6,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
+from uuid import UUID
 
 import jwt
 from fastapi import Request
@@ -26,6 +27,17 @@ class IdentidadAutenticada:
     usuario_id: str
     roles: set[str] = field(default_factory=set)
     cliente_id: str | None = None
+
+    @property
+    def usuario_id_uuid(self) -> UUID | None:
+        """El `sub` de un Keycloak real SIEMPRE es un UUID; el emisor de prueba
+        compartido (herramientas/keycloak-simulado.mjs) a veces no lo es (ej.
+        'usuario-simulado', 'usuario-ejecutivo') -- se degrada a None en vez de
+        tumbar la llamada, nunca se inventa un UUID."""
+        try:
+            return UUID(self.usuario_id)
+        except (ValueError, AttributeError, TypeError):
+            return None
 
 
 @lru_cache(maxsize=1)

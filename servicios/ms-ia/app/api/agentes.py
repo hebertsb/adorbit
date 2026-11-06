@@ -82,7 +82,7 @@ async def ejecutar_agente(
         ejecucion = await _ejecutar_agente.ejecutar(
             id_agente=id_agente,
             disparador=disparador,
-            usuario_id=UUID(identidad.usuario_id) if identidad.usuario_id else None,
+            usuario_id=identidad.usuario_id_uuid,
             clave_idempotencia=idempotency_key,
             conexion=conexion,
         )

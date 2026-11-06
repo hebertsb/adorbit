@@ -22,6 +22,7 @@ out/
 *.onnx
 *.tflite
 *.h5
+*.joblib
 /servicios/**/datos/
 *.db
 *.sqlite

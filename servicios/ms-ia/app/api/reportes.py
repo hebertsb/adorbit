@@ -86,7 +86,7 @@ async def crear_reporte(
     async with pool.acquire() as conexion, conexion.transaction():
         reporte = await _generar_reporte.ejecutar(
             pregunta=pregunta,
-            usuario_id=UUID(identidad.usuario_id) if identidad.usuario_id else None,
+            usuario_id=identidad.usuario_id_uuid,
             clave_idempotencia=idempotency_key,
             conexion=conexion,
         )

@@ -46,7 +46,7 @@ def _identidad_desde_contexto(ctx: Context) -> tuple[UUID | None, UUID | None]:
         request = ctx.request_context.request
         encabezado = request.headers.get("authorization", "") if request else ""
         identidad = verificar_desde_encabezado(encabezado)
-        return UUID(identidad.usuario_id), None
+        return identidad.usuario_id_uuid, None
     except Exception:  # noqa: BLE001 - mejor esfuerzo, nunca debe tumbar la llamada a la herramienta
         return None, None
 
