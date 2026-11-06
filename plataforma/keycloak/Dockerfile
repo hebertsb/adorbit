@@ -1,6 +1,8 @@
+# syntax=docker/dockerfile:1
 FROM quay.io/keycloak/keycloak:24.0
 
-COPY dominio.json /opt/keycloak/data/import/dominio.json
+COPY dominio.json.template /opt/keycloak/data/import/dominio.json.template
+COPY --chmod=0755 entrypoint.sh /opt/keycloak/entrypoint.sh
 
 ENV KEYCLOAK_ADMIN=admin \
     KEYCLOAK_ADMIN_PASSWORD=admin \
@@ -9,5 +11,5 @@ ENV KEYCLOAK_ADMIN=admin \
 
 EXPOSE 8080
 
-ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
+ENTRYPOINT ["/opt/keycloak/entrypoint.sh"]
 

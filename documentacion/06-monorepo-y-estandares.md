@@ -100,7 +100,7 @@ revisar:   ; ./herramientas/revisar.sh $(S)     # formato y análisis estático
 
 ## Esqueleto de `infraestructura/docker-compose.yml`
 Servicios mínimos: `rabbitmq` (con `plataforma/rabbitmq/definiciones.json`), `keycloak` (importa
-`plataforma/keycloak/dominio.json`), `postgres-campanas`, `postgres-ia`, `mongo`, `dynamodb-local`, y luego cada
+`plataforma/keycloak/dominio.json.template`, sustituido en el arranque — ver su README), `postgres-campanas`, `postgres-ia`, `mongo`, `dynamodb-local`, y luego cada
 `ms-*` con `env_file: ../servicios/<ms>/.env` y `depends_on` de su BD y del broker. Los scripts de
 `base_de_datos/` se aplican al arrancar (volumen `docker-entrypoint-initdb.d` en Postgres, script de inicio en
 Mongo y Dynamo).

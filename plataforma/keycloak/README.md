@@ -2,7 +2,7 @@
 
 Servidor de Identidad y Gestión de Accesos (IAM) con protocolo OpenID Connect (OIDC) y OAuth2 para AdOrbit.
 
-## Dominio y Configuración (`dominio.json`)
+## Dominio y Configuración (`dominio.json.template`)
 
 - **Reino (Realm)**: `adorbit`
 - **Emisor (Issuer)**: `http://localhost:8080/realms/adorbit`
@@ -30,7 +30,11 @@ Servidor de Identidad y Gestión de Accesos (IAM) con protocolo OpenID Connect (
 
 ## Usuarios Semilla para Pruebas Locales
 
-Todos los usuarios tienen la contraseña: **`Adorbit2026!`**
+Todos los usuarios comparten la misma contraseña, tomada de la variable de entorno
+`KEYCLOAK_SEED_PASSWORD` (ver `infraestructura/.env.ejemplo`) — nunca está escrita en
+`dominio.json.template` ni en ningún archivo versionado; la sustituye
+`entrypoint.sh` al arrancar el contenedor. Pregúntale al equipo el valor acordado si no
+lo tienes.
 
 | Usuario / Correo | Nombre | Rol Asignado |
 |---|---|---|

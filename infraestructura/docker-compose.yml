@@ -20,7 +20,9 @@ services:
       - adorbit-red
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    build:
+      context: ../plataforma/keycloak
+      dockerfile: Dockerfile
     container_name: adorbit-keycloak
     ports:
       - "8080:8080"
@@ -30,9 +32,7 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
       KC_HTTP_RELATIVE_PATH: "/"
-    volumes:
-      - ../plataforma/keycloak/dominio.json:/opt/keycloak/data/import/dominio.json:ro
-    command: ["start-dev", "--import-realm"]
+      KEYCLOAK_SEED_PASSWORD: ${KEYCLOAK_SEED_PASSWORD:?Falta KEYCLOAK_SEED_PASSWORD en infraestructura/.env}
     networks:
       - adorbit-red
 
