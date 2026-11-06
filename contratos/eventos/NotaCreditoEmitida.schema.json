@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adorbit/contratos/eventos/NotaCreditoEmitida.schema.json",
+  "title": "NotaCreditoEmitida",
+  "description": "Se emitio una nota de credito que anula una factura. Publica/emite: ms-facturacion. Consumen: ms-campanas, ms-ia. Sobre estandar en documentacion/03-contratos.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id_evento",
+    "tipo_evento",
+    "version_esquema",
+    "ocurrido_en",
+    "agregado_id",
+    "correlacion_id",
+    "carga"
+  ],
+  "properties": {
+    "id_evento": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tipo_evento": {
+      "const": "NotaCreditoEmitida"
+    },
+    "version_esquema": {
+      "const": 1
+    },
+    "ocurrido_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agregado_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlacion_id": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "carga": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nota_id",
+        "factura_id"
+      ],
+      "properties": {
+        "nota_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "factura_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "total": {
+          "type": "string",
+          "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+          "description": "Decimal como texto, 2 decimales maximo"
+        },
+        "moneda": {
+          "type": "string",
+          "enum": [
+            "BOB",
+            "USD"
+          ]
+        },
+        "saga_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}

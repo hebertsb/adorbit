@@ -56,15 +56,16 @@ dbc.contratos.createIndex({ cliente_id: 1, estado: 1 });
 // ------------------------------------------------------- reservas de credito
 dbc.createCollection("reservas_credito", { validator: { $jsonSchema: {
   bsonType: "object",
-  required: ["cliente_id", "campana_id", "saga_id", "monto", "moneda", "estado", "creado_en"],
+  required: ["id", "cliente_id", "campana_id", "saga_id", "monto", "moneda", "estado", "creado_en"],
   properties: {
-    cliente_id: uuid, campana_id: uuid, saga_id: uuid,
+    id: uuid, cliente_id: uuid, campana_id: uuid, saga_id: uuid,
     monto: { bsonType: "decimal", minimum: NumberDecimal("0") },
     moneda,
     estado: { enum: ["reservado", "liberado", "consumido"] },
     creado_en: { bsonType: "date" }, actualizado_en: { bsonType: "date" }
   }
 }}});
+dbc.reservas_credito.createIndex({ id: 1 }, { unique: true });               // id UUID compartido (reserva_id en eventos)
 dbc.reservas_credito.createIndex({ saga_id: 1 }, { unique: true });          // idempotencia
 dbc.reservas_credito.createIndex({ campana_id: 1 },                           // 1 reserva ACTIVA por campana
   { unique: true, partialFilterExpression: { estado: "reservado" } });

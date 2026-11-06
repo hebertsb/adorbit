@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adorbit/contratos/eventos/EmitirFactura.schema.json",
+  "title": "EmitirFactura",
+  "description": "Comando SAGA paso 4: emitir la factura de una campana. Publica/emite: ms-campanas (cola saga.facturacion). Consumen: ms-facturacion. Sobre estandar en documentacion/03-contratos.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id_evento",
+    "tipo_evento",
+    "version_esquema",
+    "ocurrido_en",
+    "agregado_id",
+    "correlacion_id",
+    "carga"
+  ],
+  "properties": {
+    "id_evento": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tipo_evento": {
+      "const": "EmitirFactura"
+    },
+    "version_esquema": {
+      "const": 1
+    },
+    "ocurrido_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agregado_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlacion_id": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "carga": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "saga_id",
+        "clave_comando",
+        "cliente_id",
+        "campana_id",
+        "items",
+        "total",
+        "moneda"
+      ],
+      "properties": {
+        "saga_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "clave_comando": {
+          "type": "string",
+          "pattern": "^[0-9a-fA-F-]{36}:[1-9]:(accion|compensacion)$",
+          "description": "sagaId:orden:tipo"
+        },
+        "cliente_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "campana_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "items": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 90,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "descripcion",
+              "cantidad",
+              "precio_unitario"
+            ],
+            "properties": {
+              "descripcion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "cantidad": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "precio_unitario": {
+                "type": "string",
+                "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+                "description": "Decimal como texto, 2 decimales maximo"
+              }
+            }
+          }
+        },
+        "total": {
+          "type": "string",
+          "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+          "description": "Decimal como texto, 2 decimales maximo"
+        },
+        "moneda": {
+          "type": "string",
+          "enum": [
+            "BOB",
+            "USD"
+          ]
+        },
+        "fecha_vencimiento": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    }
+  }
+}

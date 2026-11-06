@@ -1,0 +1,449 @@
+openapi: 3.0.3
+info:
+  title: ms-clientes-crm
+  version: 0.2.0
+  description: >
+    Clientes, contactos, contratos y linea de credito. Dinero como texto decimal ("50000.00"), moneda BOB o USD.
+    Los campos y estados coinciden con base_de_datos/ms-clientes-crm.mongo.js (fuente unica del esquema).
+    No se borra un cliente: DELETE lo marca inactivo, y se rechaza si tiene contratos vigentes.
+    Los pasos de la SAGA (ReservarCredito / LiberarCredito) llegan por RabbitMQ, no por REST.
+servers:
+  - url: http://localhost:8084
+security:
+  - bearerAuth: []
+paths:
+  /api/salud:
+    get:
+      summary: El proceso esta vivo
+      security: []
+      responses:
+        '200':
+          description: Vivo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estado' }
+  /api/listo:
+    get:
+      summary: El servicio y Mongo estan listos
+      security: []
+      responses:
+        '200':
+          description: Listo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estado' }
+        '503':
+          description: Mongo no disponible
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estado' }
+  /api/v1/clientes:
+    post:
+      summary: Crear cliente
+      description: Roles ejecutivo, gerente. Publica ClienteCreado.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClienteCrear' }
+      responses:
+        '201':
+          description: Cliente creado (200 si es una repeticion de la misma clave)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cliente' }
+        '400': { $ref: '#/components/responses/Error' }
+        '409':
+          description: NIT duplicado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '422':
+          description: Misma Idempotency-Key con otro cuerpo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    get:
+      summary: Listar clientes
+      description: El rol cliente solo obtiene el suyo (cliente_id del token).
+      parameters:
+        - name: estado
+          in: query
+          schema: { $ref: '#/components/schemas/EstadoCliente' }
+        - name: q
+          in: query
+          description: Busqueda por razon social (sin distinguir mayusculas)
+          schema: { type: string, maxLength: 200 }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Pagina de clientes
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaClientes' }
+  /api/v1/clientes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Obtener cliente
+      responses:
+        '200':
+          description: Cliente
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cliente' }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      summary: Actualizar cliente (exige version)
+      description: >
+        No se puede bajar limite_credito por debajo del credito usado (422 limite_menor_al_usado).
+        Publica ClienteActualizado.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClienteActualizar' }
+      responses:
+        '200':
+          description: Cliente actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cliente' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: Dar de baja (marca inactivo)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: Cliente marcado inactivo }
+        '409':
+          description: Tiene contratos vigentes (cliente_con_contratos_vigentes)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/clientes/{id}/contactos:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      summary: Agregar contacto
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactoCrear' }
+      responses:
+        '201':
+          description: Contacto creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contacto' }
+    get:
+      summary: Listar contactos del cliente
+      responses:
+        '200':
+          description: Contactos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Contacto' }
+  /api/v1/clientes/{id}/contactos/{contacto_id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+      - name: contacto_id
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    put:
+      summary: Reemplazar un contacto
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactoCrear' }
+      responses:
+        '200':
+          description: Contacto actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contacto' }
+        '404': { $ref: '#/components/responses/Error' }
+    delete:
+      summary: Eliminar un contacto
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '204': { description: Eliminado }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/clientes/{id}/credito:
+    get:
+      summary: Linea de credito, disponible y reservas activas
+      description: El rol cliente solo puede consultar el suyo.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Credito
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Credito' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/contratos:
+    post:
+      summary: Crear contrato (queda vigente)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContratoCrear' }
+      responses:
+        '201':
+          description: Contrato creado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contrato' }
+        '422':
+          description: Cliente inexistente o inactivo, o fecha_fin anterior a fecha_inicio
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    get:
+      summary: Listar contratos
+      description: El rol cliente solo ve los suyos.
+      parameters:
+        - name: cliente
+          in: query
+          schema: { type: string, format: uuid }
+        - name: estado
+          in: query
+          schema: { $ref: '#/components/schemas/EstadoContrato' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Pagina de contratos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaContratos' }
+  /api/v1/contratos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      summary: Obtener contrato
+      responses:
+        '200':
+          description: Contrato
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contrato' }
+        '404': { $ref: '#/components/responses/Error' }
+    put:
+      summary: Actualizar contrato vigente (exige version)
+      description: >
+        Solo un contrato vigente se modifica. estado puede pasar de vigente a vencido o rescindido (estados finales).
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContratoActualizar' }
+      responses:
+        '200':
+          description: Contrato actualizado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Contrato' }
+        '409':
+          description: Version desactualizada (conflicto_version) o contrato cerrado (contrato_cerrado)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT de Keycloak (audiencia ms-clientes-crm). Roles ejecutivo, gerente (escritura y lectura) y cliente (solo lo suyo).
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 120 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Monto:
+      type: string
+      pattern: '^\d{1,12}(\.\d{1,2})?$'
+      example: '50000.00'
+    Moneda:
+      type: string
+      enum: [BOB, USD]
+    EstadoCliente:
+      type: string
+      enum: [activo, inactivo, moroso]
+    EstadoContrato:
+      type: string
+      enum: [vigente, vencido, rescindido]
+    Estado:
+      type: object
+      properties:
+        estado: { type: string }
+    Error:
+      type: object
+      required: [codigo, mensaje]
+      properties:
+        codigo: { type: string }
+        mensaje: { type: string }
+        detalle: { nullable: true }
+    LineaCredito:
+      type: object
+      properties:
+        limite: { $ref: '#/components/schemas/Monto' }
+        usado: { $ref: '#/components/schemas/Monto' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+    ClienteCrear:
+      type: object
+      additionalProperties: false
+      required: [razon_social, nit]
+      properties:
+        razon_social: { type: string, minLength: 1, maxLength: 200 }
+        nit: { type: string, maxLength: 20, pattern: '^[0-9A-Za-z-]+$' }
+        limite_credito: { $ref: '#/components/schemas/Monto' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+    ClienteActualizar:
+      type: object
+      additionalProperties: false
+      required: [razon_social, nit, version]
+      properties:
+        razon_social: { type: string, minLength: 1, maxLength: 200 }
+        nit: { type: string, maxLength: 20, pattern: '^[0-9A-Za-z-]+$' }
+        limite_credito: { $ref: '#/components/schemas/Monto' }
+        estado: { $ref: '#/components/schemas/EstadoCliente' }
+        version: { type: integer, minimum: 1 }
+    Cliente:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        razon_social: { type: string }
+        nit: { type: string, nullable: true }
+        estado: { $ref: '#/components/schemas/EstadoCliente' }
+        contactos:
+          type: array
+          items: { $ref: '#/components/schemas/Contacto' }
+        linea_credito: { $ref: '#/components/schemas/LineaCredito' }
+        version: { type: integer }
+        creado_en: { type: string, format: date-time }
+        actualizado_en: { type: string, format: date-time }
+    PaginaClientes:
+      type: object
+      properties:
+        contenido:
+          type: array
+          items: { $ref: '#/components/schemas/Cliente' }
+        page: { type: integer }
+        size: { type: integer }
+        total_elementos: { type: integer }
+    ContactoCrear:
+      type: object
+      additionalProperties: false
+      required: [nombre]
+      properties:
+        nombre: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, format: email, maxLength: 200 }
+        telefono: { type: string, maxLength: 30 }
+        rol: { type: string, maxLength: 100 }
+    Contacto:
+      allOf:
+        - $ref: '#/components/schemas/ContactoCrear'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+    Credito:
+      type: object
+      properties:
+        cliente_id: { type: string, format: uuid }
+        linea_credito: { $ref: '#/components/schemas/LineaCredito' }
+        disponible: { $ref: '#/components/schemas/Monto' }
+        reservas_activas:
+          type: array
+          items:
+            type: object
+            properties:
+              reserva_id: { type: string, format: uuid }
+              campana_id: { type: string, format: uuid }
+              monto: { $ref: '#/components/schemas/Monto' }
+              estado: { type: string, enum: [reservado] }
+    ContratoCrear:
+      type: object
+      additionalProperties: false
+      required: [cliente_id, fecha_inicio, fecha_fin, monto, moneda]
+      properties:
+        cliente_id: { type: string, format: uuid }
+        fecha_inicio: { type: string, format: date }
+        fecha_fin: { type: string, format: date, description: Debe ser >= fecha_inicio }
+        monto: { $ref: '#/components/schemas/Monto' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+    ContratoActualizar:
+      type: object
+      additionalProperties: false
+      required: [fecha_inicio, fecha_fin, monto, moneda, version]
+      properties:
+        fecha_inicio: { type: string, format: date }
+        fecha_fin: { type: string, format: date }
+        monto: { $ref: '#/components/schemas/Monto' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        estado: { $ref: '#/components/schemas/EstadoContrato' }
+        version: { type: integer, minimum: 1 }
+    Contrato:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        cliente_id: { type: string, format: uuid }
+        estado: { $ref: '#/components/schemas/EstadoContrato' }
+        fecha_inicio: { type: string, format: date }
+        fecha_fin: { type: string, format: date }
+        monto: { $ref: '#/components/schemas/Monto' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        version: { type: integer }
+    PaginaContratos:
+      type: object
+      properties:
+        contenido:
+          type: array
+          items: { $ref: '#/components/schemas/Contrato' }
+        page: { type: integer }
+        size: { type: integer }
+        total_elementos: { type: integer }

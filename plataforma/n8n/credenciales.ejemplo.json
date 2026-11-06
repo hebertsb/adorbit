@@ -1,0 +1,14 @@
+[
+  {
+    "id": "adorbit-smtp",
+    "name": "AdOrbit SMTP (Mailpit local)",
+    "type": "smtp",
+    "data": { "host": "mailpit", "port": 1025, "secure": false, "disableStartTls": true, "user": "", "password": "" }
+  },
+  {
+    "id": "adorbit-rabbit",
+    "name": "AdOrbit RabbitMQ (local)",
+    "type": "rabbitmq",
+    "data": { "hostname": "host.docker.internal", "port": 5672, "username": "guest", "password": "guest", "vhost": "/", "ssl": false }
+  }
+]

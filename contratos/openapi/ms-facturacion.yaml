@@ -1,0 +1,325 @@
+openapi: 3.0.3
+info:
+  title: ms-facturacion
+  version: 0.1.0
+  description: >
+    Cotizaciones, facturas, cobros y notas de credito. Dinero como texto decimal ("1250.50"),
+    moneda BOB o USD. Una factura emitida no se edita ni se borra: se anula con nota de credito.
+servers:
+  - url: http://localhost:8082
+security:
+  - bearerAuth: []
+tags:
+  - name: facturas
+  - name: cotizaciones
+  - name: estado
+paths:
+  /salud:
+    get:
+      tags: [estado]
+      summary: El proceso esta vivo
+      security: []
+      responses:
+        '200':
+          description: Vivo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estado' }
+  /listo:
+    get:
+      tags: [estado]
+      summary: El servicio y su almacenamiento estan listos
+      security: []
+      responses:
+        '200':
+          description: Listo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estado' }
+        '503':
+          description: Almacenamiento no disponible
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Estado' }
+  /api/v1/facturas:
+    post:
+      tags: [facturas]
+      summary: Emitir una factura
+      description: Roles ejecutivo, gerente. El total se recalcula en el servidor.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FacturaCrear' }
+      responses:
+        '201':
+          description: Factura emitida (o respuesta repetida de la misma clave)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Factura' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+        '422':
+          description: Misma Idempotency-Key con otro cuerpo, o total que no coincide
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+    get:
+      tags: [facturas]
+      summary: Listar facturas
+      description: El rol cliente solo ve las suyas (cliente_id del token; el parametro se ignora).
+      parameters:
+        - name: cliente
+          in: query
+          schema: { type: string, format: uuid }
+        - name: estado
+          in: query
+          schema: { $ref: '#/components/schemas/EstadoFactura' }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Pagina de facturas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginaFacturas' }
+        '401': { $ref: '#/components/responses/Error' }
+  /api/v1/facturas/vencimientos:
+    post:
+      tags: [facturas]
+      summary: Marcar como vencidas las facturas abiertas cuyo vencimiento ya paso
+      description: >
+        Tarea programada (la dispara n8n a diario). Roles ejecutivo, gerente. Idempotente por naturaleza: una factura
+        ya vencida no se vuelve a tocar. La Idempotency-Key se exige solo por uniformidad de la API.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: Resumen de la corrida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  revisadas: { type: integer }
+                  marcadas_vencidas: { type: integer }
+                  conflictos: { type: integer, description: Facturas que cambiaron durante la corrida; la proxima las revisa }
+        '400': { $ref: '#/components/responses/Error' }
+        '403': { $ref: '#/components/responses/Error' }
+  /api/v1/facturas/{id}:
+    get:
+      tags: [facturas]
+      summary: Obtener una factura con sus items y cobros
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: Factura
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Factura' }
+        '401': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /api/v1/facturas/{id}/cobros:
+    post:
+      tags: [facturas]
+      summary: Registrar un cobro
+      description: Un cobro no puede superar el saldo. Al cubrir el total se publica FacturaPagada.
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CobroCrear' }
+      responses:
+        '201':
+          description: Cobro registrado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cobro' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422':
+          description: Monto supera el saldo o clave de idempotencia reutilizada con otro cuerpo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /api/v1/cotizaciones:
+    post:
+      tags: [cotizaciones]
+      summary: Calcular una cotizacion (no genera factura)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CotizacionCrear' }
+      responses:
+        '201':
+          description: Cotizacion
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Cotizacion' }
+        '400': { $ref: '#/components/responses/Error' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT de Keycloak (audiencia ms-facturacion). Roles ejecutivo, creativo, cliente, gerente.
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema: { type: string, minLength: 8, maxLength: 120 }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Monto:
+      type: string
+      pattern: '^\d{1,12}(\.\d{1,2})?$'
+      example: '1250.50'
+    Moneda:
+      type: string
+      enum: [BOB, USD]
+    EstadoFactura:
+      type: string
+      enum: [emitida, pagada_parcial, pagada, vencida, anulada]
+    Estado:
+      type: object
+      properties:
+        estado: { type: string }
+    Error:
+      type: object
+      required: [codigo, mensaje]
+      properties:
+        codigo: { type: string }
+        mensaje: { type: string }
+        detalle: { type: object, additionalProperties: true }
+    ItemCrear:
+      type: object
+      additionalProperties: false
+      required: [descripcion, cantidad, precio_unitario]
+      properties:
+        descripcion: { type: string, minLength: 1, maxLength: 200 }
+        cantidad: { type: integer, minimum: 1 }
+        precio_unitario: { $ref: '#/components/schemas/Monto' }
+    Item:
+      allOf:
+        - $ref: '#/components/schemas/ItemCrear'
+        - type: object
+          properties:
+            numero: { type: integer }
+            subtotal: { $ref: '#/components/schemas/Monto' }
+    FacturaCrear:
+      type: object
+      additionalProperties: false
+      required: [cliente_id, campana_id, items, moneda]
+      properties:
+        cliente_id: { type: string, format: uuid }
+        campana_id: { type: string, format: uuid }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 90
+          items: { $ref: '#/components/schemas/ItemCrear' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        fecha_vencimiento: { type: string, format: date }
+        total_esperado:
+          allOf: [{ $ref: '#/components/schemas/Monto' }]
+          description: Opcional; si viene y no coincide con el calculado, 422. El servidor siempre recalcula.
+    Factura:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        cliente_id: { type: string, format: uuid }
+        campana_id: { type: string, format: uuid }
+        estado: { $ref: '#/components/schemas/EstadoFactura' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        subtotal: { $ref: '#/components/schemas/Monto' }
+        impuestos: { $ref: '#/components/schemas/Monto' }
+        total: { $ref: '#/components/schemas/Monto' }
+        saldo: { $ref: '#/components/schemas/Monto' }
+        fecha_emision: { type: string, format: date }
+        fecha_vencimiento: { type: string, format: date }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Item' }
+        cobros:
+          type: array
+          items: { $ref: '#/components/schemas/Cobro' }
+        creado_en: { type: string, format: date-time }
+    PaginaFacturas:
+      type: object
+      properties:
+        contenido:
+          type: array
+          items: { $ref: '#/components/schemas/Factura' }
+        page: { type: integer }
+        size: { type: integer }
+        total_elementos: { type: integer }
+    CobroCrear:
+      type: object
+      additionalProperties: false
+      required: [monto, fecha]
+      properties:
+        monto: { $ref: '#/components/schemas/Monto' }
+        fecha: { type: string, format: date }
+        referencia: { type: string, maxLength: 200 }
+    Cobro:
+      allOf:
+        - $ref: '#/components/schemas/CobroCrear'
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            factura_id: { type: string, format: uuid }
+    CotizacionCrear:
+      type: object
+      additionalProperties: false
+      required: [cliente_id, items, moneda]
+      properties:
+        cliente_id: { type: string, format: uuid }
+        items:
+          type: array
+          minItems: 1
+          maxItems: 90
+          items: { $ref: '#/components/schemas/ItemCrear' }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+    Cotizacion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        cliente_id: { type: string, format: uuid }
+        moneda: { $ref: '#/components/schemas/Moneda' }
+        subtotal: { $ref: '#/components/schemas/Monto' }
+        impuestos: { $ref: '#/components/schemas/Monto' }
+        total: { $ref: '#/components/schemas/Monto' }
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/Item' }

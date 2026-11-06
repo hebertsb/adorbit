@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adorbit/contratos/eventos/CreditoRechazado.schema.json",
+  "title": "CreditoRechazado",
+  "description": "No se pudo reservar credito. Publica/emite: ms-clientes-crm. Consumen: ms-campanas. Sobre estandar en documentacion/03-contratos.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id_evento",
+    "tipo_evento",
+    "version_esquema",
+    "ocurrido_en",
+    "agregado_id",
+    "correlacion_id",
+    "carga"
+  ],
+  "properties": {
+    "id_evento": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tipo_evento": {
+      "const": "CreditoRechazado"
+    },
+    "version_esquema": {
+      "const": 1
+    },
+    "ocurrido_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agregado_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlacion_id": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "carga": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "saga_id",
+        "cliente_id",
+        "campana_id",
+        "monto",
+        "motivo"
+      ],
+      "properties": {
+        "saga_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "cliente_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "campana_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "monto": {
+          "type": "string",
+          "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+          "description": "Decimal como texto, 2 decimales maximo"
+        },
+        "motivo": {
+          "type": "string",
+          "enum": [
+            "credito_insuficiente",
+            "cliente_inactivo",
+            "cliente_no_encontrado",
+            "moneda_no_coincide",
+            "reserva_activa_existente"
+          ]
+        }
+      }
+    }
+  }
+}

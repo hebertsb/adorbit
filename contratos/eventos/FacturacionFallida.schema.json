@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adorbit/contratos/eventos/FacturacionFallida.schema.json",
+  "title": "FacturacionFallida",
+  "description": "No se pudo emitir la factura (respuesta de fallo a la SAGA). Publica/emite: ms-facturacion. Consumen: ms-campanas, ms-ia. Sobre estandar en documentacion/03-contratos.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id_evento",
+    "tipo_evento",
+    "version_esquema",
+    "ocurrido_en",
+    "agregado_id",
+    "correlacion_id",
+    "carga"
+  ],
+  "properties": {
+    "id_evento": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tipo_evento": {
+      "const": "FacturacionFallida"
+    },
+    "version_esquema": {
+      "const": 1
+    },
+    "ocurrido_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agregado_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlacion_id": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "carga": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "saga_id",
+        "campana_id",
+        "cliente_id",
+        "motivo"
+      ],
+      "properties": {
+        "saga_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "campana_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "cliente_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "motivo": {
+          "type": "string",
+          "enum": [
+            "datos_invalidos",
+            "total_no_coincide",
+            "error_interno"
+          ]
+        },
+        "detalle": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}

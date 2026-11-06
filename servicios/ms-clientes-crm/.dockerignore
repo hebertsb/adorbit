@@ -1,0 +1,8 @@
+vendor
+.env
+.git
+storage/logs/*
+storage/framework/cache/*
+tests
+docker-compose.local.yml
+bootstrap/cache/*.php

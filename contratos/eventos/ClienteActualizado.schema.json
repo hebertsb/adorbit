@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://adorbit/contratos/eventos/ClienteActualizado.schema.json",
+  "title": "ClienteActualizado",
+  "description": "Se actualizo un cliente. Publica/emite: ms-clientes-crm. Consumen: ms-ia. Sobre estandar en documentacion/03-contratos.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id_evento",
+    "tipo_evento",
+    "version_esquema",
+    "ocurrido_en",
+    "agregado_id",
+    "correlacion_id",
+    "carga"
+  ],
+  "properties": {
+    "id_evento": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "tipo_evento": {
+      "const": "ClienteActualizado"
+    },
+    "version_esquema": {
+      "const": 1
+    },
+    "ocurrido_en": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agregado_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlacion_id": {
+      "type": "string",
+      "maxLength": 100
+    },
+    "carga": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cliente_id",
+        "razon_social",
+        "nit",
+        "estado",
+        "linea_credito",
+        "version"
+      ],
+      "properties": {
+        "cliente_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "razon_social": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "nit": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "estado": {
+          "type": "string",
+          "enum": [
+            "activo",
+            "inactivo",
+            "moroso"
+          ]
+        },
+        "linea_credito": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "limite",
+            "usado",
+            "moneda"
+          ],
+          "properties": {
+            "limite": {
+              "type": "string",
+              "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+              "description": "Decimal como texto, 2 decimales maximo"
+            },
+            "usado": {
+              "type": "string",
+              "pattern": "^\\d{1,12}(\\.\\d{1,2})?$",
+              "description": "Decimal como texto, 2 decimales maximo"
+            },
+            "moneda": {
+              "type": "string",
+              "enum": [
+                "BOB",
+                "USD"
+              ]
+            }
+          }
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

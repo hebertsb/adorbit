@@ -1,0 +1,7 @@
+# Solo para desarrollar ms-facturacion sin esperar el compose general de infraestructura/.
+services:
+  dynamodb-local:
+    image: amazon/dynamodb-local:2.5.3
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports:
+      - "8000:8000"
