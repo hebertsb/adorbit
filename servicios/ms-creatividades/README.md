@@ -44,12 +44,21 @@ El Mongo Atlas real (`adorbit_creatividades`) YA está provisionado y probado en
 base real — ver decisión en `documentacion/05-decisiones-y-pendientes.md` sobre el bug
 real que encontró esa prueba (`MongoClient` sin `ignoreUndefined`, ya corregido).
 
+El consumidor del paso 3 de la SAGA (`BloquearPiezas`/`DesbloquearPiezas`,
+`consumidorComandosSaga.ts`) ya está conectado a un RabbitMQ real (CloudAMQP, mismo
+broker que usa `ms-ia`) y probado en vivo: publicar los comandos con la clave de
+enrutamiento real (`saga.creatividades`, la que declara
+`plataforma/rabbitmq/definiciones.json`) bloquea y desbloquea una pieza aprobada
+correctamente. **Ojo:** el publicador de la SAGA en ms-campanas todavía arma esa clave
+distinto a como la declaró su propio `definiciones.json` — ver
+`documentacion/05-decisiones-y-pendientes.md`, "Preguntas abiertas con otros
+integrantes" — así que un comando real desde ms-campanas no va a llegar aquí hasta que
+eso se corrija del otro lado, aunque el consumidor en sí ya es correcto.
+
 Pendiente antes de la demo: crear el bucket real de Supabase Storage (`piezas-creatividades`,
 reusa el mismo proyecto Supabase de ms-ia) y completar `ADORBIT_CREATIVIDADES_SUPABASE_URL`/
 `_SERVICE_KEY` en `.env` — sin eso, `POST /piezas/{id}/archivo` falla (probado: da 500).
-RabbitMQ real (CloudAMQP) también pendiente para esta instancia local — mientras tanto el
-HTTP funciona igual, solo se pierde el consumo/publicación de eventos SAGA. Correr los
-5 casos de prueba de `documentacion/02-saga.md` contra el orquestador real de ms-campanas
+Correr los 5 casos de prueba de `documentacion/02-saga.md` contra el orquestador real de ms-campanas
 sigue pendiente de ese lado.
 
 ## Probar local sin Keycloak

@@ -6,9 +6,16 @@ import type { DesbloquearPiezas } from '../../use-cases/desbloquearPiezas';
 import { obtenerConexionRabbit } from './conexion';
 
 const EXCHANGE_SAGA = 'adorbit.saga';
-const EXCHANGE_SAGA_DLX = 'adorbit.saga.dlx';
+// Topologia real declarada por Roly en plataforma/rabbitmq/definiciones.json: UNA
+// cola por servicio destino (no una por tipo de comando), enlazada con la clave de
+// enrutamiento = nombre del servicio ("saga.creatividades"); ms-creatividades despacha
+// internamente segun tipo_evento (ver despachar()). El dead-letter exchange es el
+// COMPARTIDO adorbit.dlx (fanout) -> cola.muerta, no una DLQ propia por servicio —
+// asertarlo aqui con los MISMOS argumentos que definiciones.json es idempotente
+// (no choca) incluso si el broker ya los tiene declarados.
+const EXCHANGE_DLX = 'adorbit.dlx';
 const COLA = 'saga.creatividades';
-const COLA_DLQ = 'saga.creatividades.dlq';
+const CLAVE_ENRUTAMIENTO = 'saga.creatividades';
 const PASO_SAGA = 3;
 /** Igual tope que ms-facturacion ("reintentos exponenciales, max. 5"). */
 const MAX_INTENTOS = 5;
@@ -36,17 +43,16 @@ export class ConsumidorComandosSaga {
     const conexion = await obtenerConexionRabbit();
     const canal = await conexion.createChannel();
 
-    await canal.assertExchange(EXCHANGE_SAGA, 'topic', { durable: true });
-    await canal.assertExchange(EXCHANGE_SAGA_DLX, 'direct', { durable: true });
-    await canal.assertQueue(COLA_DLQ, { durable: true });
-    await canal.bindQueue(COLA_DLQ, EXCHANGE_SAGA_DLX, COLA);
+    await canal.assertExchange(EXCHANGE_SAGA, 'direct', { durable: true });
+    await canal.assertExchange(EXCHANGE_DLX, 'fanout', { durable: true });
     await canal.assertQueue(COLA, {
       durable: true,
-      deadLetterExchange: EXCHANGE_SAGA_DLX,
-      deadLetterRoutingKey: COLA,
+      arguments: {
+        'x-dead-letter-exchange': EXCHANGE_DLX,
+        'x-dead-letter-routing-key': `${COLA}.dlq`,
+      },
     });
-    await canal.bindQueue(COLA, EXCHANGE_SAGA, 'bloquear.piezas');
-    await canal.bindQueue(COLA, EXCHANGE_SAGA, 'desbloquear.piezas');
+    await canal.bindQueue(COLA, EXCHANGE_SAGA, CLAVE_ENRUTAMIENTO);
 
     await canal.prefetch(5);
     await canal.consume(COLA, (msg) => {
