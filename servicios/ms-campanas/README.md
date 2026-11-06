@@ -30,12 +30,12 @@ Publica: `CampanaCreada/Actualizada/Contratada/Rechazada`, comandos de SAGA. Con
 Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos (ver `AGENTS.md`).
 
 ## Tareas (en orden)
-1. [ ] Esqueleto Spring Boot + validación JWT + `/salud`
-2. [ ] Dominio y casos de uso de Campaña/Presupuesto
-3. [ ] Filtro de idempotencia (`Idempotency-Key`) con tabla `claves_idempotencia`
-4. [ ] Outbox + relay RabbitMQ
-5. [ ] Orquestador SAGA (5 pasos + compensaciones + job de timeouts)
-6. [ ] Tests: camino feliz, fallos y reenvío (ver `documentacion/02-saga.md`)
+1. [x] Esqueleto Spring Boot + validación JWT + `/salud`
+2. [x] Dominio y casos de uso de Campaña/Presupuesto
+3. [x] Filtro de idempotencia (`Idempotency-Key`) con tabla `claves_idempotencia`
+4. [x] Outbox + relay RabbitMQ
+5. [x] Orquestador SAGA (5 pasos + compensaciones + job de timeouts)
+6. [x] Tests: camino feliz, fallos y reenvío (ver `documentacion/02-saga.md`)
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.

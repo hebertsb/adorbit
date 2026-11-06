@@ -1,0 +1,45 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: ms-campanas
+  jackson:
+    property-naming-strategy: SNAKE_CASE
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+  datasource:
+    url: ${ADORBIT_CAMPANAS_URL_BD:jdbc:postgresql://aws-1-us-west-2.pooler.supabase.com:5432/postgres}
+    username: ${ADORBIT_CAMPANAS_USUARIO_BD:postgres.wzsdqnltypjasnbiwtxi}
+    password: ${ADORBIT_CAMPANAS_CONTRASENA_BD:}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+      connection-timeout: 20000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+  rabbitmq:
+    addresses: ${ADORBIT_CAMPANAS_URL_RABBITMQ:amqp://guest:guest@localhost:5672}
+    listener:
+      simple:
+        auto-startup: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

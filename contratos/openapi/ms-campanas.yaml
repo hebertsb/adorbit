@@ -1,0 +1,276 @@
+openapi: 3.0.3
+info:
+  title: ms-campanas API
+  description: Servicio de gestión de campañas, presupuestos, calendario y orquestación SAGA de AdOrbit.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8081/api/v1
+    description: Servidor local
+
+paths:
+  /salud:
+    get:
+      summary: Verificación de salud
+      responses:
+        '200':
+          description: Servicio saludable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estado: { type: string, example: "ok" }
+                  servicio: { type: string, example: "ms-campanas" }
+
+  /listo:
+    get:
+      summary: Verificación de preparación (BD y dependencias)
+      responses:
+        '200':
+          description: Servicio listo para recibir tráfico
+        '503':
+          description: Base de datos no disponible
+
+  /campanas:
+    post:
+      summary: Crear una nueva campaña
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 120
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampanaCrear'
+      responses:
+        '201':
+          description: Campaña creada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampanaRespuesta'
+        '400':
+          $ref: '#/components/responses/ErrorRespuesta'
+
+    get:
+      summary: Listar campañas con paginación y filtros
+      parameters:
+        - in: query
+          name: cliente_id
+          schema: { type: string, format: uuid }
+        - in: query
+          name: estado
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, default: 0 }
+        - in: query
+          name: size
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: Lista paginada de campañas
+
+  /campanas/{id}:
+    get:
+      summary: Obtener detalle de una campaña
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampanaRespuesta'
+        '404':
+          $ref: '#/components/responses/ErrorRespuesta'
+
+    put:
+      summary: Actualizar datos de campaña con bloqueo optimista
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampanaActualizar'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampanaRespuesta'
+        '409':
+          description: Conflicto de versión
+
+  /campanas/{id}/presupuesto:
+    post:
+      summary: Asignar o actualizar presupuesto de campaña
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Presupuesto'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presupuesto'
+
+    get:
+      summary: Obtener presupuesto vigente de la campaña
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presupuesto'
+
+  /campanas/{id}/contratar:
+    post:
+      summary: Disparar la transacción distribuida SAGA para aprobar y contratar la campaña
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 120
+      responses:
+        '202':
+          description: SAGA aceptada e iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaRespuesta'
+
+  /sagas/{id}:
+    get:
+      summary: Consultar estado actual de la SAGA y sus pasos
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SagaRespuesta'
+
+components:
+  schemas:
+    CampanaCrear:
+      type: object
+      required: [cliente_id, nombre]
+      properties:
+        cliente_id: { type: string, format: uuid }
+        nombre: { type: string, maxLength: 200 }
+        descripcion: { type: string, maxLength: 2000 }
+        fecha_inicio: { type: string, format: date }
+        fecha_fin: { type: string, format: date }
+
+    CampanaActualizar:
+      type: object
+      required: [version]
+      properties:
+        nombre: { type: string, maxLength: 200 }
+        descripcion: { type: string, maxLength: 2000 }
+        estado: { type: string }
+        fecha_inicio: { type: string, format: date }
+        fecha_fin: { type: string, format: date }
+        version: { type: integer }
+
+    CampanaRespuesta:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        cliente_id: { type: string, format: uuid }
+        nombre: { type: string }
+        descripcion: { type: string }
+        estado: { type: string }
+        fecha_inicio: { type: string, format: date }
+        fecha_fin: { type: string, format: date }
+        version: { type: integer }
+        creado_en: { type: string, format: date-time }
+        actualizado_en: { type: string, format: date-time }
+
+    Presupuesto:
+      type: object
+      required: [monto_total]
+      properties:
+        id: { type: string, format: uuid }
+        campana_id: { type: string, format: uuid }
+        monto_total: { type: number, format: double, minimum: 0 }
+        monto_gastado: { type: number, format: double, minimum: 0 }
+        moneda: { type: string, enum: [BOB, USD] }
+        estado: { type: string }
+        version: { type: integer }
+
+    SagaRespuesta:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        campana_id: { type: string, format: uuid }
+        clave_idempotencia: { type: string }
+        estado: { type: string }
+        paso_actual: { type: integer }
+        motivo_fallo: { type: string }
+        version: { type: integer }
+        limite_en: { type: string, format: date-time }
+        pasos:
+          type: array
+          items:
+            type: object
+            properties:
+              orden: { type: integer }
+              tipo: { type: string }
+              servicio: { type: string }
+              accion: { type: string }
+              clave_comando: { type: string }
+              estado: { type: string }
+
+  responses:
+    ErrorRespuesta:
+      description: Estructura de error estándar
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [codigo, mensaje]
+            properties:
+              codigo: { type: string }
+              mensaje: { type: string }
+              detalle: { type: object }
+
