@@ -42,7 +42,12 @@ public class PublicadorOutbox {
 
                 if ("SagaComando".equals(evento.getTipoAgregado())) {
                     exchange = ConfiguracionRabbitMQ.EXCHANGE_SAGA;
-                    routingKey = "saga.comando." + evento.getTipoEvento().toLowerCase();
+                    routingKey = switch (evento.getTipoEvento()) {
+                        case "ReservarCredito", "LiberarCredito" -> "saga.crm";
+                        case "BloquearPiezas", "DesbloquearPiezas" -> "saga.creatividades";
+                        case "EmitirFactura", "EmitirNotaCredito" -> "saga.facturacion";
+                        default -> throw new IllegalStateException("Comando SAGA sin destino mapeado: " + evento.getTipoEvento());
+                    };
                 } else {
                     exchange = ConfiguracionRabbitMQ.EXCHANGE_EVENTOS;
                     routingKey = evento.getTipoEvento().toLowerCase();
@@ -51,8 +56,8 @@ public class PublicadorOutbox {
                 rabbitTemplate.convertAndSend(exchange, routingKey, evento.getCarga());
                 evento.marcarPublicado();
                 outboxRepositorio.save(evento);
-                log.info("Evento outbox publicado a RabbitMQ: id={}, tipo={}, exchange={}",
-                        evento.getId(), evento.getTipoEvento(), exchange);
+                log.info("Evento outbox publicado a RabbitMQ: id={}, tipo={}, exchange={}, routingKey={}",
+                        evento.getId(), evento.getTipoEvento(), exchange, routingKey);
             } catch (Exception e) {
                 log.warn("No se pudo publicar evento outbox id={} a RabbitMQ (se reintentará en el siguiente ciclo): {}",
                         evento.getId(), e.getMessage());
