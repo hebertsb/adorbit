@@ -44,12 +44,19 @@ de n8n que llama `POST /agentes/{id}/ejecutar` y el binding de la cola que consu
 todavía.
 
 Pendiente antes de la demo: levantar RabbitMQ real (o confirmar que CloudAMQP ya
-alcanza) para que `RelevoBandejaSalida` tenga a quién publicarle `AlertaCampana`, crear
-el usuario `LOGIN` con `GRANT lector_mcp` en Supabase (ver `.env.ejemplo`), y completar
-`ADORBIT_IA_JWKS_URI`/`ADORBIT_IA_RABBITMQ_URL` cuando Roly tenga Keycloak y las colas
-listas. El Postgres de Supabase SÍ está disponible y probado en vivo (incluidas
-`reportes_generados` de la tarea 4 y `agentes`/`ejecuciones_agente`/
+alcanza) para que `RelevoBandejaSalida` tenga a quién publicarle `AlertaCampana`, y
+completar `ADORBIT_IA_JWKS_URI`/`ADORBIT_IA_RABBITMQ_URL` cuando Roly tenga Keycloak y
+las colas listas. El Postgres de Supabase SÍ está disponible y probado en vivo
+(incluidas `reportes_generados` de la tarea 4 y `agentes`/`ejecuciones_agente`/
 `bandeja_salida_eventos` de la tarea 5).
+
+El usuario `LOGIN` real para el pool `lector_mcp` (rol `lector_mcp_app`, ver D12) ya
+está creado en Supabase con `GRANT lector_mcp` + `statement_timeout = '5s'`, y
+`ADORBIT_IA_URL_BD_LECTOR_MCP` en `.env` ya apunta a ese usuario (antes apuntaba, por
+error, al mismo superusuario que `ADORBIT_IA_URL_BD`). Verificado en vivo: con ese
+usuario SÍ se puede leer `vista_mcp_campanas` y NO se puede leer `reporte_campanas`
+directo (`InsufficientPrivilegeError`) — la frontera de seguridad del servidor MCP ya
+es real, no solo teórica.
 
 ## Probar local sin Keycloak
 Roly todavía no tiene Keycloak real corriendo, pero los endpoints protegidos
