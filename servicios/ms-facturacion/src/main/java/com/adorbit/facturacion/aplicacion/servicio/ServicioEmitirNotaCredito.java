@@ -7,6 +7,7 @@ import com.adorbit.facturacion.aplicacion.puerto.salida.FacturaRepositorioPuerto
 import com.adorbit.facturacion.aplicacion.puerto.salida.IdempotenciaPuerto;
 import com.adorbit.facturacion.aplicacion.puerto.salida.RegistroIdempotencia;
 import com.adorbit.facturacion.dominio.EstadoFactura;
+import com.adorbit.facturacion.dominio.ExcepcionDominio;
 import com.adorbit.facturacion.dominio.Factura;
 import com.adorbit.facturacion.dominio.NotaCredito;
 import java.time.Clock;
@@ -42,7 +43,13 @@ public class ServicioEmitirNotaCredito implements EmitirNotaCreditoCasoDeUso {
 
     @Override
     public Optional<NotaCredito> emitir(String clave, UUID sagaId, UUID facturaId, String motivo) {
-        if (idempotencia.buscar(clave).isPresent()) {
+        String huella = ServicioEmitirFactura.sha256("nota-credito|" + facturaId);
+        var previo = idempotencia.buscar(clave);
+        if (previo.isPresent()) {
+            if (!previo.get().huellaSolicitud().equals(huella)) {
+                throw new ExcepcionDominio(
+                        "idempotencia_conflicto", "La clave de idempotencia ya se uso con una solicitud distinta");
+            }
             LOG.info("Nota de credito ya procesada para la clave {}", clave);
             return Optional.empty();
         }
@@ -64,11 +71,11 @@ public class ServicioEmitirNotaCredito implements EmitirNotaCreditoCasoDeUso {
         if (sagaId != null) {
             carga.put("saga_id", sagaId.toString());
         }
-        String correlacion = sagaId != null ? sagaId.toString() : clave;
+        String correlacion = sagaId != null ? sagaId.toString() : ServicioEmitirFactura.correlacionDe(clave);
         var evento = new EventoSalida(generadorId.get(), "NotaCreditoEmitida", nota.id(), correlacion, ahora, carga);
         var registro = new RegistroIdempotencia(
                 clave,
-                "nota-credito",
+                huella,
                 "{\"nota_id\":\"" + nota.id() + "\"}",
                 ahora.plus(ServicioEmitirFactura.VIGENCIA_IDEMPOTENCIA));
         try {

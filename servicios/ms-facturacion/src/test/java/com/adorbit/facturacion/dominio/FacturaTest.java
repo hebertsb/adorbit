@@ -110,6 +110,14 @@ class FacturaTest {
     }
 
     @Test
+    void notaDeCreditoRevierteSoloElSaldoPendiente() {
+        Factura f = nueva(null);
+        f.registrarCobro(UUID.randomUUID(), bob("100.00"), HOY, null);
+        NotaCredito nc = NotaCredito.emitirPara(f, UUID.randomUUID(), "SAGA compensada", HOY);
+        assertThat(nc.total().monto()).isEqualByComparingTo(f.totales().total().monto().subtract(new java.math.BigDecimal("100.00")));
+    }
+
+    @Test
     void seMarcaVencidaSoloSiPasoElVencimientoYHaySaldo() {
         Factura f = nueva(null);
         assertThat(f.marcarVencidaSiCorresponde(HOY.plusDays(30))).isFalse();

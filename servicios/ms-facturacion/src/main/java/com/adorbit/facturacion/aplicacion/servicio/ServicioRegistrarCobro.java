@@ -62,7 +62,7 @@ public class ServicioRegistrarCobro implements RegistrarCobroCasoDeUso {
 
         Instant ahora = reloj.instant();
         List<EventoSalida> eventos = factura.estado() == EstadoFactura.PAGADA
-                ? List.of(eventoPagada(factura, cobro, ahora, c.clave()))
+                ? List.of(eventoPagada(factura, cobro, ahora, ServicioEmitirFactura.correlacionDe(c.clave())))
                 : List.of();
         var registro = new RegistroIdempotencia(
                 c.clave(),
