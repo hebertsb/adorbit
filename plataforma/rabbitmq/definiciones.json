@@ -65,16 +65,6 @@
       }
     },
     {
-      "name": "eventos.ia",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-dead-letter-exchange": "adorbit.dlx",
-        "x-dead-letter-routing-key": "eventos.ia.dlq"
-      }
-    },
-    {
       "name": "eventos.n8n",
       "vhost": "/",
       "durable": true,
@@ -154,14 +144,6 @@
       "destination": "saga.creatividades",
       "destination_type": "queue",
       "routing_key": "saga.creatividades",
-      "arguments": {}
-    },
-    {
-      "source": "adorbit.eventos",
-      "vhost": "/",
-      "destination": "eventos.ia",
-      "destination_type": "queue",
-      "routing_key": "#",
       "arguments": {}
     },
     {
