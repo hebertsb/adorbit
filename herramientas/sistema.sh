@@ -12,7 +12,7 @@
 #   demo                                              emite una factura de prueba y espera el correo en Mailpit
 #   ayuda
 #
-# Grupos: "nucleo" (parte del Integrante B) y "equipo" (ms-creatividades, ms-ia, pasarela).
+# Grupos: "nucleo" (parte del Integrante B) y "equipo" (ms-campanas, ms-creatividades, ms-ia, pasarela).
 #   levantar              -> nucleo
 #   levantar --equipo     -> nucleo + equipo
 #   apagar ms-ia n8n      -> solo esos
@@ -24,7 +24,7 @@ INFRA="$RAIZ/infraestructura"
 COMPOSE=(docker compose -f "$INFRA/docker-compose.completo.yml" --profile equipo)
 
 NUCLEO=(rabbitmq keycloak mailpit ms-facturacion ms-clientes-crm portal-cliente panel-inteligencia n8n)
-EQUIPO=(ms-creatividades ms-ia pasarela)
+EQUIPO=(ms-campanas ms-creatividades ms-ia pasarela)
 CLIENTE_DEMO="${CLIENTE_DEMO:-0555d3fa-3ceb-4359-82b2-3c4d00902550}"
 
 # nombre | direccion para el navegador | direccion de comprobacion (vacia: solo se mira el contenedor)
@@ -37,6 +37,7 @@ PIEZAS=(
   "portal-cliente|http://localhost:4173|http://localhost:4173/salud"
   "panel-inteligencia|http://localhost:4174|http://localhost:4174/salud"
   "n8n|http://localhost:5678|http://localhost:5678/healthz"
+  "ms-campanas|http://localhost:8081|http://localhost:8081/salud"
   "ms-creatividades|http://localhost:8083|http://localhost:8083/salud"
   "ms-ia|http://localhost:8085|http://localhost:8085/salud"
   "pasarela|http://localhost:8000  (GraphQL en /graphql)|http://localhost:8000/salud"

@@ -38,8 +38,9 @@ Se ejecutan desde la raíz del repositorio.
 | `herramientas/sistema.sh ayuda` | Resumen de los comandos |
 
 Grupos de servicios: **núcleo** = rabbitmq, keycloak, mailpit, ms-facturacion, ms-clientes-crm, portal-cliente,
-panel-inteligencia, n8n. **equipo** = ms-creatividades, ms-ia, pasarela. ms-campanas no está incluido porque aún no se
-puede levantar en local (falta su conexión a Supabase y su Dockerfile no construye en procesadores ARM).
+panel-inteligencia, n8n. **equipo** = ms-campanas, ms-creatividades, ms-ia, pasarela. ms-campanas necesita
+`CAMPANAS_URL_BD` (Supabase de Integrante A) en `infraestructura/.env` — en procesadores ARM (ej. Mac Apple
+Silicon) su Dockerfile puede no compilar; en x86_64 (Windows/Linux) compila y corre sin problema (verificado).
 
 ## Qué abrir en el navegador
 | Pieza | Dirección | Acceso |
