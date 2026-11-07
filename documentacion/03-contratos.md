@@ -77,7 +77,7 @@ del servicio dueño (el gateway **no** tiene lógica de negocio).
 | Elemento | Nombre | Detalle |
 |---|---|---|
 | Exchange de eventos | `adorbit.eventos` | topic, durable. Clave = `tipo_evento` en minúsculas con puntos (`factura.emitida`, `nota.credito.emitida`, `facturacion.fallida`, `factura.pagada`) |
-| Exchange de comandos | `adorbit.saga` | topic, durable |
+| Exchange de comandos | `adorbit.saga` | **direct**, durable (asi esta en el broker compartido; las claves son exactas) |
 | Cola de comandos | `saga.facturacion` | durable; bindings `emitir.factura` y `emitir.nota.credito` en `adorbit.saga` |
 | Cola de errores | `saga.facturacion.dlq` | vía exchange `adorbit.saga.dlx` (direct, clave `saga.facturacion`) |
 | Reintentos | 5 intentos | espera exponencial 1 s ×2 (máx. 30 s); luego a la DLQ. Mensaje ilegible o desconocido → DLQ sin reintentar |
@@ -91,7 +91,7 @@ Una compensación (`EmitirNotaCredito`) sobre una factura inexistente o ya anula
 ## Topología RabbitMQ de ms-clientes-crm (la declara el propio servicio al arrancar)
 | Elemento | Nombre | Detalle |
 |---|---|---|
-| Exchanges | `adorbit.eventos`, `adorbit.saga`, `adorbit.saga.dlx` | mismos argumentos que ms-facturacion (topic/topic/direct, durables) |
+| Exchanges | `adorbit.eventos`, `adorbit.saga`, `adorbit.saga.dlx` | mismos argumentos que ms-facturacion (eventos topic, saga direct, saga.dlx direct; durables) |
 | Cola de comandos | `saga.crm` | durable; bindings `reservar.credito` y `liberar.credito` en `adorbit.saga` |
 | Cola de errores | `saga.crm.dlq` | vía `adorbit.saga.dlx` (clave `saga.crm`) |
 | Reintentos | 5 intentos | espera exponencial (1 s ×2); luego a la DLQ. Mensaje ilegible o desconocido → DLQ sin reintentar |
