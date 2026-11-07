@@ -11,6 +11,7 @@ import logging
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from .adapters.mcp.servidor import crear_app_mcp, servidor_mcp
 from .adapters.postgres.conexion import cerrar_pools
@@ -64,6 +65,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="ms-ia", lifespan=lifespan)
+# panel-inteligencia (React, localhost:4174) llama /api/v1/reportes directo desde el
+# navegador, sin pasar por la pasarela -- sin esto el navegador bloquea la respuesta
+# por CORS (visto en vivo: "No 'Access-Control-Allow-Origin' header is present").
+# allow_origin_regex cubre cualquier frontend local (puerto variable) sin listar cada
+# uno a mano; no hay cookies de sesion (solo Bearer), asi que no hace falta credentials.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"http://localhost:\d+",
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 registrar_manejadores_error(app)
 app.include_router(salud.router)
 app.include_router(listo.router)
