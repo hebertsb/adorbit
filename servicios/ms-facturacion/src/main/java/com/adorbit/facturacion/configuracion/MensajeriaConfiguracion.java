@@ -48,7 +48,8 @@ public class MensajeriaConfiguracion {
     /** Topologia propia de facturacion: exchanges, cola de comandos y cola de errores (DLQ). */
     @Bean
     Declarables topologiaFacturacion(@Value("${adorbit.facturacion.mensajeria.cola-comandos}") String colaComandos) {
-        TopicExchange saga = new TopicExchange(EXCHANGE_SAGA, true, false);
+        // direct: asi esta declarado en el broker compartido; las claves de comando son exactas (no hay comodines).
+        DirectExchange saga = new DirectExchange(EXCHANGE_SAGA, true, false);
         TopicExchange eventos = new TopicExchange(EXCHANGE_EVENTOS, true, false);
         DirectExchange errores = new DirectExchange(EXCHANGE_ERRORES, true, false);
         Queue comandos = QueueBuilder.durable(colaComandos)

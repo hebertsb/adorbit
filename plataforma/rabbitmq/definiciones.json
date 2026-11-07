@@ -3,7 +3,7 @@
   "users": [
     {
       "name": "guest",
-      "password_hash": "ESIzRAqk5owWSMU7HhS5Vd82J4ePzGlo5uHIHR8oNCbT7T1n",
+      "password_hash": "e9pqVGrq90hAQ7Udi29IF44SFUZ0J09dYubGPGEXW8eU5kOi",
       "hashing_algorithm": "rabbit_password_hashing_sha256",
       "tags": [
         "administrator"
@@ -62,26 +62,6 @@
       "arguments": {
         "x-dead-letter-exchange": "adorbit.dlx",
         "x-dead-letter-routing-key": "saga.creatividades.dlq"
-      }
-    },
-    {
-      "name": "saga.facturacion",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-dead-letter-exchange": "adorbit.dlx",
-        "x-dead-letter-routing-key": "saga.facturacion.dlq"
-      }
-    },
-    {
-      "name": "eventos.ia",
-      "vhost": "/",
-      "durable": true,
-      "auto_delete": false,
-      "arguments": {
-        "x-dead-letter-exchange": "adorbit.dlx",
-        "x-dead-letter-routing-key": "eventos.ia.dlq"
       }
     },
     {
@@ -167,22 +147,6 @@
       "arguments": {}
     },
     {
-      "source": "adorbit.saga",
-      "vhost": "/",
-      "destination": "saga.facturacion",
-      "destination_type": "queue",
-      "routing_key": "saga.facturacion",
-      "arguments": {}
-    },
-    {
-      "source": "adorbit.eventos",
-      "vhost": "/",
-      "destination": "eventos.ia",
-      "destination_type": "queue",
-      "routing_key": "#",
-      "arguments": {}
-    },
-    {
       "source": "adorbit.eventos",
       "vhost": "/",
       "destination": "eventos.n8n",
@@ -224,4 +188,3 @@
     }
   ]
 }
-

@@ -39,7 +39,9 @@ async function iniciarServidor() {
     ["/api/v1/campanas", "/api/v1/sagas"],
     createProxyMiddleware({
       target: URL_MS_CAMPANAS,
-      changeOrigin: true
+      changeOrigin: true,
+      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
+      pathRewrite: (_ruta, req) => (req as Request).originalUrl
     })
   );
 
@@ -48,7 +50,9 @@ async function iniciarServidor() {
     ["/api/v1/clientes", "/api/v1/contratos"],
     createProxyMiddleware({
       target: URL_MS_CLIENTES_CRM,
-      changeOrigin: true
+      changeOrigin: true,
+      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
+      pathRewrite: (_ruta, req) => (req as Request).originalUrl
     })
   );
 
@@ -57,7 +61,9 @@ async function iniciarServidor() {
     ["/api/v1/facturas", "/api/v1/cotizaciones"],
     createProxyMiddleware({
       target: URL_MS_FACTURACION,
-      changeOrigin: true
+      changeOrigin: true,
+      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
+      pathRewrite: (_ruta, req) => (req as Request).originalUrl
     })
   );
 
@@ -66,7 +72,9 @@ async function iniciarServidor() {
     ["/api/v1/briefs", "/api/v1/piezas"],
     createProxyMiddleware({
       target: URL_MS_CREATIVIDADES,
-      changeOrigin: true
+      changeOrigin: true,
+      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
+      pathRewrite: (_ruta, req) => (req as Request).originalUrl
     })
   );
 
@@ -75,7 +83,9 @@ async function iniciarServidor() {
     ["/api/v1/reportes", "/api/v1/agentes", "/api/v1/vision", "/api/v1/mcp"],
     createProxyMiddleware({
       target: URL_MS_IA,
-      changeOrigin: true
+      changeOrigin: true,
+      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
+      pathRewrite: (_ruta, req) => (req as Request).originalUrl
     })
   );
 

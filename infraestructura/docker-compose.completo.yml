@@ -1,0 +1,237 @@
+# Sistema completo de AdOrbit en una sola red. Uso (desde infraestructura/):
+#   cp .env.ejemplo .env            # completar los secretos (el .env no se versiona)
+#   docker compose -f docker-compose.completo.yml up -d --build                      # parte de Integrante B
+#   docker compose -f docker-compose.completo.yml --profile equipo up -d --build     # + servicios de Roly y Hebert
+#
+# Identidad: usa el Keycloak SIMULADO (herramientas/keycloak-simulado.mjs) porque el realm real de
+# plataforma/keycloak aun no emite la audiencia (aud) por servicio ni tiene los clientes portal-cliente,
+# panel-inteligencia y n8n. Cuando el realm real los tenga, solo cambian las URLs del emisor.
+# RabbitMQ: el local de este compose (no toca el CloudAMQP compartido).
+# Datos: DynamoDB real en AWS (ms-facturacion) y MongoDB Atlas (ms-clientes-crm).
+
+x-jwt-emisor: &emisor ${EMISOR_JWT:-http://localhost:8180/realms/adorbit}
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: adorbit-rabbitmq
+    ports: ["5672:5672", "15672:15672"]
+    volumes:
+      - ../plataforma/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ../plataforma/rabbitmq/definiciones.json:/etc/rabbitmq/definiciones.json:ro
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks: [adorbit-red]
+
+  keycloak:
+    image: node:22-alpine
+    container_name: adorbit-keycloak-simulado
+    working_dir: /app
+    command: ["node", "keycloak-simulado.mjs"]
+    ports: ["8180:8180"]
+    environment:
+      PUERTO: "8180"
+      ESCUCHAR: "0.0.0.0"
+      EMISOR: *emisor
+      AUDIENCIAS: ms-facturacion,ms-clientes-crm,ms-ia,ms-creatividades,ms-campanas
+      CLIENTES: '{"n8n":{"secret":"${N8N_CLIENT_SECRET:-secreto-local}","roles":["gerente"]}}'
+      REDIRECCIONES: http://localhost:5173,http://localhost:4173,http://localhost:5174,http://localhost:4174
+    volumes:
+      - ../herramientas/keycloak-simulado.mjs:/app/keycloak-simulado.mjs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8180/realms/adorbit/protocol/openid-connect/certs"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    networks: [adorbit-red]
+
+  # ------------------------------------------------------------------ Integrante B
+  ms-facturacion:
+    build: { context: ../servicios/ms-facturacion }
+    container_name: adorbit-ms-facturacion
+    ports: ["8082:8082"]
+    environment:
+      ADORBIT_FACTURACION_PUERTO: "8082"
+      ADORBIT_FACTURACION_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_FACTURACION_JWT_EMISOR: *emisor
+      ADORBIT_FACTURACION_JWT_AUDIENCIA: ms-facturacion
+      ADORBIT_FACTURACION_DYNAMODB_REGION: ${AWS_REGION:-us-east-1}
+      ADORBIT_FACTURACION_DYNAMODB_TABLA: ${FACTURACION_TABLA:-AdOrbitFacturacion}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?completar en .env}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?completar en .env}
+      ADORBIT_FACTURACION_MENSAJERIA_ACTIVA: "true"
+      ADORBIT_FACTURACION_RABBITMQ_HOST: rabbitmq
+      ADORBIT_FACTURACION_RABBITMQ_PUERTO: "5672"
+      ADORBIT_FACTURACION_RABBITMQ_USUARIO: ${RABBITMQ_USUARIO:-guest}
+      ADORBIT_FACTURACION_RABBITMQ_CLAVE: ${RABBITMQ_CLAVE:-guest}
+      ADORBIT_FACTURACION_CORS_ORIGENES: http://localhost:4173,http://localhost:5173
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    networks: [adorbit-red]
+
+  ms-clientes-crm:
+    build: { context: ../servicios/ms-clientes-crm }
+    container_name: adorbit-ms-clientes-crm
+    ports: ["8084:8084"]
+    environment:
+      APP_KEY: ${CRM_APP_KEY:?completar en .env (php artisan key:generate --show)}
+      DB_CONNECTION: mongodb
+      ADORBIT_CRM_MONGO_DSN: ${CRM_MONGO_DSN:?completar en .env}
+      ADORBIT_CRM_MONGO_BD: ${CRM_MONGO_BD:-adorbit_crm}
+      ADORBIT_CRM_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CRM_JWT_EMISOR: *emisor
+      ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
+      ADORBIT_CRM_RABBITMQ_HOST: rabbitmq
+      ADORBIT_CRM_RABBITMQ_PUERTO: "5672"
+      ADORBIT_CRM_RABBITMQ_USUARIO: ${RABBITMQ_USUARIO:-guest}
+      ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_CLAVE:-guest}
+      ADORBIT_CRM_CORS_ORIGENES: http://localhost:4173,http://localhost:5173
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    networks: [adorbit-red]
+
+  portal-cliente:
+    build:
+      context: ../aplicaciones/portal-cliente
+      args:
+        VITE_OIDC_AUTORIDAD: http://localhost:8180/realms/adorbit
+        VITE_API_FACTURACION_URL: http://localhost:8082
+        VITE_API_CRM_URL: http://localhost:8084
+    container_name: adorbit-portal-cliente
+    ports: ["4173:8080"]
+    depends_on: [ms-facturacion, ms-clientes-crm]
+    networks: [adorbit-red]
+
+  panel-inteligencia:
+    build:
+      context: ../aplicaciones/panel-inteligencia
+      args:
+        VITE_OIDC_AUTORIDAD: http://localhost:8180/realms/adorbit
+        VITE_API_IA_URL: http://localhost:8085
+    container_name: adorbit-panel-inteligencia
+    ports: ["4174:8080"]
+    networks: [adorbit-red]
+
+  n8n:
+    image: n8nio/n8n:2.45.7
+    container_name: adorbit-n8n
+    ports: ["5678:5678"]
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-clave-local-n8n-solo-desarrollo}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      GENERIC_TIMEZONE: America/La_Paz
+      TZ: America/La_Paz
+      ADORBIT_KEYCLOAK_TOKEN_URL: http://keycloak:8180/realms/adorbit/protocol/openid-connect/token
+      ADORBIT_N8N_CLIENT_ID: n8n
+      ADORBIT_N8N_CLIENT_SECRET: ${N8N_CLIENT_SECRET:-secreto-local}
+      ADORBIT_N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-token-webhook-local}
+      ADORBIT_FACTURACION_URL: http://ms-facturacion:8082
+      ADORBIT_CRM_URL: http://ms-clientes-crm:8084
+      ADORBIT_CAMPANAS_URL: http://ms-campanas:8081
+      ADORBIT_CORREO_REMITENTE: "AdOrbit <no-responder@adorbit.local>"
+      ADORBIT_CORREO_GERENCIA: gerencia@adorbit.local
+    volumes:
+      - n8n_datos:/home/node/.n8n
+      - ../plataforma/n8n/flujos:/flujos:ro
+      - ../plataforma/n8n/credenciales.ejemplo.json:/credenciales/credenciales.json:ro
+    depends_on: [mailpit, ms-facturacion, ms-clientes-crm]
+    networks: [adorbit-red]
+
+  mailpit:
+    image: axllent/mailpit:v1.29.0
+    container_name: adorbit-mailpit
+    ports: ["8025:8025", "1025:1025"]
+    networks: [adorbit-red]
+
+  # ------------------------------------------------------- Roly y Hebert (perfil "equipo")
+  ms-campanas:
+    profiles: [equipo]
+    build: { context: ../servicios/ms-campanas }
+    container_name: adorbit-ms-campanas
+    ports: ["8081:8081"]
+    environment:
+      PORT: "8081"
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: "5672"
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USUARIO:-guest}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_CLAVE:-guest}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: *emisor
+      ADORBIT_CAMPANAS_URL_BD: ${CAMPANAS_URL_BD:-}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    networks: [adorbit-red]
+
+  ms-creatividades:
+    profiles: [equipo]
+    build: { context: ../servicios/ms-creatividades }
+    container_name: adorbit-ms-creatividades
+    ports: ["8083:8083"]
+    environment:
+      ADORBIT_CREATIVIDADES_URL_BD: ${CREATIVIDADES_URL_BD:-}
+      ADORBIT_CREATIVIDADES_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CREATIVIDADES_EMISOR: *emisor
+      ADORBIT_CREATIVIDADES_AUDIENCIA: ms-creatividades
+      ADORBIT_CREATIVIDADES_RABBITMQ_URL: amqp://${RABBITMQ_USUARIO:-guest}:${RABBITMQ_CLAVE:-guest}@rabbitmq:5672
+      ADORBIT_CREATIVIDADES_SUPABASE_URL: ${CREATIVIDADES_SUPABASE_URL:-}
+      ADORBIT_CREATIVIDADES_SUPABASE_SERVICE_KEY: ${CREATIVIDADES_SUPABASE_SERVICE_KEY:-}
+      ADORBIT_CREATIVIDADES_SUPABASE_BUCKET: ${CREATIVIDADES_SUPABASE_BUCKET:-piezas-creatividades}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    networks: [adorbit-red]
+
+  ms-ia:
+    profiles: [equipo]
+    build: { context: ../servicios/ms-ia }
+    container_name: adorbit-ms-ia
+    ports: ["8085:8085"]
+    environment:
+      ADORBIT_IA_URL_BD: ${IA_URL_BD:-}
+      ADORBIT_IA_URL_BD_LECTOR_MCP: ${IA_URL_BD_LECTOR_MCP:-}
+      ADORBIT_IA_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_IA_EMISOR: *emisor
+      ADORBIT_IA_AUDIENCIA: ms-ia
+      ADORBIT_IA_RABBITMQ_URL: amqp://${RABBITMQ_USUARIO:-guest}:${RABBITMQ_CLAVE:-guest}@rabbitmq:5672
+      ADORBIT_IA_GROQ_API_KEY: ${IA_GROQ_API_KEY:-}
+      ADORBIT_IA_GROQ_MODELO: ${IA_GROQ_MODELO:-openai/gpt-oss-120b}
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
+    networks: [adorbit-red]
+
+  pasarela:
+    profiles: [equipo]
+    build: { context: ../plataforma/pasarela }
+    container_name: adorbit-pasarela
+    ports: ["8000:8000"]
+    environment:
+      PORT: "8000"
+      ADORBIT_PASARELA_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_PASARELA_EMISOR: *emisor
+      URL_MS_CAMPANAS: http://ms-campanas:8081
+      URL_MS_FACTURACION: http://ms-facturacion:8082
+      URL_MS_CREATIVIDADES: http://ms-creatividades:8083
+      URL_MS_CLIENTES_CRM: http://ms-clientes-crm:8084
+      URL_MS_IA: http://ms-ia:8085
+    depends_on:
+      keycloak: { condition: service_healthy }
+    networks: [adorbit-red]
+
+volumes:
+  n8n_datos:
+
+networks:
+  adorbit-red:
+    name: adorbit-red
+    driver: bridge

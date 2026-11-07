@@ -125,7 +125,7 @@ public class ServicioEmitirFactura implements EmitirFacturaCasoDeUso {
         if (c.sagaId() != null) {
             carga.put("saga_id", c.sagaId().toString());
         }
-        String correlacion = c.sagaId() != null ? c.sagaId().toString() : c.clave();
+        String correlacion = c.sagaId() != null ? c.sagaId().toString() : correlacionDe(c.clave());
         return new EventoSalida(generadorId.get(), "FacturaEmitida", f.id(), correlacion, ahora, carga);
     }
 
@@ -145,6 +145,21 @@ public class ServicioEmitirFactura implements EmitirFacturaCasoDeUso {
         if (clave == null || clave.length() < 8 || clave.length() > 120) {
             throw new ExcepcionDominio(
                     "clave_idempotencia_invalida", "La clave de idempotencia debe tener 8 a 120 caracteres");
+        }
+    }
+
+    /** El contrato limita correlacion_id a 100 caracteres y la clave puede tener hasta 120: si no cabe, se resume. */
+    static String correlacionDe(String clave) {
+        return clave.length() <= 100 ? clave : sha256(clave);
+    }
+
+    static String sha256(String texto) {
+        try {
+            return java.util.HexFormat.of()
+                    .formatHex(java.security.MessageDigest.getInstance("SHA-256")
+                            .digest(texto.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
         }
     }
 
