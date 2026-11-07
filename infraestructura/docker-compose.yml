@@ -1,6 +1,8 @@
 services:
   rabbitmq:
-    image: rabbitmq:3.13-management-alpine
+    build:
+      context: ../plataforma/rabbitmq
+      dockerfile: Dockerfile
     container_name: adorbit-rabbitmq
     ports:
       - "5672:5672"
@@ -8,9 +10,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    volumes:
-      - ../plataforma/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-      - ../plataforma/rabbitmq/definiciones.json:/etc/rabbitmq/definiciones.json:ro
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
