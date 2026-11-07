@@ -10,6 +10,11 @@ export interface UsuarioAutenticado {
 const CLAVE_TOKEN = 'adorbit_token';
 const KEYCLOAK_URL = 'http://localhost:8080/realms/adorbit';
 const CLIENT_ID = 'adorbit-frontend';
+// Mientras Roly no tenga el Keycloak real (puerto 8080) arriba, se usa el mismo atajo
+// de desarrollo que ya usan app-movil/portal-cliente/panel-inteligencia: GET /emitir
+// del simulador compartido (herramientas/keycloak-simulado.mjs). Token real, firmado y
+// verificado igual por el backend real -- no es un token fabricado en el cliente.
+const EMISOR_PRUEBA_URL = 'http://localhost:8180';
 
 @Injectable({ providedIn: 'root' })
 export class AutenticacionService {
@@ -64,11 +69,25 @@ export class AutenticacionService {
       this.establecerToken(datos.access_token);
       return true;
     } catch (error) {
-      console.warn('Keycloak no disponible localmente, iniciando sesion en modo demo:', error);
-      // Fallback para modo offline/demo sin Keycloak levantado
-      const tokenDemo = this.crearTokenDemo(email);
-      this.establecerToken(tokenDemo);
+      console.warn('Keycloak real no disponible en localhost:8080, usando el emisor de prueba:', error);
+      return this.iniciarSesionConEmisorPrueba(email);
+    }
+  }
+
+  /** Token real (firmado RS256, verificado igual por el backend) del emisor de prueba
+   * compartido -- no un token fabricado en el cliente. Ver EMISOR_PRUEBA_URL arriba. */
+  private async iniciarSesionConEmisorPrueba(email: string): Promise<boolean> {
+    try {
+      const rol = email.split('@')[0] || 'ejecutivo';
+      const roles = rol === 'admin' ? 'ejecutivo,gerente,creativo' : rol;
+      const respuesta = await fetch(`${EMISOR_PRUEBA_URL}/emitir?roles=${encodeURIComponent(roles)}`);
+      if (!respuesta.ok) return false;
+      const datos = await respuesta.json();
+      this.establecerToken(datos.access_token);
       return true;
+    } catch (error) {
+      console.error('Emisor de prueba tampoco disponible en localhost:8180:', error);
+      return false;
     }
   }
 
@@ -119,20 +138,5 @@ export class AutenticacionService {
     }
   }
 
-  private crearTokenDemo(email: string): string {
-    const rol = email.split('@')[0] || 'ejecutivo';
-    const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
-    const payload = btoa(
-      JSON.stringify({
-        sub: 'usr-demo-' + Date.now(),
-        email: email,
-        preferred_username: email,
-        name: email.split('@')[0].toUpperCase(),
-        realm_access: { roles: [rol] },
-        exp: Math.floor(Date.now() / 1000) + 7200,
-      })
-    );
-    return `${header}.${payload}.demo_signature`;
-  }
 }
 

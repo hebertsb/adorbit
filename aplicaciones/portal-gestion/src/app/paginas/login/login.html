@@ -24,7 +24,7 @@
         <input id="contrasena" type="password" [(ngModel)]="contrasena" name="contrasena" required />
       </div>
 
-      <ao-boton variante="primario" [deshabilitado]="cargando()">
+      <ao-boton variante="primario" [tipo]="'submit'" [deshabilitado]="cargando()">
         {{ cargando() ? 'Autenticando…' : 'Ingresar al Portal' }}
       </ao-boton>
     </form>
