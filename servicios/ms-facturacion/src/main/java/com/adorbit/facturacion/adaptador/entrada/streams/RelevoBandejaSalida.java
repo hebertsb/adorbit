@@ -71,6 +71,18 @@ public class RelevoBandejaSalida implements SmartLifecycle {
         return activo;
     }
 
+    /** Paginas vacias consecutivas tras las cuales se da por agotado un fragmento en esta pasada. */
+    private static final int PAGINAS_VACIAS_MAXIMAS = 150;
+
+    /** Paginas vacias consecutivas al reanudar desde un iterador guardado (ya se esta cerca del final). */
+    private static final int PAGINAS_VACIAS_REANUDADO = 3;
+
+    /** Ultimo iterador devuelto por cada fragmento: evita recorrerlo desde el principio en cada pasada. */
+    private final java.util.Map<String, String> iteradoresPorShard = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Fragmentos cerrados ya leidos hasta el final: no se vuelven a consultar. */
+    private final java.util.Set<String> fragmentosAgotados = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     private void ciclo() {
         while (activo) {
             try {
@@ -101,13 +113,51 @@ public class RelevoBandejaSalida implements SmartLifecycle {
             if (!activo) {
                 return;
             }
+            if (fragmentosAgotados.contains(shard.shardId())) {
+                continue;
+            }
             procesarShard(arn, shard.shardId());
         }
     }
 
     private void procesarShard(String arn, String shardId) {
+        String guardado = iteradoresPorShard.get(shardId);
+        boolean reanudado = guardado != null;
+        String iterador = guardado != null ? guardado : iteradorInicial(arn, shardId);
+        // Reanudando desde un iterador guardado basta con pocas paginas; desde cero hay que recorrer el fragmento
+        // (DynamoDB Streams devuelve muchas paginas vacias antes de llegar a los registros ya escritos).
+        int maximoVacias = reanudado ? PAGINAS_VACIAS_REANUDADO : PAGINAS_VACIAS_MAXIMAS;
+        int vaciasSeguidas = 0;
+        try {
+            while (iterador != null && activo) {
+                String actual = iterador;
+                var respuesta = streams.getRecords(r -> r.shardIterator(actual).limit(100));
+                for (var registro : respuesta.records()) {
+                    publicarSiEsSalida(registro);
+                    ultimaSecuenciaPorShard.put(shardId, registro.dynamodb().sequenceNumber());
+                }
+                vaciasSeguidas = respuesta.records().isEmpty() ? vaciasSeguidas + 1 : 0;
+                iterador = respuesta.nextShardIterator();
+                if (iterador == null) {
+                    fragmentosAgotados.add(shardId);
+                    iteradoresPorShard.remove(shardId);
+                    return;
+                }
+                iteradoresPorShard.put(shardId, iterador);
+                if (vaciasSeguidas >= maximoVacias) {
+                    return;
+                }
+            }
+        } catch (RuntimeException e) {
+            // iterador vencido (15 min) u otro fallo: se descarta y se reanuda desde la ultima secuencia publicada
+            iteradoresPorShard.remove(shardId);
+            throw e;
+        }
+    }
+
+    private String iteradorInicial(String arn, String shardId) {
         String ultima = ultimaSecuenciaPorShard.get(shardId);
-        String iterador = streams.getShardIterator(r -> {
+        return streams.getShardIterator(r -> {
                     r.streamArn(arn).shardId(shardId);
                     if (ultima == null) {
                         r.shardIteratorType(ShardIteratorType.TRIM_HORIZON);
@@ -117,18 +167,6 @@ public class RelevoBandejaSalida implements SmartLifecycle {
                     }
                 })
                 .shardIterator();
-        while (iterador != null && activo) {
-            String actual = iterador;
-            var respuesta = streams.getRecords(r -> r.shardIterator(actual).limit(100));
-            for (var registro : respuesta.records()) {
-                publicarSiEsSalida(registro);
-                ultimaSecuenciaPorShard.put(shardId, registro.dynamodb().sequenceNumber());
-            }
-            if (respuesta.records().isEmpty()) {
-                return;
-            }
-            iterador = respuesta.nextShardIterator();
-        }
     }
 
     private void publicarSiEsSalida(Record registro) {
