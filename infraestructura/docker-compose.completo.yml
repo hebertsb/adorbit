@@ -158,6 +158,12 @@ services:
     build: { context: ../servicios/ms-campanas }
     container_name: adorbit-ms-campanas
     ports: ["8081:8081"]
+    develop:
+      watch:
+        - action: rebuild
+          path: src
+        - action: rebuild
+          path: pom.xml
     environment:
       PORT: "8081"
       SPRING_PROFILES_ACTIVE: prod
@@ -177,6 +183,12 @@ services:
     build: { context: ../servicios/ms-creatividades }
     container_name: adorbit-ms-creatividades
     ports: ["8083:8083"]
+    develop:
+      watch:
+        - action: rebuild
+          path: src
+        - action: rebuild
+          path: package.json
     environment:
       ADORBIT_CREATIVIDADES_URL_BD: ${CREATIVIDADES_URL_BD:-}
       ADORBIT_CREATIVIDADES_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
@@ -196,6 +208,12 @@ services:
     build: { context: ../servicios/ms-ia }
     container_name: adorbit-ms-ia
     ports: ["8085:8085"]
+    develop:
+      watch:
+        - action: rebuild
+          path: app
+        - action: rebuild
+          path: requirements.txt
     environment:
       ADORBIT_IA_URL_BD: ${IA_URL_BD:-}
       ADORBIT_IA_URL_BD_LECTOR_MCP: ${IA_URL_BD_LECTOR_MCP:-}
@@ -215,6 +233,12 @@ services:
     build: { context: ../plataforma/pasarela }
     container_name: adorbit-pasarela
     ports: ["8000:8000"]
+    develop:
+      watch:
+        - action: rebuild
+          path: src
+        - action: rebuild
+          path: package.json
     environment:
       PORT: "8000"
       ADORBIT_PASARELA_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs

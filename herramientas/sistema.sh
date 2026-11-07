@@ -10,6 +10,7 @@
 #   registros <servicio> [-f]                         ultimas lineas (con -f, en vivo)
 #   token [rol]                                       token de prueba del Keycloak simulado (por defecto gerente)
 #   demo                                              emite una factura de prueba y espera el correo en Mailpit
+#   vigilar                                           reconstruye solo lo que cambio (ms-campanas/creatividades/ia/pasarela)
 #   ayuda
 #
 # Grupos: "nucleo" (parte del Integrante B) y "equipo" (ms-campanas, ms-creatividades, ms-ia, pasarela).
@@ -190,7 +191,14 @@ cmd_demo() {
   return 1
 }
 
-cmd_ayuda() { sed -n '2,19p' "$0" | sed 's/^# \{0,1\}//'; }
+cmd_vigilar() {
+  exigir_docker; exigir_env
+  echo "Vigilando ms-campanas, ms-creatividades, ms-ia y pasarela -- reconstruye solo"
+  echo "el servicio que cambio, cada vez que guardas. Ctrl+C para salir."
+  "${COMPOSE[@]}" watch
+}
+
+cmd_ayuda() { sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; }
 
 comando="${1:-ayuda}"; [ "$#" -gt 0 ] && shift
 case "$comando" in
@@ -202,6 +210,7 @@ case "$comando" in
   registros|logs) cmd_registros "$@" ;;
   token) cmd_token "$@" ;;
   demo) cmd_demo ;;
+  vigilar|watch) cmd_vigilar ;;
   ayuda|-h|--help) cmd_ayuda ;;
   *) echo "Comando desconocido: $comando" >&2; cmd_ayuda >&2; exit 1 ;;
 esac
