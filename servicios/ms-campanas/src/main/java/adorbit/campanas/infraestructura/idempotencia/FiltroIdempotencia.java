@@ -1,21 +1,22 @@
 package adorbit.campanas.infraestructura.idempotencia;
 
-import adorbit.campanas.dominio.excepcion.ConflictoEdicionExcepcion;
-import adorbit.campanas.dominio.excepcion.IdempotenciaEnCursoExcepcion;
 import adorbit.campanas.dominio.modelo.ClaveIdempotencia;
 import adorbit.campanas.dominio.modelo.EstadoIdempotencia;
 import adorbit.campanas.dominio.repositorio.ClaveIdempotenciaRepositorio;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -53,43 +54,104 @@ public class FiltroIdempotencia extends OncePerRequestFilter {
             return;
         }
 
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
-        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
-
-        // Dejar que el framework lea el cuerpo para que el wrapper cachee los bytes
-        filterChain.doFilter(wrappedRequest, wrappedResponse);
-
-        byte[] requestBody = wrappedRequest.getContentAsByteArray();
+        // Leemos el cuerpo nosotros mismos (una sola vez) para poder calcular la huella y
+        // revisar/reclamar la clave ANTES de dejar pasar la peticion al controlador -- antes
+        // esto se hacia despues de filterChain.doFilter(...), asi que un reintento con la
+        // misma clave ya habia ejecutado el controlador (y duplicado el recurso) para cuando
+        // recien se revisaba si esa clave ya existia.
+        byte[] requestBody = request.getInputStream().readAllBytes();
         String huella = calcularSha256(requestBody);
+        HttpServletRequest requestConCuerpoReleido = new CuerpoReleidoRequest(request, requestBody);
 
         Optional<ClaveIdempotencia> existente = claveRepositorio.findByClave(clave);
         if (existente.isPresent()) {
             ClaveIdempotencia registro = existente.get();
-            if (registro.getEstado() == EstadoIdempotencia.COMPLETADO) {
-                // Reenviar la respuesta guardada
-                wrappedResponse.resetBuffer();
-                wrappedResponse.setStatus(registro.getCodigoEstado() != null ? registro.getCodigoEstado() : 200);
-                wrappedResponse.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                if (registro.getRespuesta() != null) {
-                    wrappedResponse.getOutputStream().write(registro.getRespuesta().getBytes(StandardCharsets.UTF_8));
-                }
-                wrappedResponse.copyBodyToResponse();
+
+            if (!registro.getHuellaSolicitud().equals(huella)) {
+                escribirError(response, HttpServletResponse.SC_CONFLICT, "IDEMPOTENCIA_CONFLICTO",
+                        "La clave de idempotencia ya se uso con una solicitud distinta");
                 return;
             }
+
+            if (registro.getEstado() == EstadoIdempotencia.EN_CURSO) {
+                escribirError(response, HttpServletResponse.SC_CONFLICT, "SOLICITUD_EN_CURSO",
+                        "Ya hay una solicitud en curso con esta clave de idempotencia");
+                return;
+            }
+
+            // COMPLETADO con la misma huella: reenviar la respuesta guardada sin re-ejecutar.
+            response.setStatus(registro.getCodigoEstado() != null ? registro.getCodigoEstado() : 200);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            if (registro.getRespuesta() != null) {
+                response.getWriter().write(registro.getRespuesta());
+            }
+            return;
         }
 
-        // Si la petición fue exitosa, guardamos la respuesta en la tabla claves_idempotencia
-        int status = wrappedResponse.getStatus();
-        if (status >= 200 && status < 300) {
-            byte[] responseBody = wrappedResponse.getContentAsByteArray();
-            String respuestaTexto = new String(responseBody, StandardCharsets.UTF_8);
+        // Clave nueva: la reclamamos (EN_CURSO) antes de ejecutar, para que una peticion
+        // concurrente con la misma clave caiga en la rama de arriba en vez de duplicar.
+        claveRepositorio.save(new ClaveIdempotencia(clave, huella));
 
-            ClaveIdempotencia nuevaClave = existente.orElseGet(() -> new ClaveIdempotencia(clave, huella));
-            nuevaClave.marcarCompletado(status, respuestaTexto);
-            claveRepositorio.save(nuevaClave);
+        ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
+        try {
+            filterChain.doFilter(requestConCuerpoReleido, wrappedResponse);
+        } finally {
+            int status = wrappedResponse.getStatus();
+            if (status >= 200 && status < 300) {
+                byte[] responseBody = wrappedResponse.getContentAsByteArray();
+                String respuestaTexto = new String(responseBody, StandardCharsets.UTF_8);
+                claveRepositorio.findByClave(clave).ifPresent(registro -> {
+                    registro.marcarCompletado(status, respuestaTexto);
+                    claveRepositorio.save(registro);
+                });
+            } else {
+                // La peticion fallo: liberamos la clave para que un reintento real pueda
+                // volver a ejecutar el controlador, en vez de quedar EN_CURSO para siempre.
+                claveRepositorio.deleteById(clave);
+            }
+            wrappedResponse.copyBodyToResponse();
+        }
+    }
+
+    private void escribirError(HttpServletResponse response, int status, String codigo, String mensaje) throws IOException {
+        response.setStatus(status);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write("{\"codigo\":\"" + codigo + "\",\"mensaje\":\"" + mensaje + "\"}");
+    }
+
+    /** Re-sirve los bytes del cuerpo ya leidos, para que el controlador los pueda leer normal. */
+    private static class CuerpoReleidoRequest extends HttpServletRequestWrapper {
+        private final byte[] cuerpo;
+
+        CuerpoReleidoRequest(HttpServletRequest request, byte[] cuerpo) {
+            super(request);
+            this.cuerpo = cuerpo;
         }
 
-        wrappedResponse.copyBodyToResponse();
+        @Override
+        public ServletInputStream getInputStream() {
+            ByteArrayInputStream flujo = new ByteArrayInputStream(cuerpo);
+            return new ServletInputStream() {
+                @Override
+                public boolean isFinished() {
+                    return flujo.available() == 0;
+                }
+
+                @Override
+                public boolean isReady() {
+                    return true;
+                }
+
+                @Override
+                public void setReadListener(ReadListener readListener) {
+                }
+
+                @Override
+                public int read() {
+                    return flujo.read();
+                }
+            };
+        }
     }
 
     private String calcularSha256(byte[] datos) {

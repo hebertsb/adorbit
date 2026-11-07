@@ -17,9 +17,12 @@ public class ConfiguracionRabbitMQ {
         return new TopicExchange(EXCHANGE_EVENTOS, true, false);
     }
 
+    // direct: asi esta declarado en el broker compartido (plataforma/rabbitmq/definiciones.json);
+    // las claves de comando son exactas, no hay comodines. RabbitMQ rechaza redeclarar un exchange
+    // existente con otro tipo (406 PRECONDITION_FAILED) -- mismo fix que aplico Luis en ms-facturacion.
     @Bean
-    public TopicExchange exchangeSaga() {
-        return new TopicExchange(EXCHANGE_SAGA, true, false);
+    public DirectExchange exchangeSaga() {
+        return new DirectExchange(EXCHANGE_SAGA, true, false);
     }
 
     @Bean
@@ -28,7 +31,7 @@ public class ConfiguracionRabbitMQ {
     }
 
     @Bean
-    public Binding bindingSagaCampanas(Queue colaSagaCampanas, TopicExchange exchangeSaga) {
-        return BindingBuilder.bind(colaSagaCampanas).to(exchangeSaga).with("saga.campanas.#");
+    public Binding bindingSagaCampanas(Queue colaSagaCampanas, DirectExchange exchangeSaga) {
+        return BindingBuilder.bind(colaSagaCampanas).to(exchangeSaga).with(COLA_SAGA_CAMPANAS);
     }
 }
