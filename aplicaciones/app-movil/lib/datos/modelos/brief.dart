@@ -1,24 +1,36 @@
+import '../../core/i18n/idioma_controller.dart';
+
 /// Forma real de contratos/openapi/ms-creatividades.yaml (componente Brief) --
 /// src/domain/brief.ts es la fuente de verdad del backend, estos son sus mismos campos.
 enum EstadoBrief { recibido, enCreacion, enRevision, aprobado, rechazado }
 
 extension EstadoBriefX on EstadoBrief {
-  String get etiqueta => switch (this) {
-        EstadoBrief.recibido => 'Recibido',
-        EstadoBrief.enCreacion => 'En creación',
-        EstadoBrief.enRevision => 'En revisión',
-        EstadoBrief.aprobado => 'Aprobado',
-        EstadoBrief.rechazado => 'Rechazado',
-      };
+  /// Etiqueta traducida (ver core/i18n) -- esta SI depende del idioma, a diferencia de
+  /// los campos de arriba (estado en ingles/espanol de la API, invariables).
+  String etiqueta(Idioma idioma) => idioma == Idioma.en
+      ? switch (this) {
+          EstadoBrief.recibido => 'Received',
+          EstadoBrief.enCreacion => 'In creation',
+          EstadoBrief.enRevision => 'In review',
+          EstadoBrief.aprobado => 'Approved',
+          EstadoBrief.rechazado => 'Rejected',
+        }
+      : switch (this) {
+          EstadoBrief.recibido => 'Recibido',
+          EstadoBrief.enCreacion => 'En creación',
+          EstadoBrief.enRevision => 'En revisión',
+          EstadoBrief.aprobado => 'Aprobado',
+          EstadoBrief.rechazado => 'Rechazado',
+        };
 
   static EstadoBrief desdeTexto(String valor) => switch (valor) {
-        'recibido' => EstadoBrief.recibido,
-        'en_creacion' => EstadoBrief.enCreacion,
-        'en_revision' => EstadoBrief.enRevision,
-        'aprobado' => EstadoBrief.aprobado,
-        'rechazado' => EstadoBrief.rechazado,
-        _ => EstadoBrief.recibido,
-      };
+    'recibido' => EstadoBrief.recibido,
+    'en_creacion' => EstadoBrief.enCreacion,
+    'en_revision' => EstadoBrief.enRevision,
+    'aprobado' => EstadoBrief.aprobado,
+    'rechazado' => EstadoBrief.rechazado,
+    _ => EstadoBrief.recibido,
+  };
 }
 
 class Brief {
@@ -45,90 +57,110 @@ class Brief {
   final DateTime? actualizadoEn;
 
   factory Brief.desdeJson(Map<String, dynamic> j) => Brief(
-        id: j['id'] as String,
-        campanaId: j['campanaId'] as String,
-        clienteId: j['clienteId'] as String?,
-        titulo: j['titulo'] as String,
-        descripcion: j['descripcion'] as String?,
-        estado: EstadoBriefX.desdeTexto(j['estado'] as String),
-        version: j['version'] as int? ?? 1,
-        creadoEn: j['creadoEn'] != null ? DateTime.tryParse(j['creadoEn'] as String) : null,
-        actualizadoEn: j['actualizadoEn'] != null ? DateTime.tryParse(j['actualizadoEn'] as String) : null,
-      );
+    id: j['id'] as String,
+    campanaId: j['campanaId'] as String,
+    clienteId: j['clienteId'] as String?,
+    titulo: j['titulo'] as String,
+    descripcion: j['descripcion'] as String?,
+    estado: EstadoBriefX.desdeTexto(j['estado'] as String),
+    version: j['version'] as int? ?? 1,
+    creadoEn: j['creadoEn'] != null
+        ? DateTime.tryParse(j['creadoEn'] as String)
+        : null,
+    actualizadoEn: j['actualizadoEn'] != null
+        ? DateTime.tryParse(j['actualizadoEn'] as String)
+        : null,
+  );
 
   Map<String, dynamic> aJson() => {
-        'id': id,
-        'campanaId': campanaId,
-        'clienteId': clienteId,
-        'titulo': titulo,
-        'descripcion': descripcion,
-        'estado': switch (estado) {
-          EstadoBrief.recibido => 'recibido',
-          EstadoBrief.enCreacion => 'en_creacion',
-          EstadoBrief.enRevision => 'en_revision',
-          EstadoBrief.aprobado => 'aprobado',
-          EstadoBrief.rechazado => 'rechazado',
-        },
-        'version': version,
-        'creadoEn': creadoEn?.toIso8601String(),
-        'actualizadoEn': actualizadoEn?.toIso8601String(),
-      };
+    'id': id,
+    'campanaId': campanaId,
+    'clienteId': clienteId,
+    'titulo': titulo,
+    'descripcion': descripcion,
+    'estado': switch (estado) {
+      EstadoBrief.recibido => 'recibido',
+      EstadoBrief.enCreacion => 'en_creacion',
+      EstadoBrief.enRevision => 'en_revision',
+      EstadoBrief.aprobado => 'aprobado',
+      EstadoBrief.rechazado => 'rechazado',
+    },
+    'version': version,
+    'creadoEn': creadoEn?.toIso8601String(),
+    'actualizadoEn': actualizadoEn?.toIso8601String(),
+  };
 }
 
 enum EstadoPieza { enRevision, aprobada, bloqueadaSaga, rechazada }
 
 extension EstadoPiezaX on EstadoPieza {
-  String get etiqueta => switch (this) {
-        EstadoPieza.enRevision => 'Pendiente',
-        EstadoPieza.aprobada => 'Aprobada',
-        EstadoPieza.bloqueadaSaga => 'Bloqueada',
-        EstadoPieza.rechazada => 'Rechazada',
-      };
+  String etiqueta(Idioma idioma) => idioma == Idioma.en
+      ? switch (this) {
+          EstadoPieza.enRevision => 'Pending',
+          EstadoPieza.aprobada => 'Approved',
+          EstadoPieza.bloqueadaSaga => 'Locked',
+          EstadoPieza.rechazada => 'Rejected',
+        }
+      : switch (this) {
+          EstadoPieza.enRevision => 'Pendiente',
+          EstadoPieza.aprobada => 'Aprobada',
+          EstadoPieza.bloqueadaSaga => 'Bloqueada',
+          EstadoPieza.rechazada => 'Rechazada',
+        };
 
   static EstadoPieza desdeTexto(String valor) => switch (valor) {
-        'en_revision' => EstadoPieza.enRevision,
-        'aprobada' => EstadoPieza.aprobada,
-        'bloqueada_saga' => EstadoPieza.bloqueadaSaga,
-        'rechazada' => EstadoPieza.rechazada,
-        _ => EstadoPieza.enRevision,
-      };
+    'en_revision' => EstadoPieza.enRevision,
+    'aprobada' => EstadoPieza.aprobada,
+    'bloqueada_saga' => EstadoPieza.bloqueadaSaga,
+    'rechazada' => EstadoPieza.rechazada,
+    _ => EstadoPieza.enRevision,
+  };
 }
 
 enum TipoPieza { imagen, video, copy, audio }
 
 extension TipoPiezaX on TipoPieza {
   String get valorApi => switch (this) {
-        TipoPieza.imagen => 'imagen',
-        TipoPieza.video => 'video',
-        TipoPieza.copy => 'copy',
-        TipoPieza.audio => 'audio',
-      };
+    TipoPieza.imagen => 'imagen',
+    TipoPieza.video => 'video',
+    TipoPieza.copy => 'copy',
+    TipoPieza.audio => 'audio',
+  };
 
   static TipoPieza desdeTexto(String valor) => switch (valor) {
-        'imagen' => TipoPieza.imagen,
-        'video' => TipoPieza.video,
-        'copy' => TipoPieza.copy,
-        'audio' => TipoPieza.audio,
-        _ => TipoPieza.imagen,
-      };
+    'imagen' => TipoPieza.imagen,
+    'video' => TipoPieza.video,
+    'copy' => TipoPieza.copy,
+    'audio' => TipoPieza.audio,
+    _ => TipoPieza.imagen,
+  };
 }
 
 class ArchivoPieza {
-  const ArchivoPieza({required this.ruta, required this.mime, required this.tamano});
+  const ArchivoPieza({
+    required this.ruta,
+    required this.mime,
+    required this.tamano,
+  });
 
   final String ruta;
   final String mime;
   final num tamano;
 
-  factory ArchivoPieza.desdeJson(Map<String, dynamic> j) =>
-      ArchivoPieza(ruta: j['ruta'] as String, mime: j['mime'] as String, tamano: j['tamano'] as num);
+  factory ArchivoPieza.desdeJson(Map<String, dynamic> j) => ArchivoPieza(
+    ruta: j['ruta'] as String,
+    mime: j['mime'] as String,
+    tamano: j['tamano'] as num,
+  );
 
   /// "JPG · 1080×1920" no viene del backend (solo guarda ruta/mime/tamano, nunca
   /// dimensiones) -- se muestra el mime en mayusculas y el peso, que si es real.
   String get resumen {
     final ext = mime.split('/').last.toUpperCase();
     final kb = tamano / 1024;
-    return kb >= 1024 ? '$ext · ${(kb / 1024).toStringAsFixed(1)} MB' : '$ext · ${kb.toStringAsFixed(0)} KB';
+    return kb >= 1024
+        ? '$ext · ${(kb / 1024).toStringAsFixed(1)} MB'
+        : '$ext · ${kb.toStringAsFixed(0)} KB';
   }
 }
 
@@ -163,15 +195,19 @@ class Pieza {
   final double? confianza;
 
   factory Pieza.desdeJson(Map<String, dynamic> j) => Pieza(
-        id: j['id'] as String,
-        briefId: j['briefId'] as String,
-        campanaId: j['campanaId'] as String,
-        nombre: j['nombre'] as String,
-        tipo: TipoPiezaX.desdeTexto(j['tipo'] as String),
-        versionNumero: j['versionNumero'] as int? ?? 1,
-        archivo: j['archivo'] != null ? ArchivoPieza.desdeJson(j['archivo'] as Map<String, dynamic>) : null,
-        estado: EstadoPiezaX.desdeTexto(j['estado'] as String),
-        version: j['version'] as int? ?? 1,
-        creadoEn: j['creadoEn'] != null ? DateTime.tryParse(j['creadoEn'] as String) : null,
-      );
+    id: j['id'] as String,
+    briefId: j['briefId'] as String,
+    campanaId: j['campanaId'] as String,
+    nombre: j['nombre'] as String,
+    tipo: TipoPiezaX.desdeTexto(j['tipo'] as String),
+    versionNumero: j['versionNumero'] as int? ?? 1,
+    archivo: j['archivo'] != null
+        ? ArchivoPieza.desdeJson(j['archivo'] as Map<String, dynamic>)
+        : null,
+    estado: EstadoPiezaX.desdeTexto(j['estado'] as String),
+    version: j['version'] as int? ?? 1,
+    creadoEn: j['creadoEn'] != null
+        ? DateTime.tryParse(j['creadoEn'] as String)
+        : null,
+  );
 }

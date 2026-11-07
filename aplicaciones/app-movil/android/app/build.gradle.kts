@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.grupo23.adorbit.app_movil"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -30,6 +30,13 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            // Reglas propias ademas de las de Flutter: protegen ai.onnxruntime.** de R8
+            // (ver proguard-rules.pro -- sin esto, la app crashea con SIGABRT al validar
+            // una pieza con el modelo YOLO on-device, justo en OrtSession.run()).
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

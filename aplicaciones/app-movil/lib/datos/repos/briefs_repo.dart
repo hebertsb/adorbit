@@ -19,7 +19,10 @@ class BriefsRepo {
   Future<List<Brief>> listar() async {
     const clave = 'briefs';
     try {
-      final respuesta = await _api.get('/api/v1/briefs', query: const {'size': '50'});
+      final respuesta = await _api.get(
+        '/api/v1/briefs',
+        query: const {'size': '50'},
+      );
       final items = (respuesta['items'] as List).cast<Map<String, dynamic>>();
       await _cache.guardar(clave, jsonEncode(items));
       return items.map(Brief.desdeJson).toList();
@@ -59,14 +62,19 @@ class BriefsRepo {
     }
   }
 
-  Future<Brief> crear({required String campanaId, required String titulo, String? descripcion}) async {
+  Future<Brief> crear({
+    required String campanaId,
+    required String titulo,
+    String? descripcion,
+  }) async {
     final respuesta = await _api.post(
       '/api/v1/briefs',
       idempotencyKey: const Uuid().v4(),
       body: {
         'campana_id': campanaId,
         'titulo': titulo,
-        if (descripcion != null && descripcion.isNotEmpty) 'descripcion': descripcion,
+        if (descripcion != null && descripcion.isNotEmpty)
+          'descripcion': descripcion,
       },
     );
     return Brief.desdeJson(respuesta);

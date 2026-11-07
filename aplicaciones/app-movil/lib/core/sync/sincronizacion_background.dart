@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../auth/sesion_controller.dart' show clavePrefsToken;
+import 'preferencias_sync.dart';
 import 'sincronizador_service.dart';
 
 const String tareaSincronizacionPeriodica = 'adorbit-sincronizacion-periodica';
@@ -17,7 +18,8 @@ void callbackDispatcher() {
   Workmanager().executeTask((taskName, inputData) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(clavePrefsToken);
-    if (token == null) return true; // sin sesion -- nada que sincronizar todavia
+    if (token == null)
+      return true; // sin sesion -- nada que sincronizar todavia
     await SincronizadorService(token: token).drenarPendientes();
     return true;
   });
@@ -37,7 +39,7 @@ class SincronizacionBackground {
       // Minimo permitido por Android WorkManager; iOS ignora frequency y decide
       // el momento real segun el patron de uso de la app (ver docs de workmanager).
       frequency: const Duration(minutes: 15),
-      constraints: Constraints(networkType: NetworkType.connected),
+      constraints: Constraints(networkType: await _tipoRedSegunPreferencia()),
       existingWorkPolicy: ExistingPeriodicWorkPolicy.keep,
     );
   }
@@ -48,8 +50,30 @@ class SincronizacionBackground {
     await Workmanager().registerOneOffTask(
       '$tareaSincronizacionInmediata-${DateTime.now().millisecondsSinceEpoch}',
       tareaSincronizacionInmediata,
-      constraints: Constraints(networkType: NetworkType.connected),
+      constraints: Constraints(networkType: await _tipoRedSegunPreferencia()),
       existingWorkPolicy: ExistingWorkPolicy.append,
     );
+  }
+
+  /// Re-registra la tarea periodica con la restriccion de red correcta -- llamar
+  /// cuando el usuario cambia "Solo sincronizar con Wi-Fi" en cola_sincronizacion_pagina.dart.
+  static Future<void> aplicarPreferenciaWifi(bool soloWifi) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(clavePrefsSoloWifi, soloWifi);
+    await Workmanager().registerPeriodicTask(
+      tareaSincronizacionPeriodica,
+      tareaSincronizacionPeriodica,
+      frequency: const Duration(minutes: 15),
+      constraints: Constraints(
+        networkType: soloWifi ? NetworkType.unmetered : NetworkType.connected,
+      ),
+      existingWorkPolicy: ExistingPeriodicWorkPolicy.replace,
+    );
+  }
+
+  static Future<NetworkType> _tipoRedSegunPreferencia() async {
+    final prefs = await SharedPreferences.getInstance();
+    final soloWifi = prefs.getBool(clavePrefsSoloWifi) ?? true;
+    return soloWifi ? NetworkType.unmetered : NetworkType.connected;
   }
 }

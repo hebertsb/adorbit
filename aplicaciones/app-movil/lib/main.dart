@@ -22,7 +22,9 @@ Future<void> main() async {
   final contenedor = ProviderContainer();
   await contenedor.read(sesionControllerProvider.notifier).restaurar();
 
-  runApp(UncontrolledProviderScope(container: contenedor, child: const AdOrbitApp()));
+  runApp(
+    UncontrolledProviderScope(container: contenedor, child: const AdOrbitApp()),
+  );
 }
 
 class AdOrbitApp extends ConsumerWidget {
@@ -35,8 +37,12 @@ class AdOrbitApp extends ConsumerWidget {
     // Al recuperar cobertura, reintenta la bandeja de salida sin esperar los
     // 15 min de la tarea periodica (ver mockup cola_de_sincronizacion: "Se
     // sincronizará automáticamente cuando recuperes cobertura").
-    ref.listen<AsyncValue<EstadoConexion>>(conectividadProvider, (anterior, actual) {
-      final volvioALinea = anterior?.value == EstadoConexion.sinConexion &&
+    ref.listen<AsyncValue<EstadoConexion>>(conectividadProvider, (
+      anterior,
+      actual,
+    ) {
+      final volvioALinea =
+          anterior?.value == EstadoConexion.sinConexion &&
           actual.value == EstadoConexion.enLinea;
       if (!kIsWeb && volvioALinea) {
         SincronizacionBackground.sincronizarAhora();

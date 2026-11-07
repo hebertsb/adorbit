@@ -121,5 +121,6 @@ class AoThemeExtension extends ThemeExtension<AoThemeExtension> {
 }
 
 extension AoColoresContext on BuildContext {
-  ColoresAoTema get aoColores => Theme.of(this).extension<AoThemeExtension>()!.colores;
+  ColoresAoTema get aoColores =>
+      Theme.of(this).extension<AoThemeExtension>()!.colores;
 }

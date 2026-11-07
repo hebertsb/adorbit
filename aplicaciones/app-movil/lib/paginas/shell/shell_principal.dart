@@ -6,7 +6,11 @@ import '../../datos/repos/cola_sync_repo.dart';
 /// Envoltorio de las 4 secciones principales (ver mockup lista_de_briefs: nav inferior
 /// Briefs/Auditoría/Sincronizar/Perfil). Equivalente movil de ShellPrincipal en portal-gestion.
 class ShellPrincipal extends StatelessWidget {
-  const ShellPrincipal({super.key, required this.child, required this.rutaActual});
+  const ShellPrincipal({
+    super.key,
+    required this.child,
+    required this.rutaActual,
+  });
 
   final Widget child;
   final String rutaActual;
@@ -20,8 +24,10 @@ class ShellPrincipal extends StatelessWidget {
       body: child,
       bottomNavigationBar: FutureBuilder<int>(
         future: ColaSyncRepo().pendientes,
-        builder: (context, snapshot) =>
-            NavInferior(indiceActual: indice, pendientesSync: snapshot.data ?? 0),
+        builder: (context, snapshot) => NavInferior(
+          indiceActual: indice,
+          pendientesSync: snapshot.data ?? 0,
+        ),
       ),
     );
   }

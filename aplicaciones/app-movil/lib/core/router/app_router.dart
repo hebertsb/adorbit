@@ -13,21 +13,25 @@ import '../../paginas/perfil/perfil_pagina.dart';
 import '../../paginas/pieza_previsualizacion/pieza_previsualizacion_pagina.dart';
 import '../../paginas/shell/shell_principal.dart';
 import '../../paginas/validacion_ia/validacion_ia_pagina.dart';
+import 'ruta_observer.dart';
 
 /// Rutas de la app. Las 4 pestañas principales (briefs/auditoria/sincronizacion/perfil)
 /// viven bajo el ShellRoute con nav inferior; login y el flujo de captura son pantallas
 /// completas sin nav inferior (drill-down), igual que saga-estado en portal-gestion.
 final GoRouter appRouter = GoRouter(
   initialLocation: '/login',
+  observers: [rutaObserver],
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginPagina()),
     GoRoute(
       path: '/briefs/:id',
-      builder: (context, state) => BriefDetallePagina(briefId: state.pathParameters['id']!),
+      builder: (context, state) =>
+          BriefDetallePagina(briefId: state.pathParameters['id']!),
     ),
     GoRoute(
       path: '/camara/:briefId',
-      builder: (context, state) => CamaraCapturaPagina(briefId: state.pathParameters['briefId']!),
+      builder: (context, state) =>
+          CamaraCapturaPagina(briefId: state.pathParameters['briefId']!),
     ),
     GoRoute(
       path: '/previsualizacion/:briefId',
@@ -47,13 +51,22 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state, child) =>
           ShellPrincipal(rutaActual: state.uri.toString(), child: child),
       routes: [
-        GoRoute(path: '/briefs', builder: (context, state) => const BriefsListaPagina()),
-        GoRoute(path: '/auditoria', builder: (context, state) => const AuditoriaVallasPagina()),
+        GoRoute(
+          path: '/briefs',
+          builder: (context, state) => const BriefsListaPagina(),
+        ),
+        GoRoute(
+          path: '/auditoria',
+          builder: (context, state) => const AuditoriaVallasPagina(),
+        ),
         GoRoute(
           path: '/sincronizacion',
           builder: (context, state) => const ColaSincronizacionPagina(),
         ),
-        GoRoute(path: '/perfil', builder: (context, state) => const PerfilPagina()),
+        GoRoute(
+          path: '/perfil',
+          builder: (context, state) => const PerfilPagina(),
+        ),
       ],
     ),
   ],

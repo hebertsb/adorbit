@@ -16,17 +16,23 @@ class ApiCliente {
   final String _token;
   static const _timeout = Duration(seconds: 20);
 
-  Uri _uri(String path, [Map<String, String>? query]) =>
-      Uri.parse('${Entorno.baseUrlCreatividades}$path').replace(queryParameters: query);
+  Uri _uri(String path, [Map<String, String>? query]) => Uri.parse(
+    '${Entorno.baseUrlCreatividades}$path',
+  ).replace(queryParameters: query);
 
   Map<String, String> _encabezados({String? idempotencyKey}) => {
-        'Authorization': 'Bearer $_token',
-        'Content-Type': 'application/json',
-        'Idempotency-Key': ?idempotencyKey,
-      };
+    'Authorization': 'Bearer $_token',
+    'Content-Type': 'application/json',
+    'Idempotency-Key': ?idempotencyKey,
+  };
 
-  Future<Map<String, dynamic>> get(String path, {Map<String, String>? query}) async {
-    final respuesta = await http.get(_uri(path, query), headers: _encabezados()).timeout(_timeout);
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, String>? query,
+  }) async {
+    final respuesta = await http
+        .get(_uri(path, query), headers: _encabezados())
+        .timeout(_timeout);
     return _decodificar(respuesta) as Map<String, dynamic>;
   }
 
@@ -36,20 +42,29 @@ class ApiCliente {
     required String idempotencyKey,
   }) async {
     final respuesta = await http
-        .post(_uri(path), headers: _encabezados(idempotencyKey: idempotencyKey), body: jsonEncode(body))
+        .post(
+          _uri(path),
+          headers: _encabezados(idempotencyKey: idempotencyKey),
+          body: jsonEncode(body),
+        )
         .timeout(_timeout);
     return _decodificar(respuesta) as Map<String, dynamic>;
   }
 
   dynamic _decodificar(http.Response respuesta) {
-    final cuerpo = respuesta.body.isEmpty ? <String, dynamic>{} : jsonDecode(respuesta.body);
-    if (respuesta.statusCode >= 200 && respuesta.statusCode < 300) return cuerpo;
+    final cuerpo = respuesta.body.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(respuesta.body);
+    if (respuesta.statusCode >= 200 && respuesta.statusCode < 300)
+      return cuerpo;
 
     final mapa = cuerpo is Map<String, dynamic> ? cuerpo : <String, dynamic>{};
     throw ApiExcepcion(
       status: respuesta.statusCode,
       codigo: mapa['codigo'] as String? ?? 'error_desconocido',
-      mensaje: mapa['mensaje'] as String? ?? 'Error ${respuesta.statusCode} sin detalle',
+      mensaje:
+          mapa['mensaje'] as String? ??
+          'Error ${respuesta.statusCode} sin detalle',
       detalle: mapa['detalle'],
     );
   }
@@ -72,7 +87,8 @@ class ApiCliente {
       throw ApiExcepcion(
         status: respuesta.statusCode,
         codigo: 'subida_archivo_fallo',
-        mensaje: 'Supabase Storage respondio ${respuesta.statusCode} al subir el archivo',
+        mensaje:
+            'Supabase Storage respondio ${respuesta.statusCode} al subir el archivo',
       );
     }
   }

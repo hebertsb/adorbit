@@ -21,7 +21,8 @@ const clavePrefsRol = 'adorbit_token_rol';
 /// (jose/jwtVerify contra un JWKS), solo que el JWKS es de juguete.
 /// TODO Hebert: reemplazar iniciarSesionDev por flutter_appauth contra el realm real en
 /// cuanto Keycloak este arriba (ver login_pagina.dart).
-final sesionControllerProvider = NotifierProvider<SesionController, SesionEstado>(SesionController.new);
+final sesionControllerProvider =
+    NotifierProvider<SesionController, SesionEstado>(SesionController.new);
 
 class SesionEstado {
   const SesionEstado({this.token, this.rol});
@@ -30,6 +31,27 @@ class SesionEstado {
   final String? rol;
 
   bool get autenticado => token != null;
+
+  /// Claims reales del JWT (payload, sin verificar firma -- solo para mostrar en la UI;
+  /// ms-creatividades es quien valida la firma de verdad). Ver keycloak-simulado.mjs:
+  /// el atajo /emitir solo pone sub + realm_access.roles, no name/email.
+  Map<String, dynamic>? get claims {
+    final t = token;
+    if (t == null) return null;
+    final partes = t.split('.');
+    if (partes.length != 3) return null;
+    try {
+      var payload = partes[1].replaceAll('-', '+').replaceAll('_', '/');
+      payload = payload.padRight((payload.length + 3) ~/ 4 * 4, '=');
+      return jsonDecode(utf8.decode(base64.decode(payload)))
+          as Map<String, dynamic>;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// "usuario-simulado" tal como lo emite el simulador de Keycloak -- ver claims.
+  String? get sub => claims?['sub'] as String?;
 }
 
 class SesionController extends Notifier<SesionEstado> {
@@ -47,9 +69,9 @@ class SesionController extends Notifier<SesionEstado> {
   Future<void> iniciarSesionDev({String rol = 'creativo'}) async {
     // keycloak-simulado.mjs ya trae ms-creatividades en sus audiencias por defecto
     // (ver AUDIENCIAS en el script), asi que el atajo /emitir no necesita parametro aud.
-    final uri = Uri.parse('${Entorno.baseUrlEmisorPrueba}/emitir').replace(
-      queryParameters: {'roles': rol},
-    );
+    final uri = Uri.parse(
+      '${Entorno.baseUrlEmisorPrueba}/emitir',
+    ).replace(queryParameters: {'roles': rol});
 
     http.Response respuesta;
     try {

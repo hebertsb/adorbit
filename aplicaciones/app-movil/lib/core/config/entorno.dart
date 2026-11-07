@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 /// URLs base configurables por --dart-define (ver README "Correr contra el backend
 /// real"), con defaults razonables para emulador Android/iOS, Chrome y escritorio.
@@ -9,7 +10,8 @@ import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, Tar
 class Entorno {
   Entorno._();
 
-  static String get baseUrlCreatividades => const String.fromEnvironment(
+  static String get baseUrlCreatividades =>
+      const String.fromEnvironment(
         'ADORBIT_CREATIVIDADES_BASE_URL',
         defaultValue: '',
       ).isNotEmpty
@@ -20,12 +22,23 @@ class Entorno {
   /// (herramientas/keycloak-simulado.mjs, de Luis) mientras Roly no tenga el Keycloak
   /// real (plataforma/keycloak) corriendo. Ya usado por n8n, ms-ia, portal-cliente y
   /// panel-inteligencia -- ver "Probar local sin Keycloak" en el README.
-  static String get baseUrlEmisorPrueba => const String.fromEnvironment(
+  static String get baseUrlEmisorPrueba =>
+      const String.fromEnvironment(
         'ADORBIT_EMISOR_PRUEBA_BASE_URL',
         defaultValue: '',
       ).isNotEmpty
       ? const String.fromEnvironment('ADORBIT_EMISOR_PRUEBA_BASE_URL')
       : 'http://$_hostLocal:8180';
+
+  /// ms-ia (FastAPI, puerto 8085 -- ver docker-compose.yml). Usado por la pantalla de
+  /// Auditoria para POST /api/v1/vision/analizar (deteccion real con YOLOv8n).
+  static String get baseUrlIa =>
+      const String.fromEnvironment(
+        'ADORBIT_IA_BASE_URL',
+        defaultValue: '',
+      ).isNotEmpty
+      ? const String.fromEnvironment('ADORBIT_IA_BASE_URL')
+      : 'http://$_hostLocal:8085';
 
   static String get _hostLocal {
     if (kIsWeb) return 'localhost';

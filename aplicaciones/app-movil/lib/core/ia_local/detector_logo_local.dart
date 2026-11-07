@@ -48,10 +48,12 @@ class DetectorLogoLocal {
   Future<OrtSession> _sesionCargada() {
     final sesion = _sesion;
     if (sesion != null) return Future.value(sesion);
-    return _cargando ??= OnnxRuntime().createSessionFromAsset(_rutaModeloAsset).then((s) {
-      _sesion = s;
-      return s;
-    });
+    return _cargando ??= OnnxRuntime()
+        .createSessionFromAsset(_rutaModeloAsset)
+        .then((s) {
+          _sesion = s;
+          return s;
+        });
   }
 
   /// Decodifica, redimensiona y normaliza [bytesImagen], corre la inferencia y decodifica
@@ -60,17 +62,28 @@ class DetectorLogoLocal {
   Future<DeteccionLogo> detectar(Uint8List bytesImagen) async {
     final decodificada = img.decodeImage(bytesImagen);
     if (decodificada == null) {
-      return const DeteccionLogo(detectaLogo: false, confianza: 0, anchoImagen: 0, altoImagen: 0);
+      return const DeteccionLogo(
+        detectaLogo: false,
+        confianza: 0,
+        anchoImagen: 0,
+        altoImagen: 0,
+      );
     }
 
     final entrada = _aTensorEntrada(decodificada);
     final sesion = await _sesionCargada();
-    final valorEntrada = await OrtValue.fromList(entrada, [1, 3, _tamanoEntrada, _tamanoEntrada]);
+    final valorEntrada = await OrtValue.fromList(entrada, [
+      1,
+      3,
+      _tamanoEntrada,
+      _tamanoEntrada,
+    ]);
     try {
       final nombreEntrada = sesion.inputNames.first;
       final salidas = await sesion.run({nombreEntrada: valorEntrada});
       final nombreSalida = sesion.outputNames.first;
-      final bruto = (await salidas[nombreSalida]!.asFlattenedList()).cast<num>();
+      final bruto = (await salidas[nombreSalida]!.asFlattenedList())
+          .cast<num>();
       for (final v in salidas.values) {
         unawaited(v.dispose());
       }
@@ -81,7 +94,11 @@ class DetectorLogoLocal {
   }
 
   Float32List _aTensorEntrada(img.Image imagen) {
-    final redimensionada = img.copyResize(imagen, width: _tamanoEntrada, height: _tamanoEntrada);
+    final redimensionada = img.copyResize(
+      imagen,
+      width: _tamanoEntrada,
+      height: _tamanoEntrada,
+    );
     final total = _tamanoEntrada * _tamanoEntrada;
     final entrada = Float32List(3 * total);
     var i = 0;

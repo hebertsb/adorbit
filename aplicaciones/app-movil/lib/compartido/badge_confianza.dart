@@ -9,7 +9,11 @@ import 'chip_estado.dart';
 const double umbralAltaConfianza = 0.85;
 
 class BadgeConfianza extends StatelessWidget {
-  const BadgeConfianza({super.key, required this.confianza, this.compacto = false});
+  const BadgeConfianza({
+    super.key,
+    required this.confianza,
+    this.compacto = false,
+  });
 
   final double confianza;
   final bool compacto;

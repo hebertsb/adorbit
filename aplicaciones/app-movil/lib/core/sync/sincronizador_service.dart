@@ -1,7 +1,10 @@
 import 'dart:convert';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
 import '../datos_locales/bandeja_salida_dao.dart';
 import '../red/api_cliente.dart';
+import 'preferencias_sync.dart';
 
 /// Drena bandeja_salida_local contra el backend real de ms-creatividades. Hoy solo
 /// conoce el tipo 'pieza_subida' (ver pieza_previsualizacion_pagina.dart), con el
@@ -14,7 +17,8 @@ import '../red/api_cliente.dart';
 /// una ruta de archivo): funciona igual en movil, escritorio y web sin ramas por
 /// plataforma, a costa de ~33% mas de espacio en SQLite -- aceptable para fotos.
 class SincronizadorService {
-  SincronizadorService({required String token}) : _api = ApiCliente(token: token);
+  SincronizadorService({required String token})
+    : _api = ApiCliente(token: token);
 
   final ApiCliente _api;
   final BandejaSalidaDao _dao = BandejaSalidaDao();
@@ -32,16 +36,27 @@ class SincronizadorService {
         await _enviar(item);
         await _dao.marcarEstado(id, 'sincronizado');
         enviados++;
-      } catch (_) {
+      } catch (e) {
+        // ignore: avoid_print
+        print('ao-sync-error [${item.claveIdempotencia}]: $e');
         await _dao.incrementarIntento(id);
       }
+    }
+    if (enviados > 0) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        clavePrefsUltimaSincronizacion,
+        DateTime.now().toIso8601String(),
+      );
     }
     return enviados;
   }
 
   Future<void> _enviar(ElementoBandeja item) async {
     if (item.tipo != 'pieza_subida') {
-      throw UnsupportedError('Tipo de elemento de bandeja desconocido: ${item.tipo}');
+      throw UnsupportedError(
+        'Tipo de elemento de bandeja desconocido: ${item.tipo}',
+      );
     }
 
     final carga = jsonDecode(item.carga) as Map<String, dynamic>;
@@ -59,7 +74,8 @@ class SincronizadorService {
       body: {
         'mime': carga['mime'],
         'tamano': carga['tamano'],
-        if (carga['huellaImagen'] != null) 'huella_imagen': carga['huellaImagen'],
+        if (carga['huellaImagen'] != null)
+          'huella_imagen': carga['huellaImagen'],
       },
     );
 

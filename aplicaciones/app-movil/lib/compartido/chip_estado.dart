@@ -19,11 +19,21 @@ class ChipEstado extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: compacto ? 8 : 10, vertical: compacto ? 3 : 5),
-      decoration: BoxDecoration(color: fondo, borderRadius: BorderRadius.circular(999)),
+      padding: EdgeInsets.symmetric(
+        horizontal: compacto ? 8 : 10,
+        vertical: compacto ? 3 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: fondo,
+        borderRadius: BorderRadius.circular(999),
+      ),
       child: Text(
         texto,
-        style: TextStyle(color: color, fontSize: compacto ? 11 : 12, fontWeight: FontWeight.w700),
+        style: TextStyle(
+          color: color,
+          fontSize: compacto ? 11 : 12,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

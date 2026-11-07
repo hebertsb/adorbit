@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Controla el ThemeMode global. Equivalente movil del TemaService (signal) de portal-gestion:
 /// claro/oscuro/sistema en un solo lugar, sin persistencia (alcance UI de esta pasada).
-final temaControllerProvider = NotifierProvider<TemaController, ThemeMode>(TemaController.new);
+final temaControllerProvider = NotifierProvider<TemaController, ThemeMode>(
+  TemaController.new,
+);
 
 class TemaController extends Notifier<ThemeMode> {
   @override

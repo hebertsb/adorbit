@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/auth/sesion_controller.dart';
+import '../../core/i18n/idioma_controller.dart';
+import '../../core/i18n/textos.dart';
 import '../../datos/repos/briefs_repo.dart';
 
 /// Captura real con package:camera. En web el navegador pide permiso de camara solo
@@ -18,13 +20,23 @@ class CamaraCapturaPagina extends ConsumerStatefulWidget {
   final String briefId;
 
   @override
-  ConsumerState<CamaraCapturaPagina> createState() => _CamaraCapturaPaginaState();
+  ConsumerState<CamaraCapturaPagina> createState() =>
+      _CamaraCapturaPaginaState();
 }
 
-class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with WidgetsBindingObserver {
+class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina>
+    with WidgetsBindingObserver {
   static const _nivelesZoom = [0.5, 1.0, 2.0];
-  static const _modos = ['Panorámica', 'Valla OOH', 'Inspección'];
   String? _tituloBrief;
+
+  String _t(String clave) =>
+      Textos.t(ref.read(idiomaControllerProvider), clave);
+
+  List<String> get _modos => [
+    _t('camara.modo_panoramica'),
+    _t('camara.modo_valla'),
+    _t('camara.modo_inspeccion'),
+  ];
 
   List<CameraDescription> _camaras = [];
   CameraController? _controlador;
@@ -44,9 +56,12 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
     _inicializar();
     final token = ref.read(sesionControllerProvider).token;
     if (token != null) {
-      BriefsRepo(token: token).obtener(widget.briefId).then((b) {
-        if (mounted) setState(() => _tituloBrief = b.titulo);
-      }).catchError((_) {});
+      BriefsRepo(token: token)
+          .obtener(widget.briefId)
+          .then((b) {
+            if (mounted) setState(() => _tituloBrief = b.titulo);
+          })
+          .catchError((_) {});
     }
   }
 
@@ -57,7 +72,7 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
         if (!mounted) return;
         setState(() {
           _inicializando = false;
-          _error = 'Permiso de cámara denegado. Actívalo en los ajustes del dispositivo.';
+          _error = _t('camara.error_permiso');
         });
         return;
       }
@@ -69,7 +84,7 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
         if (!mounted) return;
         setState(() {
           _inicializando = false;
-          _error = 'No se encontró ninguna cámara disponible en este dispositivo.';
+          _error = _t('camara.error_sin_camara');
         });
         return;
       }
@@ -78,14 +93,18 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
       if (!mounted) return;
       setState(() {
         _inicializando = false;
-        _error = 'No se pudo iniciar la cámara: $e';
+        _error = '${_t('camara.error_iniciar')}: $e';
       });
     }
   }
 
   Future<void> _abrirCamara(int indice) async {
     final anterior = _controlador;
-    final controlador = CameraController(_camaras[indice], ResolutionPreset.high, enableAudio: false);
+    final controlador = CameraController(
+      _camaras[indice],
+      ResolutionPreset.high,
+      enableAudio: false,
+    );
     try {
       await controlador.initialize();
       final minZ = await controlador.getMinZoomLevel();
@@ -105,7 +124,7 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
       if (!mounted) return;
       setState(() {
         _inicializando = false;
-        _error = 'No se pudo abrir la cámara: $e';
+        _error = '${_t('camara.error_abrir')}: $e';
       });
     }
   }
@@ -157,7 +176,9 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
 
   Future<void> _capturar() async {
     final controlador = _controlador;
-    if (controlador == null || !controlador.value.isInitialized || controlador.value.isTakingPicture) {
+    if (controlador == null ||
+        !controlador.value.isInitialized ||
+        controlador.value.isTakingPicture) {
       return;
     }
     try {
@@ -166,12 +187,17 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
       context.push('/previsualizacion/${widget.briefId}', extra: archivo);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('No se pudo capturar: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${_t('camara.error_capturar')}: $e')),
+      );
     }
   }
 
   Future<void> _elegirDeGaleria() async {
-    final XFile? archivo = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 90);
+    final XFile? archivo = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 90,
+    );
     if (archivo == null || !mounted) return;
     context.push('/previsualizacion/${widget.briefId}', extra: archivo);
   }
@@ -185,6 +211,7 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(idiomaControllerProvider);
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -204,25 +231,37 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
                       Expanded(
                         child: Center(
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black45,
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              'Para: ${_tituloBrief ?? '...'}',
-                              style: const TextStyle(color: Colors.white, fontSize: 11),
+                              '${_t('camara.para')}: ${_tituloBrief ?? '...'}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: Icon(_flash ? Icons.flash_on : Icons.flash_off, color: Colors.white),
+                        icon: Icon(
+                          _flash ? Icons.flash_on : Icons.flash_off,
+                          color: Colors.white,
+                        ),
                         onPressed: _alternarFlash,
                       ),
                       IconButton(
-                        icon: const Icon(Icons.cameraswitch_outlined, color: Colors.white),
+                        icon: const Icon(
+                          Icons.cameraswitch_outlined,
+                          color: Colors.white,
+                        ),
                         onPressed: _camaras.length > 1 ? _voltearCamara : null,
                       ),
                     ],
@@ -238,7 +277,10 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
                           child: GestureDetector(
                             onTap: () => _cambiarZoom(i),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: activo ? Colors.white : Colors.black45,
                                 borderRadius: BorderRadius.circular(999),
@@ -270,7 +312,9 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
                             _modos[i],
                             style: TextStyle(
                               color: activo ? Colors.white : Colors.white38,
-                              fontWeight: activo ? FontWeight.w800 : FontWeight.w500,
+                              fontWeight: activo
+                                  ? FontWeight.w800
+                                  : FontWeight.w500,
                               fontSize: 13,
                             ),
                           ),
@@ -285,10 +329,19 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
                       Column(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.photo_library_outlined, color: Colors.white70),
+                            icon: const Icon(
+                              Icons.photo_library_outlined,
+                              color: Colors.white70,
+                            ),
                             onPressed: _elegirDeGaleria,
                           ),
-                          const Text('Galería', style: TextStyle(color: Colors.white54, fontSize: 10)),
+                          Text(
+                            _t('camara.galeria'),
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 10,
+                            ),
+                          ),
                         ],
                       ),
                       GestureDetector(
@@ -323,9 +376,17 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.no_photography_outlined, color: Colors.white54, size: 40),
+              const Icon(
+                Icons.no_photography_outlined,
+                color: Colors.white54,
+                size: 40,
+              ),
               const SizedBox(height: 12),
-              Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70),
+              ),
             ],
           ),
         ),
@@ -333,8 +394,12 @@ class _CamaraCapturaPaginaState extends ConsumerState<CamaraCapturaPagina> with 
     }
 
     final controlador = _controlador;
-    if (_inicializando || controlador == null || !controlador.value.isInitialized) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white54));
+    if (_inicializando ||
+        controlador == null ||
+        !controlador.value.isInitialized) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white54),
+      );
     }
 
     final previewSize = controlador.value.previewSize;

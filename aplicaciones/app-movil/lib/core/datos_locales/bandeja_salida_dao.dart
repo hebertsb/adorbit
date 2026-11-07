@@ -21,15 +21,16 @@ class ElementoBandeja {
   final DateTime creadoEn;
 
   Map<String, Object?> aFila() => {
-        'clave_idempotencia': claveIdempotencia,
-        'tipo': tipo,
-        'carga': carga,
-        'estado': estado,
-        'intentos': intentos,
-        'creado_en': creadoEn.toIso8601String(),
-      };
+    'clave_idempotencia': claveIdempotencia,
+    'tipo': tipo,
+    'carga': carga,
+    'estado': estado,
+    'intentos': intentos,
+    'creado_en': creadoEn.toIso8601String(),
+  };
 
-  static ElementoBandeja desdeFila(Map<String, Object?> fila) => ElementoBandeja(
+  static ElementoBandeja desdeFila(Map<String, Object?> fila) =>
+      ElementoBandeja(
         id: fila['id'] as int?,
         claveIdempotencia: fila['clave_idempotencia'] as String,
         tipo: fila['tipo'] as String,
@@ -50,13 +51,21 @@ class BandejaSalidaDao {
 
   Future<List<ElementoBandeja>> listar() async {
     final db = await SqliteDb.instancia.abrir();
-    final filas = await db.query('bandeja_salida_local', orderBy: 'creado_en DESC');
+    final filas = await db.query(
+      'bandeja_salida_local',
+      orderBy: 'creado_en DESC',
+    );
     return filas.map(ElementoBandeja.desdeFila).toList();
   }
 
   Future<void> marcarEstado(int id, String estado) async {
     final db = await SqliteDb.instancia.abrir();
-    await db.update('bandeja_salida_local', {'estado': estado}, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'bandeja_salida_local',
+      {'estado': estado},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 
   Future<void> incrementarIntento(int id) async {

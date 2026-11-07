@@ -41,10 +41,16 @@ class ColaSyncRepo {
 
     final titulo = carga['nombre'] as String? ?? item.tipo;
     final briefId = carga['briefId'] as String?;
-    final subtitulo = briefId != null ? 'Brief ${briefId.substring(0, briefId.length.clamp(0, 8))}…' : item.tipo;
+    final subtitulo = briefId != null
+        ? 'Brief ${briefId.substring(0, briefId.length.clamp(0, 8))}…'
+        : item.tipo;
 
     if (item.estado == 'sincronizado') {
-      return ElementoColaSync(titulo: titulo, subtitulo: subtitulo, estado: EstadoSincronizacion.sincronizado);
+      return ElementoColaSync(
+        titulo: titulo,
+        subtitulo: subtitulo,
+        estado: EstadoSincronizacion.sincronizado,
+      );
     }
     if (item.intentos > 0) {
       return ElementoColaSync(
@@ -52,14 +58,16 @@ class ColaSyncRepo {
         subtitulo: subtitulo,
         estado: EstadoSincronizacion.error,
         intentos: item.intentos,
-        detalle: 'No se pudo sincronizar todavía. Se reintentará automáticamente.',
+        // Clave de core/i18n/textos.dart, no texto literal -- la pantalla la resuelve
+        // con el idioma activo (ver cola_sincronizacion_pagina.dart).
+        detalle: 'sync.detalle_error',
       );
     }
     return ElementoColaSync(
       titulo: titulo,
       subtitulo: subtitulo,
       estado: EstadoSincronizacion.pendiente,
-      detalle: 'En cola para enviar al servidor.',
+      detalle: 'sync.detalle_pendiente',
     );
   }
 }

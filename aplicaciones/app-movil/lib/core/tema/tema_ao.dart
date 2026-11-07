@@ -45,18 +45,23 @@ class TemaAo {
         foregroundColor: c.texto,
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        titleTextStyle: TextStyle(color: c.texto, fontSize: 18, fontWeight: FontWeight.w700),
+        titleTextStyle: TextStyle(
+          color: c.texto,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
       ),
-      textTheme: ThemeData(brightness: brillo).textTheme.apply(
-            bodyColor: c.texto,
-            displayColor: c.texto,
-          ),
+      textTheme: ThemeData(
+        brightness: brillo,
+      ).textTheme.apply(bodyColor: c.texto, displayColor: c.texto),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: c.marca,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(objetivoTactil),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radio)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radio),
+          ),
           textStyle: const TextStyle(fontWeight: FontWeight.w600),
         ),
       ),
@@ -65,14 +70,19 @@ class TemaAo {
           foregroundColor: c.texto,
           side: BorderSide(color: c.borde),
           minimumSize: const Size.fromHeight(objetivoTactil),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(radio)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(radio),
+          ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: c.plano,
         hintStyle: TextStyle(color: c.textoTenue),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(radio),
           borderSide: BorderSide(color: c.borde),

@@ -52,6 +52,7 @@ dependencies:
   shared_preferences: ^2.3.3
   flutter_onnxruntime: ^1.9.0
   image: ^4.12.0
+  http_parser: ^4.1.2
 
 dev_dependencies:
   flutter_test:
@@ -63,6 +64,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.8
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -111,3 +114,27 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Configuración del splash screen nativo con el logo de AdOrbit
+flutter_native_splash:
+  color: "#1a1b2e"  # Fondo oscuro elegante (del modo oscuro de la app)
+  image: ../../documentacion/diseno/adorbit-logo-blanco.png
+  color_dark: "#1a1b2e"
+  image_dark: ../../documentacion/diseno/adorbit-logo-blanco.png
+  android_12:
+    image: ../../documentacion/diseno/adorbit-icono-512.png
+    color: "#1a1b2e"
+    image_dark: ../../documentacion/diseno/adorbit-icono-512.png
+    color_dark: "#1a1b2e"
+  android: true
+  ios: true
+  web: false
+
+# Configuración del ícono de la app con el logo de AdOrbit
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "../../documentacion/diseno/adorbit-icono-512.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#4f46e5"  # Color índigo de marca AdOrbit
+  adaptive_icon_foreground: "../../documentacion/diseno/adorbit-icono-adaptable-frente.png"

@@ -11,3 +11,10 @@ final conectividadProvider = StreamProvider<EstadoConexion>((ref) {
     return sinRed ? EstadoConexion.sinConexion : EstadoConexion.enLinea;
   });
 });
+
+/// Usado por "Solo sincronizar con Wi-Fi" (ver cola_sincronizacion_pagina.dart) para
+/// distinguir Wi-Fi de datos moviles -- EstadoConexion de arriba no hace esa distincion.
+Future<bool> hayConexionWifi() async {
+  final resultados = await Connectivity().checkConnectivity();
+  return resultados.contains(ConnectivityResult.wifi);
+}

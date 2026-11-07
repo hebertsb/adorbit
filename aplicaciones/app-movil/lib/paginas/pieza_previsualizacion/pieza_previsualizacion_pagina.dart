@@ -12,13 +12,19 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/auth/sesion_controller.dart';
 import '../../core/datos_locales/bandeja_salida_dao.dart';
+import '../../core/i18n/idioma_controller.dart';
+import '../../core/i18n/textos.dart';
 import '../../core/sync/sincronizacion_background.dart';
 import '../../core/sync/sincronizador_service.dart';
 import '../../core/tema/colores_ao.dart';
 import '../../datos/repos/briefs_repo.dart';
 
 class PiezaPrevisualizacionPagina extends ConsumerStatefulWidget {
-  const PiezaPrevisualizacionPagina({super.key, required this.briefId, this.archivo});
+  const PiezaPrevisualizacionPagina({
+    super.key,
+    required this.briefId,
+    this.archivo,
+  });
 
   final String briefId;
 
@@ -27,17 +33,26 @@ class PiezaPrevisualizacionPagina extends ConsumerStatefulWidget {
   final XFile? archivo;
 
   @override
-  ConsumerState<PiezaPrevisualizacionPagina> createState() => _PiezaPrevisualizacionPaginaState();
+  ConsumerState<PiezaPrevisualizacionPagina> createState() =>
+      _PiezaPrevisualizacionPaginaState();
 }
 
-class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizacionPagina> {
+class _PiezaPrevisualizacionPaginaState
+    extends ConsumerState<PiezaPrevisualizacionPagina> {
   final _notaControlador = TextEditingController();
   final Set<String> _etiquetas = {};
   bool _guardando = false;
   Uint8List? _bytes;
   String? _tituloBrief;
 
-  static const _etiquetasDisponibles = ['Acceso principal', 'Buena visibilidad', 'Requiere reubicación'];
+  String _t(String clave) =>
+      Textos.t(ref.read(idiomaControllerProvider), clave);
+
+  List<String> get _etiquetasDisponibles => [
+    _t('previsualizacion.etiqueta_acceso'),
+    _t('previsualizacion.etiqueta_visibilidad'),
+    _t('previsualizacion.etiqueta_reubicacion'),
+  ];
 
   @override
   void initState() {
@@ -47,9 +62,12 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
     });
     final token = ref.read(sesionControllerProvider).token;
     if (token != null) {
-      BriefsRepo(token: token).obtener(widget.briefId).then((b) {
-        if (mounted) setState(() => _tituloBrief = b.titulo);
-      }).catchError((_) {});
+      BriefsRepo(token: token)
+          .obtener(widget.briefId)
+          .then((b) {
+            if (mounted) setState(() => _tituloBrief = b.titulo);
+          })
+          .catchError((_) {});
     }
   }
 
@@ -57,11 +75,17 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('¿Descartar captura?'),
-        content: const Text('Esta fotografía se eliminará de la sesión actual.'),
+        title: Text(_t('previsualizacion.descartar_titulo')),
+        content: Text(_t('previsualizacion.descartar_detalle')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Descartar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(_t('comun.cancelar')),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(_t('previsualizacion.descartar_boton')),
+          ),
         ],
       ),
     );
@@ -111,14 +135,17 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
     if (kIsWeb) {
       // Sin workmanager en web: se drena inline, igual que haria el background task.
       final token = ref.read(sesionControllerProvider).token;
-      if (token != null) unawaited(SincronizadorService(token: token).drenarPendientes());
+      if (token != null)
+        unawaited(SincronizadorService(token: token).drenarPendientes());
     } else {
       unawaited(SincronizacionBackground.sincronizarAhora());
     }
 
     if (!mounted) return;
     setState(() => _guardando = false);
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto adjuntada')));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_t('previsualizacion.foto_adjuntada'))),
+    );
     context.push('/validacion-ia/${widget.briefId}', extra: bytes);
   }
 
@@ -131,11 +158,15 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
   @override
   Widget build(BuildContext context) {
     final c = context.aoColores;
+    ref.watch(idiomaControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Revisión de pieza'),
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: _descartar),
+        title: Text(_t('previsualizacion.titulo')),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: _descartar,
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -151,11 +182,19 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
                         ? Image.memory(_bytes!, fit: BoxFit.cover)
                         : Container(
                             color: c.plano,
-                            child: Icon(Icons.image_outlined, color: c.textoTenue, size: 48),
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: c.textoTenue,
+                              size: 48,
+                            ),
                           ),
                   ),
                 ),
-                Positioned(left: 10, top: 10, child: _chip('JPG · Alta resolución')),
+                Positioned(
+                  left: 10,
+                  top: 10,
+                  child: _chip(_t('previsualizacion.jpg_alta_resolucion')),
+                ),
                 Positioned(right: 10, top: 10, child: _chip('1080 × 1920')),
               ],
             ),
@@ -165,19 +204,19 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
             children: [
               Expanded(
                 child: Text(
-                  'Para: ${_tituloBrief ?? '...'}',
+                  '${_t('previsualizacion.para')}: ${_tituloBrief ?? '...'}',
                   style: TextStyle(color: c.texto, fontWeight: FontWeight.w700),
                 ),
               ),
-              _chip('POP / Tótem'),
+              _chip(_t('previsualizacion.pop_totem')),
             ],
           ),
           const SizedBox(height: 14),
           TextField(
             controller: _notaControlador,
             maxLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Ej: Foto de tótem en tienda sucursal Centro...',
+            decoration: InputDecoration(
+              hintText: _t('previsualizacion.nota_hint'),
             ),
           ),
           const SizedBox(height: 12),
@@ -189,9 +228,14 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
               return FilterChip(
                 label: Text(e),
                 selected: activo,
-                onSelected: (sel) => setState(() => sel ? _etiquetas.add(e) : _etiquetas.remove(e)),
+                onSelected: (sel) => setState(
+                  () => sel ? _etiquetas.add(e) : _etiquetas.remove(e),
+                ),
                 selectedColor: c.marcaSuave,
-                labelStyle: TextStyle(color: activo ? c.marca : c.textoSuave, fontSize: 12),
+                labelStyle: TextStyle(
+                  color: activo ? c.marca : c.textoSuave,
+                  fontSize: 12,
+                ),
               );
             }).toList(),
           ),
@@ -201,14 +245,18 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
               Expanded(
                 child: OutlinedButton(
                   onPressed: () => context.pop(),
-                  child: const Text('Volver a tomar foto'),
+                  child: Text(_t('previsualizacion.volver_tomar')),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
                   onPressed: _guardando ? null : _usarFoto,
-                  child: _guardando ? const Text('Guardando...') : const Text('Usar esta foto'),
+                  child: Text(
+                    _guardando
+                        ? _t('previsualizacion.guardando')
+                        : _t('previsualizacion.usar_foto'),
+                  ),
                 ),
               ),
             ],
@@ -221,8 +269,14 @@ class _PiezaPrevisualizacionPaginaState extends ConsumerState<PiezaPrevisualizac
   Widget _chip(String texto) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(999)),
-      child: Text(texto, style: const TextStyle(color: Colors.white, fontSize: 10)),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        texto,
+        style: const TextStyle(color: Colors.white, fontSize: 10),
+      ),
     );
   }
 }

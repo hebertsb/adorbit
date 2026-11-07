@@ -1,221 +1,403 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../compartido/badge_confianza.dart';
-import '../../compartido/chip_estado.dart';
 import '../../compartido/tarjeta_ao.dart';
+import '../../core/auth/sesion_controller.dart';
+import '../../core/i18n/idioma_controller.dart';
+import '../../core/i18n/textos.dart';
+import '../../core/red/api_excepcion.dart';
 import '../../core/tema/colores_ao.dart';
-import '../../datos/modelos/auditoria.dart';
-import '../../datos/repos/auditoria_repo.dart';
+import '../../datos/modelos/brief.dart';
+import '../../datos/modelos/vision_resultado.dart';
+import '../../datos/repos/briefs_repo.dart';
+import '../../datos/repos/vision_repo.dart';
 
-class AuditoriaVallasPagina extends StatefulWidget {
+enum _EstadoFisico { bueno, deterioro, danado }
+
+/// Audita una pieza real contra el servidor real de vision de ms-ia (D21/D22 en
+/// documentacion/05-decisiones-y-pendientes.md): se elige un brief/pieza real propios
+/// (ya no una valla de muestra fija), se toma una foto real en el dispositivo y se
+/// manda a POST /api/v1/vision/analizar -- el resultado (detecta_logo, confianza) es
+/// una prediccion real del modelo yolo_logo_adorbit, y la fila queda guardada de
+/// verdad en vision_resultados (Postgres de ms-ia), no solo en la pantalla.
+/// Lo que sigue sin existir en el backend: un endpoint para listar auditorias
+/// anteriores, datos de cliente/campana legibles (ms-creatividades no los guarda,
+/// solo el UUID de campana) y verificacion GPS -- por eso esta pantalla ya no los
+/// inventa.
+class AuditoriaVallasPagina extends ConsumerStatefulWidget {
   const AuditoriaVallasPagina({super.key});
 
   @override
-  State<AuditoriaVallasPagina> createState() => _AuditoriaVallasPaginaState();
+  ConsumerState<AuditoriaVallasPagina> createState() =>
+      _AuditoriaVallasPaginaState();
 }
 
-class _AuditoriaVallasPaginaState extends State<AuditoriaVallasPagina> {
-  final _repo = AuditoriaRepo();
-  EstadoFisicoValla _estadoSeleccionado = EstadoFisicoValla.bueno;
-  final _notaControlador = TextEditingController();
-  bool _guardando = false;
+class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
+  Future<List<Brief>>? _futuroBriefs;
+  Brief? _briefSeleccionado;
+  List<Pieza> _piezas = [];
+  Pieza? _piezaSeleccionada;
+  bool _cargandoPiezas = false;
 
-  Future<void> _registrar() async {
-    setState(() => _guardando = true);
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() => _guardando = false);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('Auditoría guardada con éxito')));
-  }
+  _EstadoFisico _estadoSeleccionado = _EstadoFisico.bueno;
+  Uint8List? _fotoBytes;
+  DateTime? _fotoFecha;
+
+  bool _analizando = false;
+  VisionResultado? _resultado;
+  String? _errorAnalisis;
+
+  String _t(String clave) =>
+      Textos.t(ref.read(idiomaControllerProvider), clave);
+
+  BriefsRepo get _repoBriefs =>
+      BriefsRepo(token: ref.read(sesionControllerProvider).token!);
 
   @override
-  void dispose() {
-    _notaControlador.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _futuroBriefs = _repoBriefs.listar();
+  }
+
+  Future<void> _seleccionarBrief(Brief brief) async {
+    setState(() {
+      _briefSeleccionado = brief;
+      _piezas = [];
+      _piezaSeleccionada = null;
+      _resultado = null;
+      _errorAnalisis = null;
+      _cargandoPiezas = true;
+    });
+    try {
+      final piezas = await _repoBriefs.listarPiezas(brief.id);
+      if (!mounted) return;
+      final aprobada = piezas.where((p) => p.estado == EstadoPieza.aprobada);
+      setState(() {
+        _piezas = piezas;
+        _piezaSeleccionada = piezas.isEmpty
+            ? null
+            : (aprobada.isNotEmpty ? aprobada.first : piezas.first);
+        _cargandoPiezas = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _cargandoPiezas = false);
+    }
+  }
+
+  Future<void> _tomarFoto() async {
+    final archivo = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      imageQuality: 90,
+    );
+    if (archivo == null) return;
+    final bytes = await archivo.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      _fotoBytes = bytes;
+      _fotoFecha = DateTime.now();
+      _resultado = null;
+      _errorAnalisis = null;
+    });
+  }
+
+  Future<void> _analizar() async {
+    final pieza = _piezaSeleccionada;
+    final bytes = _fotoBytes;
+    final token = ref.read(sesionControllerProvider).token;
+    if (pieza == null || bytes == null || token == null) return;
+
+    setState(() {
+      _analizando = true;
+      _errorAnalisis = null;
+    });
+    try {
+      final resultado = await VisionRepo(token: token).analizar(
+        piezaId: pieza.id,
+        bytes: bytes,
+        campanaId: pieza.campanaId,
+        origen: 'movil_local',
+      );
+      if (!mounted) return;
+      setState(() {
+        _resultado = resultado;
+        _analizando = false;
+      });
+    } on ApiExcepcion catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorAnalisis = e.mensaje;
+        _analizando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorAnalisis = '$e';
+        _analizando = false;
+      });
+    }
+  }
+
+  String _formatearFecha(DateTime fecha) {
+    final dos = (int n) => n.toString().padLeft(2, '0');
+    return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year} ${dos(fecha.hour)}:${dos(fecha.minute)}';
   }
 
   @override
   Widget build(BuildContext context) {
     final c = context.aoColores;
-    final valla = _repo.obtenerVallaActual();
+    ref.watch(idiomaControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Auditoría de valla')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TarjetaAo(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
+      appBar: AppBar(title: Text(_t('auditoria.titulo'))),
+      body: FutureBuilder<List<Brief>>(
+        future: _futuroBriefs,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final briefs = snapshot.data ?? const <Brief>[];
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TarjetaAo(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _etiqueta(context, valla.cliente),
-                    _etiqueta(context, 'Cód. #${valla.codigo}'),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(valla.campana, style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 2),
-                Text(valla.descripcion, style: TextStyle(color: c.textoSuave, fontSize: 13)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          TarjetaAo(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AspectRatio(
-                  aspectRatio: 16 / 10,
-                  child: Container(
-                    decoration: BoxDecoration(color: c.plano, borderRadius: BorderRadius.circular(12)),
-                    child: Icon(Icons.image_outlined, color: c.textoTenue, size: 40),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text('Captura reciente · Hoy 10:24', style: TextStyle(color: c.textoSuave, fontSize: 12)),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Icon(Icons.memory, size: 14, color: c.marca),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Analizado en tu dispositivo · Visión perimetral',
-                        style: TextStyle(color: c.textoSuave, fontSize: 12),
+                    Text(
+                      _t('auditoria.elegir_pieza'),
+                      style: TextStyle(
+                        color: c.texto,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          TarjetaAo(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Diagnóstico de inspección', style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('Pieza coincide con la aprobada', style: TextStyle(color: c.texto, fontSize: 13)),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<Brief>(
+                      initialValue: _briefSeleccionado,
+                      isExpanded: true,
+                      hint: Text(_t('auditoria.elegir_brief_hint')),
+                      items: briefs
+                          .map(
+                            (b) => DropdownMenuItem(
+                              value: b,
+                              child: Text(b.titulo),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (b) => b != null ? _seleccionarBrief(b) : null,
                     ),
-                    BadgeConfianza(confianza: valla.coincidenciaVisual, compacto: true),
+                    if (_cargandoPiezas) ...[
+                      const SizedBox(height: 10),
+                      const Center(child: CircularProgressIndicator()),
+                    ] else if (_briefSeleccionado != null) ...[
+                      const SizedBox(height: 10),
+                      if (_piezas.isEmpty)
+                        Text(
+                          _t('brief.sin_piezas'),
+                          style: TextStyle(color: c.textoSuave),
+                        )
+                      else
+                        DropdownButtonFormField<Pieza>(
+                          initialValue: _piezaSeleccionada,
+                          isExpanded: true,
+                          items: _piezas
+                              .map(
+                                (p) => DropdownMenuItem(
+                                  value: p,
+                                  child: Text(
+                                    '${p.nombre} · v${p.versionNumero} · ${p.estado.etiqueta(ref.read(idiomaControllerProvider))}',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (p) => setState(() {
+                            _piezaSeleccionada = p;
+                            _resultado = null;
+                            _errorAnalisis = null;
+                          }),
+                        ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Campaña verificada contra el máster de impresión oficial',
-                  style: TextStyle(color: c.textoTenue, fontSize: 11),
-                ),
-                const SizedBox(height: 14),
-                Text('Estado físico', style: TextStyle(color: c.texto, fontWeight: FontWeight.w600, fontSize: 13)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: EstadoFisicoValla.values.map((e) {
-                    final activo = e == _estadoSeleccionado;
-                    final (color, fondo) = switch (e) {
-                      EstadoFisicoValla.bueno => (c.ok, c.okFondo),
-                      EstadoFisicoValla.deterioro => (c.aviso, c.avisoFondo),
-                      EstadoFisicoValla.danado => (c.peligro, c.peligroFondo),
-                    };
-                    return ChoiceChip(
-                      label: Text('${e.etiqueta} · ${e.detalle}'),
-                      selected: activo,
-                      onSelected: (_) => setState(() => _estadoSeleccionado = e),
-                      selectedColor: fondo,
-                      labelStyle: TextStyle(color: activo ? color : c.textoSuave, fontSize: 12),
-                      side: BorderSide(color: activo ? color : c.borde),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-                Row(
+              ),
+              const SizedBox(height: 14),
+              TarjetaAo(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.gps_fixed, size: 16, color: c.ok),
-                    const SizedBox(width: 6),
-                    Text('Ubicación verificada por GPS', style: TextStyle(color: c.texto, fontSize: 12)),
-                    const Spacer(),
-                    ChipEstado(texto: valla.precisionGps, color: c.ok, fondo: c.okFondo, compacto: true),
+                    GestureDetector(
+                      onTap: _tomarFoto,
+                      child: AspectRatio(
+                        aspectRatio: 16 / 10,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _fotoBytes != null
+                              ? Image.memory(_fotoBytes!, fit: BoxFit.cover)
+                              : Container(
+                                  color: c.plano,
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.camera_alt_outlined,
+                                        color: c.textoTenue,
+                                        size: 36,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _t('auditoria.tomar_foto'),
+                                        style: TextStyle(
+                                          color: c.textoTenue,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _fotoFecha != null
+                          ? '${_t('auditoria.captura_reciente_prefijo')} · ${_formatearFecha(_fotoFecha!)}'
+                          : _t('auditoria.sin_captura'),
+                      style: TextStyle(color: c.textoSuave, fontSize: 12),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text('Sí · Dentro del radio contratado', style: TextStyle(color: c.textoSuave, fontSize: 12)),
-                Text(valla.direccion, style: TextStyle(color: c.textoTenue, fontSize: 11)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 14),
-          TextField(
-            controller: _notaControlador,
-            maxLines: 3,
-            decoration: const InputDecoration(hintText: 'Observaciones (opcional)'),
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _guardando ? null : _registrar,
-              child: Text(_guardando ? 'Guardando registro...' : 'Registrar auditoría'),
-            ),
-          ),
-          const SizedBox(height: 22),
-          Row(
-            children: [
-              Text('Auditorías anteriores de esta valla',
-                  style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
-              const Spacer(),
-              Text('${valla.historial.length} registros', style: TextStyle(color: c.textoSuave, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ...valla.historial.map((h) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: TarjetaAo(
-                  padding: const EdgeInsets.all(12),
+              ),
+              const SizedBox(height: 14),
+              TarjetaAo(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _t('auditoria.estado_fisico'),
+                      style: TextStyle(
+                        color: c.texto,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: _EstadoFisico.values.map((e) {
+                        final activo = e == _estadoSeleccionado;
+                        final (color, fondo, etiqueta) = switch (e) {
+                          _EstadoFisico.bueno => (
+                            c.ok,
+                            c.okFondo,
+                            _t('auditoria.estado_bueno'),
+                          ),
+                          _EstadoFisico.deterioro => (
+                            c.aviso,
+                            c.avisoFondo,
+                            _t('auditoria.estado_deterioro'),
+                          ),
+                          _EstadoFisico.danado => (
+                            c.peligro,
+                            c.peligroFondo,
+                            _t('auditoria.estado_danado'),
+                          ),
+                        };
+                        return ChoiceChip(
+                          label: Text(etiqueta),
+                          selected: activo,
+                          onSelected: (_) =>
+                              setState(() => _estadoSeleccionado = e),
+                          selectedColor: fondo,
+                          labelStyle: TextStyle(
+                            color: activo ? color : c.textoSuave,
+                            fontSize: 12,
+                          ),
+                          side: BorderSide(color: activo ? color : c.borde),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (_errorAnalisis != null)
+                TarjetaAo(
+                  padding: const EdgeInsets.all(14),
                   child: Row(
                     children: [
-                      Icon(
-                        h.estado == EstadoFisicoValla.bueno ? Icons.check_circle : Icons.warning_amber_rounded,
-                        color: h.estado == EstadoFisicoValla.bueno ? c.ok : c.aviso,
-                        size: 18,
-                      ),
+                      Icon(Icons.error_outline, color: c.peligro),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${h.resumen} (${h.estado.etiqueta})',
-                                style: TextStyle(color: c.texto, fontSize: 13, fontWeight: FontWeight.w600)),
-                            Text(
-                              '${h.fecha} · ${h.auditor}${h.nota != null ? ' · ${h.nota}' : ''}',
-                              style: TextStyle(color: c.textoTenue, fontSize: 11),
-                            ),
-                          ],
+                        child: Text(
+                          _errorAnalisis!,
+                          style: TextStyle(color: c.peligro, fontSize: 12),
                         ),
                       ),
                     ],
                   ),
+                )
+              else if (_resultado != null)
+                TarjetaAo(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _t('auditoria.pieza_coincide'),
+                              style: TextStyle(
+                                color: c.texto,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          BadgeConfianza(
+                            confianza: _resultado!.confianza,
+                            compacto: true,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _resultado!.detectaLogo
+                            ? _t('validacion.logo_reconocido_detalle')
+                            : _t('validacion.logo_no_reconocido_detalle'),
+                        style: TextStyle(color: c.textoSuave, fontSize: 12),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _t('auditoria.analizado_servidor'),
+                        style: TextStyle(color: c.textoTenue, fontSize: 11),
+                      ),
+                    ],
+                  ),
                 ),
-              )),
-        ],
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed:
+                      (_fotoBytes == null ||
+                          _piezaSeleccionada == null ||
+                          _analizando)
+                      ? null
+                      : _analizar,
+                  child: Text(
+                    _analizando
+                        ? _t('auditoria.analizando')
+                        : _t('auditoria.analizar'),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
-    );
-  }
-
-  Widget _etiqueta(BuildContext context, String texto) {
-    final c = context.aoColores;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: c.plano, borderRadius: BorderRadius.circular(999)),
-      child: Text(texto, style: TextStyle(color: c.textoSuave, fontSize: 11)),
     );
   }
 }

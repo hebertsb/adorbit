@@ -6,6 +6,8 @@ import '../../compartido/chip_estado.dart';
 import '../../compartido/logo_adorbit.dart';
 import '../../compartido/tarjeta_ao.dart';
 import '../../core/auth/sesion_controller.dart';
+import '../../core/i18n/idioma_controller.dart';
+import '../../core/i18n/textos.dart';
 import '../../core/red/api_excepcion.dart';
 import '../../core/tema/colores_ao.dart';
 import '../../datos/modelos/brief.dart';
@@ -25,7 +27,11 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
   Future<List<Brief>>? _futuro;
   int _pendientesSync = 0;
 
-  BriefsRepo get _repo => BriefsRepo(token: ref.read(sesionControllerProvider).token!);
+  BriefsRepo get _repo =>
+      BriefsRepo(token: ref.read(sesionControllerProvider).token!);
+
+  String _t(String clave) =>
+      Textos.t(ref.read(idiomaControllerProvider), clave);
 
   @override
   void initState() {
@@ -41,6 +47,7 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
   }
 
   Future<void> _nuevoBrief() async {
+    String t(String clave) => _t(clave);
     final controladorTitulo = TextEditingController();
     final controladorCampana = TextEditingController();
     final controladorDescripcion = TextEditingController();
@@ -55,45 +62,64 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
         builder: (ctx, setSheet) {
           final c = ctx.aoColores;
           return Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
+            ),
             child: Container(
               decoration: BoxDecoration(
                 color: c.superficie,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Nuevo brief', style: TextStyle(color: c.texto, fontWeight: FontWeight.w800, fontSize: 18)),
+                  Text(
+                    t('briefs.nuevo'),
+                    style: TextStyle(
+                      color: c.texto,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
-                    'Se crea directo en ms-creatividades (POST /api/v1/briefs).',
+                    t('briefs.nuevo_subtitulo'),
                     style: TextStyle(color: c.textoSuave, fontSize: 12),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: controladorTitulo,
-                    decoration: const InputDecoration(labelText: 'Título', hintText: 'Ej: Lanzamiento Fibra 500M'),
+                    decoration: InputDecoration(
+                      labelText: t('briefs.titulo_campo'),
+                      hintText: t('briefs.titulo_hint'),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: controladorCampana,
-                    decoration: const InputDecoration(
-                      labelText: 'ID de campaña (UUID)',
-                      hintText: 'Lo asigna ms-campanas al contratar',
+                    decoration: InputDecoration(
+                      labelText: t('briefs.campana_campo'),
+                      hintText: t('briefs.campana_hint'),
                     ),
                   ),
                   const SizedBox(height: 10),
                   TextField(
                     controller: controladorDescripcion,
                     maxLines: 2,
-                    decoration: const InputDecoration(labelText: 'Descripción (opcional)'),
+                    decoration: InputDecoration(
+                      labelText: t('briefs.descripcion_campo'),
+                    ),
                   ),
                   if (error != null) ...[
                     const SizedBox(height: 10),
-                    Text(error!, style: TextStyle(color: c.peligro, fontSize: 12)),
+                    Text(
+                      error!,
+                      style: TextStyle(color: c.peligro, fontSize: 12),
+                    ),
                   ],
                   const SizedBox(height: 18),
                   SizedBox(
@@ -102,8 +128,11 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
                       onPressed: creando
                           ? null
                           : () async {
-                              if (controladorTitulo.text.trim().isEmpty || controladorCampana.text.trim().isEmpty) {
-                                setSheet(() => error = 'Título y campaña son obligatorios');
+                              if (controladorTitulo.text.trim().isEmpty ||
+                                  controladorCampana.text.trim().isEmpty) {
+                                setSheet(
+                                  () => error = t('briefs.error_obligatorios'),
+                                );
                                 return;
                               }
                               setSheet(() {
@@ -114,7 +143,8 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
                                 await _repo.crear(
                                   campanaId: controladorCampana.text.trim(),
                                   titulo: controladorTitulo.text.trim(),
-                                  descripcion: controladorDescripcion.text.trim(),
+                                  descripcion: controladorDescripcion.text
+                                      .trim(),
                                 );
                                 if (ctx.mounted) Navigator.pop(ctx, true);
                               } on ApiExcepcion catch (e) {
@@ -129,7 +159,9 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
                                 });
                               }
                             },
-                      child: Text(creando ? 'Creando...' : 'Crear brief'),
+                      child: Text(
+                        creando ? t('briefs.creando') : t('briefs.crear'),
+                      ),
                     ),
                   ),
                 ],
@@ -146,6 +178,8 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
   @override
   Widget build(BuildContext context) {
     final c = context.aoColores;
+    ref.watch(idiomaControllerProvider);
+    String t(String clave) => _t(clave);
 
     return Scaffold(
       appBar: AppBar(
@@ -160,7 +194,7 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _nuevoBrief,
         icon: const Icon(Icons.add),
-        label: const Text('Nuevo brief'),
+        label: Text(t('briefs.nuevo')),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -185,18 +219,28 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
 
   Widget _estadoError(BuildContext context, Object? error) {
     final c = context.aoColores;
-    final mensaje = error is ApiExcepcion ? error.mensaje : 'No se pudo conectar con el servidor';
+    final mensaje = error is ApiExcepcion
+        ? error.mensaje
+        : _t('briefs.error_conexion_generico');
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
         const SizedBox(height: 60),
         Icon(Icons.cloud_off, color: c.textoTenue, size: 40),
         const SizedBox(height: 12),
-        Text('Sin datos del servidor', style: TextStyle(color: c.texto, fontWeight: FontWeight.w700), textAlign: TextAlign.center),
+        Text(
+          _t('briefs.sin_datos_servidor'),
+          style: TextStyle(color: c.texto, fontWeight: FontWeight.w700),
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: 6),
-        Text(mensaje, style: TextStyle(color: c.textoSuave, fontSize: 12), textAlign: TextAlign.center),
+        Text(
+          mensaje,
+          style: TextStyle(color: c.textoSuave, fontSize: 12),
+          textAlign: TextAlign.center,
+        ),
         const SizedBox(height: 18),
-        OutlinedButton(onPressed: _cargar, child: const Text('Reintentar')),
+        OutlinedButton(onPressed: _cargar, child: Text(_t('comun.reintentar'))),
       ],
     );
   }
@@ -205,7 +249,9 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
     final c = context.aoColores;
     final visibles = todos.where((b) {
       final coincideFiltro = _filtro == null || b.estado == _filtro;
-      final coincideBusqueda = _busqueda.isEmpty || b.titulo.toLowerCase().contains(_busqueda.toLowerCase());
+      final coincideBusqueda =
+          _busqueda.isEmpty ||
+          b.titulo.toLowerCase().contains(_busqueda.toLowerCase());
       return coincideFiltro && coincideBusqueda;
     }).toList();
 
@@ -213,9 +259,9 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
       children: [
         TextField(
-          decoration: const InputDecoration(
-            hintText: 'Buscar brief...',
-            prefixIcon: Icon(Icons.search),
+          decoration: InputDecoration(
+            hintText: _t('briefs.buscar_hint'),
+            prefixIcon: const Icon(Icons.search),
           ),
           onChanged: (v) => setState(() => _busqueda = v),
         ),
@@ -225,12 +271,16 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              _pildoraFiltro(context, 'Todos (${todos.length})', null),
+              _pildoraFiltro(
+                context,
+                '${_t('briefs.todos')} (${todos.length})',
+                null,
+              ),
               for (final estado in EstadoBrief.values) ...[
                 const SizedBox(width: 8),
                 _pildoraFiltro(
                   context,
-                  '${estado.etiqueta} (${todos.where((b) => b.estado == estado).length})',
+                  '${estado.etiqueta(ref.read(idiomaControllerProvider))} (${todos.where((b) => b.estado == estado).length})',
                   estado,
                 ),
               ],
@@ -240,9 +290,23 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
         const SizedBox(height: 14),
         Row(
           children: [
-            Expanded(child: _tilaMetrica(context, 'Briefs totales', '${todos.length}', c.texto)),
+            Expanded(
+              child: _tilaMetrica(
+                context,
+                _t('briefs.totales'),
+                '${todos.length}',
+                c.texto,
+              ),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _tilaMetrica(context, 'Pendientes sync', '$_pendientesSync', c.peligro)),
+            Expanded(
+              child: _tilaMetrica(
+                context,
+                _t('briefs.pendientes_sync'),
+                '$_pendientesSync',
+                c.peligro,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 18),
@@ -253,10 +317,13 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
               children: [
                 Icon(Icons.search_off, color: c.textoTenue, size: 32),
                 const SizedBox(height: 8),
-                Text('Sin briefs encontrados', style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
+                Text(
+                  _t('briefs.sin_resultados_titulo'),
+                  style: TextStyle(color: c.texto, fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  'No hay registros que coincidan con los criterios de búsqueda.',
+                  _t('briefs.sin_resultados_detalle'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: c.textoSuave, fontSize: 12),
                 ),
@@ -264,15 +331,21 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
             ),
           )
         else
-          ...visibles.map((b) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _tarjetaBrief(context, b),
-              )),
+          ...visibles.map(
+            (b) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _tarjetaBrief(context, b),
+            ),
+          ),
       ],
     );
   }
 
-  Widget _pildoraFiltro(BuildContext context, String texto, EstadoBrief? valor) {
+  Widget _pildoraFiltro(
+    BuildContext context,
+    String texto,
+    EstadoBrief? valor,
+  ) {
     final activo = _filtro == valor;
     final c = context.aoColores;
     return ChoiceChip(
@@ -280,12 +353,20 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
       selected: activo,
       onSelected: (_) => setState(() => _filtro = valor),
       selectedColor: c.marcaSuave,
-      labelStyle: TextStyle(color: activo ? c.marca : c.textoSuave, fontWeight: FontWeight.w600),
+      labelStyle: TextStyle(
+        color: activo ? c.marca : c.textoSuave,
+        fontWeight: FontWeight.w600,
+      ),
       side: BorderSide(color: c.borde),
     );
   }
 
-  Widget _tilaMetrica(BuildContext context, String etiqueta, String valor, Color colorValor) {
+  Widget _tilaMetrica(
+    BuildContext context,
+    String etiqueta,
+    String valor,
+    Color colorValor,
+  ) {
     final c = context.aoColores;
     return TarjetaAo(
       padding: const EdgeInsets.all(14),
@@ -294,7 +375,14 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
         children: [
           Text(etiqueta, style: TextStyle(color: c.textoSuave, fontSize: 12)),
           const SizedBox(height: 4),
-          Text(valor, style: TextStyle(color: colorValor, fontSize: 22, fontWeight: FontWeight.w800)),
+          Text(
+            valor,
+            style: TextStyle(
+              color: colorValor,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );
@@ -317,19 +405,33 @@ class _BriefsListaPaginaState extends ConsumerState<BriefsListaPagina> {
           Row(
             children: [
               Expanded(
-                child: Text(b.titulo, style: TextStyle(color: c.texto, fontWeight: FontWeight.w700)),
+                child: Text(
+                  b.titulo,
+                  style: TextStyle(color: c.texto, fontWeight: FontWeight.w700),
+                ),
               ),
-              ChipEstado(texto: b.estado.etiqueta, color: color, fondo: fondo, compacto: true),
+              ChipEstado(
+                texto: b.estado.etiqueta(ref.read(idiomaControllerProvider)),
+                color: color,
+                fondo: fondo,
+                compacto: true,
+              ),
             ],
           ),
           if (b.descripcion != null && b.descripcion!.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(b.descripcion!, style: TextStyle(color: c.textoSuave, fontSize: 13)),
+            Text(
+              b.descripcion!,
+              style: TextStyle(color: c.textoSuave, fontSize: 13),
+            ),
           ],
           const SizedBox(height: 10),
           Row(
             children: [
-              Text('v${b.version}', style: TextStyle(color: c.textoTenue, fontSize: 12)),
+              Text(
+                'v${b.version}',
+                style: TextStyle(color: c.textoTenue, fontSize: 12),
+              ),
               const Spacer(),
               if (b.actualizadoEn != null)
                 Text(

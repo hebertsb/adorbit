@@ -62,5 +62,6 @@ class _LogoAdorbitPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LogoAdorbitPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _LogoAdorbitPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
