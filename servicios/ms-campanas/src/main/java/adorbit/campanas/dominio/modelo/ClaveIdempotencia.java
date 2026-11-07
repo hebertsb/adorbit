@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 
@@ -30,7 +32,13 @@ public class ClaveIdempotencia {
     @Column(name = "codigo_estado")
     private Integer codigoEstado;
 
-    @Column(columnDefinition = "TEXT")
+    // claves_idempotencia.respuesta es JSONB real en Postgres (ver base_de_datos/
+    // ms-campanas.postgres.sql) -- sin JdbcTypeCode, Hibernate 6 envia el parametro como
+    // varchar y Postgres lo rechaza (no hay cast implicito varchar->jsonb en un INSERT
+    // parametrizado): "column respuesta is of type jsonb but expression is of type
+    // character varying". Visto en vivo probando el flujo real de creacion de campana.
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private String respuesta;
 
     @Column(name = "creado_en", nullable = false, updatable = false)

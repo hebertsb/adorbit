@@ -2,6 +2,8 @@ package adorbit.campanas.dominio.modelo;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -35,7 +37,10 @@ public class SagaTransaccion {
     @Column(name = "motivo_fallo", columnDefinition = "TEXT")
     private String motivoFallo;
 
-    @Column(columnDefinition = "TEXT")
+    // jsonb real (ver base_de_datos/ms-campanas.postgres.sql) -- mismo fix que
+    // ClaveIdempotencia.respuesta, ver su comentario.
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private String carga;
 
     @Version

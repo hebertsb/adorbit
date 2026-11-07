@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -52,7 +54,10 @@ public class SagaPaso {
     @Column(nullable = false)
     private Integer intentos = 0;
 
-    @Column(columnDefinition = "TEXT")
+    // jsonb real (ver base_de_datos/ms-campanas.postgres.sql) -- mismo fix que
+    // ClaveIdempotencia.respuesta, ver su comentario.
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private String detalle;
 
     @Column(name = "creado_en", nullable = false, updatable = false)

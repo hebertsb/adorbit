@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -33,8 +35,11 @@ public class BandejaSalidaEvento {
     @Column(name = "tipo_evento", nullable = false, length = 80)
     private String tipoEvento;
 
+    // jsonb real (ver base_de_datos/ms-campanas.postgres.sql) -- mismo fix que
+    // ClaveIdempotencia.respuesta, ver su comentario.
     @NotBlank
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(nullable = false, columnDefinition = "jsonb")
     private String carga;
 
     @Column(name = "creado_en", nullable = false, updatable = false)

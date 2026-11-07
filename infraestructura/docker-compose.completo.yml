@@ -36,9 +36,12 @@ services:
       PUERTO: "8180"
       ESCUCHAR: "0.0.0.0"
       EMISOR: *emisor
+      # 6h en vez de los 300s por defecto -- evita que el token expire a medio probar
+      # manualmente el sistema (visto en vivo: un 401 real por token vencido).
+      DURACION_S: "21600"
       AUDIENCIAS: ms-facturacion,ms-clientes-crm,ms-ia,ms-creatividades,ms-campanas
       CLIENTES: '{"n8n":{"secret":"${N8N_CLIENT_SECRET:-secreto-local}","roles":["gerente"]}}'
-      REDIRECCIONES: http://localhost:5173,http://localhost:4173,http://localhost:5174,http://localhost:4174
+      REDIRECCIONES: http://localhost:5173,http://localhost:4173,http://localhost:5174,http://localhost:4174,http://localhost:4200
     volumes:
       - ../herramientas/keycloak-simulado.mjs:/app/keycloak-simulado.mjs:ro
     healthcheck:
@@ -172,6 +175,12 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USUARIO:-guest}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_CLAVE:-guest}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: *emisor
+      # jwk-set-uri tiene prioridad sobre issuer-uri en Spring Boot (evita el round-trip de
+      # auto-discovery a *emisor, que usa "localhost" -- desde DENTRO del contenedor eso es
+      # el propio contenedor, no el de keycloak, y la resolucion fallaba con Connection
+      # refused). Mismo patron que ya usan ms-facturacion/ms-clientes-crm/etc, que no pasan
+      # por auto-discovery.
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_CAMPANAS_URL_BD: ${CAMPANAS_URL_BD:-}
     depends_on:
       rabbitmq: { condition: service_healthy }
