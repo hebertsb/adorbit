@@ -19,11 +19,10 @@ export class SagaDatos {
         const d = await res.json();
         return this.mapearRespuestaSaga(d);
       }
-    } catch {
-      // Si la pasarela está offline, continúa al modo fallback
+      throw new Error(`No se pudo consultar la SAGA (${res.status})`);
+    } catch (error) {
+      throw error instanceof Error ? error : new Error('No se pudo consultar la SAGA');
     }
-
-    return this.enProgreso(idSaga);
   }
 
   private mapearRespuestaSaga(d: any): EstadoSaga {
@@ -34,7 +33,7 @@ export class SagaDatos {
       resultado = 'rechazada';
     }
 
-    const pasoActual = d.paso_actual as string;
+    const pasoActual = d.estado as string;
 
     const pasosDefinicion: { orden: number; servicio: string; titulo: string; pasoClave: string }[] = [
       { orden: 1, servicio: 'ms-campanas', titulo: 'Reservar presupuesto', pasoClave: 'reservando_presupuesto' },

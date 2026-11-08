@@ -1,9 +1,15 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Location } from '@angular/common';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { Boton } from '../../compartido/boton/boton';
 import { Tarjeta } from '../../compartido/tarjeta/tarjeta';
 import { CampanasDatos } from '../../core/datos/campanas.datos';
+
+interface ClienteReal {
+  id: string;
+  razonSocial: string;
+}
 
 // Validador de dominio: fecha_fin >= fecha_inicio (regla real de ms-campanas).
 function fechaFinNoAnteriorAInicio(grupo: AbstractControl): ValidationErrors | null {
@@ -15,7 +21,7 @@ function fechaFinNoAnteriorAInicio(grupo: AbstractControl): ValidationErrors | n
 
 @Component({
   selector: 'ao-pagina-campana-formulario',
-  imports: [ReactiveFormsModule, RouterLink, Boton, Tarjeta],
+  imports: [ReactiveFormsModule, Boton, Tarjeta],
   templateUrl: './campana-formulario.html',
   styleUrl: './campana-formulario.css',
 })
@@ -24,16 +30,18 @@ export class CampanaFormulario {
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly campanasDatos = inject(CampanasDatos);
+  private readonly ubicacion = inject(Location);
 
   private readonly idCampana = this.ruta.snapshot.paramMap.get('id');
   protected readonly modoEdicion = !!this.idCampana;
 
   protected readonly intentoEnviar = signal(false);
+  protected readonly clientes = signal<ClienteReal[]>([]);
 
   protected readonly formulario = this.fb.nonNullable.group(
     {
       nombre: ['', [Validators.required, Validators.maxLength(200)]],
-      cliente: ['', Validators.required],
+      clienteId: ['', Validators.required],
       descripcion: ['', Validators.maxLength(2000)],
       fechaInicio: ['', Validators.required],
       fechaFin: ['', Validators.required],
@@ -47,12 +55,13 @@ export class CampanaFormulario {
   protected readonly caracteresDescripcion = computed(() => this.formulario.controls.descripcion.value.length);
 
   constructor() {
+    void this.campanasDatos.listarClientesReales().then((clientes) => this.clientes.set(clientes));
+
     if (this.idCampana) {
       const campana = this.campanasDatos.buscarPorId(this.idCampana);
       if (campana) {
         this.formulario.patchValue({
           nombre: campana.nombre,
-          cliente: campana.cliente,
           fechaInicio: campana.fechaInicio,
           fechaFin: campana.fechaFin,
           presupuestoTotal: campana.presupuestoTotal,
@@ -60,6 +69,10 @@ export class CampanaFormulario {
         });
       }
     }
+  }
+
+  volver(): void {
+    this.ubicacion.back();
   }
 
   async guardar(): Promise<void> {
@@ -70,6 +83,7 @@ export class CampanaFormulario {
     const valores = this.formulario.getRawValue();
     await this.campanasDatos.crearCampana({
       nombre: valores.nombre,
+      clienteId: valores.clienteId,
       descripcion: valores.descripcion,
       fechaInicio: valores.fechaInicio,
       fechaFin: valores.fechaFin,

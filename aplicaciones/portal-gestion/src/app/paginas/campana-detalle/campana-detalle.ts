@@ -1,12 +1,18 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { CurrencyPipe, TitleCasePipe } from '@angular/common';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { CurrencyPipe, Location, TitleCasePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Boton } from '../../compartido/boton/boton';
 import { Tarjeta } from '../../compartido/tarjeta/tarjeta';
 import { EtiquetaEstado, TonoEtiqueta } from '../../compartido/etiqueta-estado/etiqueta-estado';
 import { IconoMedio } from '../../compartido/icono-medio/icono-medio';
 import { CampanasDatos } from '../../core/datos/campanas.datos';
-import { ETIQUETAS_ESTADO_CAMPANA, EstadoCampana } from '../../core/datos/campana.modelo';
+import {
+  Campana,
+  ETIQUETAS_ESTADO_CAMPANA,
+  EstadoCampana,
+  MedioCalendario,
+  PiezaCreatividad,
+} from '../../core/datos/campana.modelo';
 import { DEGRADADO_PIEZA } from '../../core/datos/pieza-presentacion';
 
 const TONO_ESTADO_CAMPANA: Record<EstadoCampana, TonoEtiqueta> = {
@@ -56,12 +62,15 @@ const ETIQUETA_MEDIO: Record<string, string> = {
   templateUrl: './campana-detalle.html',
   styleUrl: './campana-detalle.css',
 })
-export class CampanaDetalle {
+export class CampanaDetalle implements OnInit {
   private readonly ruta = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly campanasDatos = inject(CampanasDatos);
+  private readonly ubicacion = inject(Location);
 
   protected readonly contratando = signal(false);
+  protected readonly errorContratacion = signal('');
+  protected readonly cargandoDetalleReal = signal(true);
 
   protected readonly etiquetas = ETIQUETAS_ESTADO_CAMPANA;
   protected readonly etiquetaMedio = ETIQUETA_MEDIO;
@@ -70,16 +79,38 @@ export class CampanaDetalle {
 
   private readonly idCampana = this.ruta.snapshot.paramMap.get('id') ?? '';
 
-  protected readonly campana = computed(() => this.campanasDatos.buscarPorId(this.idCampana));
-  protected readonly calendario = computed(() => this.campanasDatos.calendarioDe(this.idCampana));
-  protected readonly piezas = computed(() => this.campanasDatos.piezasDe(this.idCampana));
+  // Datos reales (ms-campanas + ms-creatividades via el resolver GraphQL de la
+  // pasarela) una vez cargados; mientras tanto o si la pasarela no responde, se cae
+  // a los datos locales (lista ya sincronizada / mocks de calendario y piezas).
+  private readonly detalleReal = signal<{
+    campana: Campana;
+    calendario: MedioCalendario[];
+    piezas: PiezaCreatividad[];
+  } | null>(null);
+
+  protected readonly campana = computed(
+    () => this.detalleReal()?.campana ?? this.campanasDatos.buscarPorId(this.idCampana)
+  );
+  protected readonly calendario = computed(
+    () => this.detalleReal()?.calendario ?? this.campanasDatos.calendarioDe(this.idCampana)
+  );
+  protected readonly piezas = computed(
+    () => this.detalleReal()?.piezas ?? this.campanasDatos.piezasDe(this.idCampana)
+  );
+
+  async ngOnInit(): Promise<void> {
+    this.cargandoDetalleReal.set(true);
+    const detalle = await this.campanasDatos.obtenerDetalleReal(this.idCampana);
+    this.detalleReal.set(detalle);
+    this.cargandoDetalleReal.set(false);
+  }
 
   // Regla real: no se contrata sin presupuesto ni sin al menos una pieza aprobada,
   // y "contratar" solo tiene sentido antes de que la campaña ya esté activa.
   protected readonly puedeContratar = computed(() => {
     const campana = this.campana();
     if (!campana) return false;
-    const yaEnProceso = campana.estado === 'pendiente_aprobacion' || campana.estado === 'pendiente';
+    const yaEnProceso = campana.estado === 'borrador' || campana.estado === 'pendiente_aprobacion';
     const tieneAprobadas = this.piezas().some((p) => p.estado === 'aprobada');
     return yaEnProceso && campana.presupuestoTotal > 0 && tieneAprobadas;
   });
@@ -113,6 +144,12 @@ export class CampanaDetalle {
     return Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
   });
 
+  // "Volver" usa el historial real del navegador (de dónde vino el usuario: dashboard,
+  // creatividades, lista de campañas...) en vez de forzar siempre /campanas.
+  volver(): void {
+    this.ubicacion.back();
+  }
+
   private formatearFecha(fechaIso: string): string {
     const [anio, mes, dia] = fechaIso.split('-');
     return `${dia}/${mes}/${anio}`;
@@ -135,9 +172,16 @@ export class CampanaDetalle {
   }
 
   async contratar(): Promise<void> {
+    if (!this.puedeContratar() || this.contratando()) return;
     this.contratando.set(true);
-    const res = await this.campanasDatos.contratarCampana(this.idCampana);
-    this.contratando.set(false);
-    this.router.navigate(['/sagas', res.sagaId]);
+    this.errorContratacion.set('');
+    try {
+      const res = await this.campanasDatos.contratarCampana(this.idCampana);
+      await this.router.navigate(['/sagas', res.sagaId]);
+    } catch (error) {
+      this.errorContratacion.set(error instanceof Error ? error.message : 'No se pudo iniciar la contratación');
+    } finally {
+      this.contratando.set(false);
+    }
   }
 }

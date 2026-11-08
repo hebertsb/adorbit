@@ -1,4 +1,4 @@
-<a routerLink="/campanas" class="volver">← Volver a campañas</a>
+<a href="javascript:void(0)" (click)="volver()" class="volver">← Volver</a>
 
 <h1>{{ modoEdicion ? 'Editar campaña' : 'Crear nueva campaña' }}</h1>
 <p class="subtitulo">
@@ -19,9 +19,14 @@
     </div>
 
     <div class="campo">
-      <label for="cliente">Cliente *</label>
-      <input id="cliente" type="text" formControlName="cliente" placeholder="Buscar o escribir el cliente..." />
-      @if (intentoEnviar() && formulario.controls.cliente.invalid) {
+      <label for="clienteId">Cliente *</label>
+      <select id="clienteId" formControlName="clienteId">
+        <option value="" disabled>Selecciona un cliente...</option>
+        @for (c of clientes(); track c.id) {
+          <option [value]="c.id">{{ c.razonSocial }}</option>
+        }
+      </select>
+      @if (intentoEnviar() && formulario.controls.clienteId.invalid) {
         <p class="error">Selecciona un cliente.</p>
       }
     </div>
@@ -76,7 +81,7 @@
     </ao-tarjeta>
 
     <div class="acciones">
-      <ao-boton variante="secundario" tipo="button" routerLink="/campanas">Cancelar</ao-boton>
+      <ao-boton variante="secundario" tipo="button" (click)="volver()">Cancelar</ao-boton>
       <ao-boton variante="primario" tipo="submit">Guardar campaña</ao-boton>
     </div>
   </form>

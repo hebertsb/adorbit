@@ -80,7 +80,9 @@ export class AutenticacionService {
     try {
       const rol = email.split('@')[0] || 'ejecutivo';
       const roles = rol === 'admin' ? 'ejecutivo,gerente,creativo' : rol;
-      const respuesta = await fetch(`${EMISOR_PRUEBA_URL}/emitir?roles=${encodeURIComponent(roles)}`);
+      const respuesta = await fetch(
+        `${EMISOR_PRUEBA_URL}/emitir?roles=${encodeURIComponent(roles)}&email=${encodeURIComponent(email)}`
+      );
       if (!respuesta.ok) return false;
       const datos = await respuesta.json();
       this.establecerToken(datos.access_token);
@@ -108,6 +110,11 @@ export class AutenticacionService {
     }
   }
 
+  private nombreDesdeCorreo(email: string): string {
+    const usuario = email.split('@')[0] || 'usuario';
+    return usuario.charAt(0).toUpperCase() + usuario.slice(1);
+  }
+
   tieneRol(rol: string): boolean {
     const u = this.usuarioSignal();
     return !!u && u.roles.includes(rol);
@@ -127,10 +134,13 @@ export class AutenticacionService {
       const payload = JSON.parse(payloadJson);
 
       const roles = payload.realm_access?.roles ?? ['ejecutivo'];
+      const email = payload.email ?? payload.preferred_username ?? 'usuario@adorbit.com';
       this.usuarioSignal.set({
         sub: payload.sub ?? 'demo-user',
-        email: payload.email ?? payload.preferred_username ?? 'ejecutivo@adorbit.com',
-        nombre: payload.name ?? payload.firstName ?? 'Roly Ejecutivo',
+        email,
+        // El emisor de prueba no trae "name" (solo roles); se deriva del correo para no
+        // mostrar siempre el mismo nombre fijo sin importar quien inicio sesion.
+        nombre: payload.name ?? payload.firstName ?? this.nombreDesdeCorreo(email),
         roles,
       });
     } catch (e) {

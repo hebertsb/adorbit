@@ -41,7 +41,10 @@ export class Login {
     this.cargando.set(false);
 
     if (ok) {
-      this.router.navigateByUrl('/dashboard');
+      // El rol creativo no gestiona campañas/presupuesto: su pantalla de trabajo es
+      // Creatividades, no el dashboard de campañas (pensado para ejecutivo/gerente).
+      const esSoloCreativo = this.auth.tieneRol('creativo') && !this.auth.tieneRol('ejecutivo');
+      this.router.navigateByUrl(esSoloCreativo ? '/creatividades' : '/dashboard');
     } else {
       this.error.set('Credenciales inválidas o servidor de autenticación inaccesible.');
     }

@@ -21,15 +21,11 @@ export class SagaEstado implements OnInit, OnDestroy {
   protected readonly escenario = signal<'en_progreso' | 'fallo'>('en_progreso');
   protected readonly sagaReal = signal<EstadoSaga | null>(null);
 
-  protected readonly saga = computed(() => {
-    if (this.escenario() === 'fallo') {
-      return this.sagaDatos.conFallo();
-    }
-    return this.sagaReal() ?? this.sagaDatos.enProgreso(this.idSaga);
-  });
+  protected readonly error = signal('');
+  protected readonly saga = computed(() => this.sagaReal());
 
   protected readonly pasosCompletados = computed(
-    () => this.saga().pasos.filter((p) => p.estado === 'completado').length,
+    () => this.saga()?.pasos.filter((p) => p.estado === 'completado').length ?? 0,
   );
 
   async ngOnInit(): Promise<void> {
@@ -53,8 +49,14 @@ export class SagaEstado implements OnInit, OnDestroy {
 
   private async cargarEstadoSaga(): Promise<void> {
     if (!this.idSaga) return;
-    const datos = await this.sagaDatos.consultarSaga(this.idSaga);
-    this.sagaReal.set(datos);
+    try {
+      const datos = await this.sagaDatos.consultarSaga(this.idSaga);
+      this.sagaReal.set(datos);
+      this.error.set('');
+    } catch (error) {
+      this.sagaReal.set(null);
+      this.error.set(error instanceof Error ? error.message : 'No se pudo consultar la SAGA');
+    }
   }
 
   etiquetaEstadoPaso(estado: EstadoPasoSaga): string {

@@ -1,6 +1,7 @@
 @if (campana(); as c) {
   <div class="encabezado">
-    <a routerLink="/campanas" class="volver">← Volver a campañas</a>
+    @if (errorContratacion()) { <p role="alert">{{ errorContratacion() }}</p> }
+    <a href="javascript:void(0)" (click)="volver()" class="volver">← Volver</a>
     <div class="encabezado__acciones">
       <ao-boton variante="secundario" [routerLink]="['/campanas', c.id, 'editar']">Editar campaña</ao-boton>
       @if (puedeContratar()) {

@@ -1,9 +1,36 @@
 import { Injectable, inject, signal } from '@angular/core';
-import { Campana, MedioCalendario, PiezaCreatividad } from './campana.modelo';
+import { Campana, DegradadoPieza, MedioCalendario, PiezaCreatividad } from './campana.modelo';
 import { AutenticacionService } from '../auth/autenticacion.service';
 
 const URL_GATEWAY_GRAPHQL = 'http://localhost:8000/graphql';
 const URL_GATEWAY_REST = 'http://localhost:8000/api/v1';
+
+// MedioPublicitario (enum GraphQL, pasarela) -> medio local de calendario.modelo.ts.
+// "redes" no tiene equivalente real todavia (el enum GraphQL no lo contempla).
+const MAPA_MEDIO_GQL: Record<string, MedioCalendario['medio']> = {
+  television: 'tv',
+  radio: 'radio',
+  prensa: 'prensa',
+  digital: 'digital',
+  valla_exterior: 'vallas',
+};
+
+// tipoMedio real de ms-creatividades (imagen/video/copy/audio) -> degradado visual.
+const MAPA_DEGRADADO_TIPO: Record<string, DegradadoPieza> = {
+  video: 'video',
+  imagen: 'banner',
+  copy: 'historia',
+  audio: 'valla',
+};
+
+// EstadoPieza real de ms-creatividades (en_revision/aprobada/bloqueada_saga/rechazada)
+// -> estado local de presentacion.
+const MAPA_ESTADO_PIEZA_GQL: Record<string, PiezaCreatividad['estado']> = {
+  en_revision: 'pendiente',
+  aprobada: 'aprobada',
+  bloqueada_saga: 'bloqueada',
+  rechazada: 'rechazada',
+};
 
 @Injectable({ providedIn: 'root' })
 export class CampanasDatos {
@@ -112,6 +139,7 @@ export class CampanasDatos {
   };
 
   constructor() {
+    this.listaCampanas.set([]);
     this.sincronizarConBackend();
   }
 
@@ -148,6 +176,7 @@ export class CampanasDatos {
               id
               razonSocial
             }
+            piezas { id titulo tipoMedio estado urlArchivo version }
           }
         }
       `,
@@ -163,7 +192,16 @@ export class CampanasDatos {
       if (!respuesta.ok) return;
 
       const resultado = await respuesta.json();
-      if (resultado.data?.campanas && Array.isArray(resultado.data.campanas) && resultado.data.campanas.length > 0) {
+      if (resultado.errors?.length) throw new Error(resultado.errors[0].message);
+      if (Array.isArray(resultado.data?.campanas)) {
+        for (const c of resultado.data.campanas) {
+          this.piezasPorCampana[c.id] = c.piezas.map((p: any) => ({
+            titulo: p.titulo, nombreArchivo: p.urlArchivo || '', formato: p.tipoMedio,
+            overlay: '', degradado: p.tipoMedio === 'video' ? 'video' : 'banner',
+            version: p.version, estado: p.estado === 'en_revision' ? 'pendiente' :
+              p.estado === 'bloqueada_saga' ? 'bloqueada' : p.estado, confianzaMarca: 0,
+          }));
+        }
         const mapeadas: Campana[] = resultado.data.campanas.map((c: any, index: number) => ({
           id: c.id,
           codigoReferencia: `CMP-2026-${String(index + 1).padStart(3, '0')}`,
@@ -192,6 +230,87 @@ export class CampanasDatos {
     return this.listaCampanas().find((campana) => campana.id === id);
   }
 
+  /** Detalle real de una campana (campana + presupuesto + cliente + calendario +
+   * piezas), via el resolver GraphQL Campana.piezas de la pasarela (que ya consulta
+   * ms-creatividades real: briefs por campana_id + piezas de cada brief). Null si la
+   * campana no existe o la pasarela no responde -- la pantalla cae a los datos
+   * locales/mock en ese caso. */
+  async obtenerDetalleReal(
+    id: string
+  ): Promise<{ campana: Campana; calendario: MedioCalendario[]; piezas: PiezaCreatividad[] } | null> {
+    const consulta = {
+      query: `
+        query DetalleCampana($id: ID!) {
+          campana(id: $id) {
+            id
+            nombre
+            descripcion
+            estado
+            fechaInicio
+            fechaFin
+            presupuesto { montoTotal montoGastado moneda }
+            cliente { id razonSocial }
+            calendario { medio fechaInicio fechaFin costoEstimado estado }
+            piezas { id titulo tipoMedio estado urlArchivo version }
+          }
+        }
+      `,
+      variables: { id },
+    };
+
+    try {
+      const respuesta = await fetch(URL_GATEWAY_GRAPHQL, {
+        method: 'POST',
+        headers: this.cabecerasAuth(),
+        body: JSON.stringify(consulta),
+      });
+      if (!respuesta.ok) return null;
+      const cuerpo = await respuesta.json();
+      const c = cuerpo.data?.campana;
+      if (!c) return null;
+
+      const campana: Campana = {
+        id: c.id,
+        codigoReferencia: this.buscarPorId(id)?.codigoReferencia || c.id.substring(0, 8),
+        nombre: c.nombre,
+        cliente: c.cliente?.razonSocial || `Cliente ${c.id.substring(0, 8)}`,
+        estado: c.estado,
+        presupuestoTotal: c.presupuesto?.montoTotal || 0,
+        montoGastado: c.presupuesto?.montoGastado || 0,
+        moneda: c.presupuesto?.moneda || 'BOB',
+        fechaInicio: c.fechaInicio,
+        fechaFin: c.fechaFin,
+      };
+
+      const calendario: MedioCalendario[] = (c.calendario || []).map((m: any) => ({
+        medio: MAPA_MEDIO_GQL[m.medio as string] ?? 'digital',
+        fechaInicio: m.fechaInicio,
+        fechaFin: m.fechaFin,
+        costo: m.costoEstimado,
+        estado: m.estado,
+      }));
+
+      const piezas: PiezaCreatividad[] = (c.piezas || []).map((p: any) => {
+        const degradado = MAPA_DEGRADADO_TIPO[p.tipoMedio as string] ?? 'banner';
+        const nombreArchivo = p.urlArchivo ? p.urlArchivo.split('/').pop() : `${p.id}.bin`;
+        return {
+          titulo: p.titulo,
+          nombreArchivo: nombreArchivo || p.id,
+          formato: (p.tipoMedio as string)?.toUpperCase() || 'ARCHIVO',
+          overlay: `v${p.version}`,
+          degradado,
+          version: p.version,
+          estado: MAPA_ESTADO_PIEZA_GQL[p.estado as string] ?? 'pendiente',
+          confianzaMarca: 0,
+        };
+      });
+
+      return { campana, calendario, piezas };
+    } catch {
+      return null;
+    }
+  }
+
   calendarioDe(idCampana: string): MedioCalendario[] {
     return this.calendarioPorCampana[idCampana] ?? [];
   }
@@ -200,9 +319,22 @@ export class CampanasDatos {
     return this.piezasPorCampana[idCampana] ?? [];
   }
 
+  /** Clientes reales de ms-clientes-crm (via proxy REST de la pasarela) para el selector del formulario. */
+  async listarClientesReales(): Promise<{ id: string; razonSocial: string }[]> {
+    try {
+      const respuesta = await fetch(`${URL_GATEWAY_REST}/clientes`, { headers: this.cabecerasAuth() });
+      if (!respuesta.ok) return [];
+      const cuerpo = await respuesta.json();
+      const items = cuerpo.contenido ?? [];
+      return items.map((c: any) => ({ id: c.id, razonSocial: c.razon_social }));
+    } catch {
+      return [];
+    }
+  }
+
   async crearCampana(datos: {
     nombre: string;
-    clienteId?: string;
+    clienteId: string;
     descripcion?: string;
     fechaInicio: string;
     fechaFin: string;
@@ -210,7 +342,7 @@ export class CampanasDatos {
     moneda: 'BOB' | 'USD';
   }): Promise<Campana> {
     const idLocal = 'cmp-' + Date.now();
-    const clienteIdReal = datos.clienteId || '11111111-1111-1111-1111-111111111111';
+    const clienteIdReal = datos.clienteId;
 
     // 1. Intento por mutación GraphQL hacia el Gateway
     try {
@@ -249,6 +381,18 @@ export class CampanasDatos {
         const cuerpo = await resGql.json();
         if (cuerpo.data?.crearCampana) {
           const campanaGql = cuerpo.data.crearCampana;
+
+          // El presupuesto no forma parte de CrearCampanaInput (ver esquema.ts) — se registra
+          // aparte contra ms-campanas, igual que hace el flujo de piezas/briefs.
+          await fetch(`${URL_GATEWAY_REST}/campanas/${campanaGql.id}/presupuesto`, {
+            method: 'POST',
+            headers: {
+              ...this.cabecerasAuth(),
+              'Idempotency-Key': `presupuesto-${campanaGql.id}-${Date.now()}`,
+            },
+            body: JSON.stringify({ monto_total: datos.presupuestoTotal, moneda: datos.moneda }),
+          }).catch(() => {});
+
           const nuevaCampana: Campana = {
             id: campanaGql.id,
             codigoReferencia: `CMP-2026-${String(this.listaCampanas().length + 1).padStart(3, '0')}`,
@@ -296,31 +440,23 @@ export class CampanasDatos {
         },
       });
 
-      if (respuesta.ok || respuesta.status === 202) {
+      if (respuesta.ok) {
         const datos = await respuesta.json();
+        if (!datos.id) throw new Error('La respuesta no contiene el identificador de la SAGA');
         // Actualizamos estado en UI
         this.listaCampanas.update((lista) =>
           lista.map((c) => (c.id === idCampana ? { ...c, estado: 'pendiente' } : c))
         );
         return {
-          sagaId: datos.saga_id,
+          sagaId: datos.id,
           estado: datos.estado,
-          mensaje: datos.mensaje,
+          mensaje: 'Contratación iniciada',
         };
       }
+      const error = await respuesta.json().catch(() => null);
+      throw new Error(error?.mensaje || `No se pudo contratar la campaña (${respuesta.status})`);
     } catch (e) {
-      console.warn('Backend inaccesible al contratar, iniciando SAGA en modo simulado:', e);
+      throw e instanceof Error ? e : new Error('No se pudo conectar con la pasarela');
     }
-
-    // Fallback con sagaId simulado
-    const sagaIdSimulada = 'saga-' + Date.now();
-    this.listaCampanas.update((lista) =>
-      lista.map((c) => (c.id === idCampana ? { ...c, estado: 'pendiente' } : c))
-    );
-    return {
-      sagaId: sagaIdSimulada,
-      estado: 'reservando_presupuesto',
-      mensaje: 'Transacción SAGA iniciada en modo local',
-    };
   }
 }

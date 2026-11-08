@@ -1,33 +1,30 @@
-<a [routerLink]="['/campanas', saga().idCampana]" class="volver">← Volver a la campaña</a>
+@if (error(); as mensajeError) { <p role="alert">{{ mensajeError }}</p> }
+@if (saga(); as estadoSaga) {
+<a [routerLink]="['/campanas', estadoSaga.idCampana]" class="volver">← Volver a la campaña</a>
 
 <div class="encabezado">
   <div>
-    <h1>Contratando campaña: {{ saga().nombreCampana }}</h1>
-    <p class="subtitulo">Cliente: {{ saga().cliente }}</p>
-  </div>
-  <!-- Selector de escenario solo para esta demo, ver TODO en saga-estado.ts -->
-  <div class="selector-demo">
-    <ao-boton variante="secundario" (click)="escenario.set('en_progreso')">En progreso</ao-boton>
-    <ao-boton variante="secundario" (click)="escenario.set('fallo')">Con fallo</ao-boton>
+    <h1>Contratando campaña: {{ estadoSaga.nombreCampana }}</h1>
+    <p class="subtitulo">Cliente: {{ estadoSaga.cliente }}</p>
   </div>
 </div>
 
-@if (saga().resultado === 'rechazada') {
+@if (estadoSaga.resultado === 'rechazada') {
   <ao-tarjeta [compacta]="true" class="aviso aviso--peligro">
-    No se pudo contratar la campaña — se revirtieron los pasos anteriores. La campaña vuelve a estado Rechazada.
-    @if (saga().motivoRechazo) {
-      <br /><strong>Motivo:</strong> {{ saga().motivoRechazo }}
+    La contratación fue rechazada o falló. Consulta el motivo informado por el servicio.
+    @if (estadoSaga.motivoRechazo) {
+      <br /><strong>Motivo:</strong> {{ estadoSaga.motivoRechazo }}
     }
   </ao-tarjeta>
 } @else {
   <ao-tarjeta [compacta]="true" class="aviso aviso--info">
-    Orquestación en curso: {{ pasosCompletados() }} de {{ saga().pasos.length }} pasos completados. Tiempo límite: 10
+    Orquestación en curso: {{ pasosCompletados() }} de {{ estadoSaga.pasos.length }} pasos completados. Tiempo límite: 10
     minutos.
   </ao-tarjeta>
 }
 
 <ol class="pasos">
-  @for (paso of saga().pasos; track paso.orden) {
+  @for (paso of estadoSaga.pasos; track paso.orden) {
     <li class="paso paso--{{ paso.estado }}">
       <span class="paso__indicador" aria-hidden="true"></span>
       <div class="paso__cuerpo">
@@ -41,3 +38,4 @@
     </li>
   }
 </ol>
+}
