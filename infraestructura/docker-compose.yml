@@ -50,6 +50,8 @@ services:
       SPRING_RABBITMQ_USERNAME: guest
       SPRING_RABBITMQ_PASSWORD: guest
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: http://keycloak:8080/realms/adorbit
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CAMPANAS_AUDIENCIA_JWT: ms-campanas
       ADORBIT_CAMPANAS_URL_BD: ${ADORBIT_CAMPANAS_URL_BD:-postgresql://postgres.wzsdqnltypjasnbiwtxi:reemplazar_con_supabase@aws-0-us-east-1.pooler.supabase.com:5432/postgres}
     depends_on:
       rabbitmq:

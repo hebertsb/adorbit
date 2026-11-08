@@ -186,10 +186,14 @@ const servidor = createServer(async (req, res) => {
     return html(res, 200, '<h1>Sesion cerrada</h1>');
   }
 
-  // Solo desarrollo: token de un usuario cualquiera. GET /emitir?roles=cliente&cliente_id=<uuid>
+  // Solo desarrollo: token de un usuario cualquiera. GET /emitir?roles=cliente&cliente_id=<uuid>&email=<email>
   if (req.method === 'GET' && ruta === '/emitir') {
     const roles = (url.searchParams.get('roles') ?? 'ejecutivo').split(',');
-    const extra = url.searchParams.get('cliente_id') ? { cliente_id: url.searchParams.get('cliente_id') } : {};
+    const email = url.searchParams.get('email');
+    const extra = {
+      ...(url.searchParams.get('cliente_id') ? { cliente_id: url.searchParams.get('cliente_id') } : {}),
+      ...(email ? { email, preferred_username: email } : {}),
+    };
     return json(res, 200, { access_token: tokenAcceso({ sub: 'usuario-simulado', roles, extra }) });
   }
 

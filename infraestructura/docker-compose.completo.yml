@@ -2,6 +2,8 @@
 #   cp .env.ejemplo .env            # completar los secretos (el .env no se versiona)
 #   docker compose -f docker-compose.completo.yml up -d --build                      # parte de Integrante B
 #   docker compose -f docker-compose.completo.yml --profile equipo up -d --build     # + servicios de Roly y Hebert
+#   docker compose -f docker-compose.completo.yml --profile equipo --profile mensajeria up -d --build # incluye workers CRM
+# Activar mensajeria puede procesar eventos pendientes contra las bases conectadas.
 #
 # Identidad: usa el Keycloak SIMULADO (herramientas/keycloak-simulado.mjs) porque el realm real de
 # plataforma/keycloak aun no emite la audiencia (aud) por servicio ni tiene los clientes portal-cliente,
@@ -80,7 +82,7 @@ services:
     build: { context: ../servicios/ms-clientes-crm }
     container_name: adorbit-ms-clientes-crm
     ports: ["8084:8084"]
-    environment:
+    environment: &entorno-crm
       APP_KEY: ${CRM_APP_KEY:?completar en .env (php artisan key:generate --show)}
       DB_CONNECTION: mongodb
       ADORBIT_CRM_MONGO_DSN: ${CRM_MONGO_DSN:?completar en .env}
@@ -96,6 +98,29 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
       keycloak: { condition: service_healthy }
+    networks: [adorbit-red]
+
+  # Procesos separados de la API; solo se activan explicitamente con el perfil mensajeria.
+  crm-consumidor:
+    profiles: [mensajeria]
+    build: { context: ../servicios/ms-clientes-crm }
+    command: ["php", "artisan", "crm:consumir-comandos"]
+    environment: *entorno-crm
+    healthcheck: { disable: true }
+    restart: unless-stopped
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    networks: [adorbit-red]
+
+  crm-publicador:
+    profiles: [mensajeria]
+    build: { context: ../servicios/ms-clientes-crm }
+    command: ["php", "artisan", "crm:publicar-bandeja"]
+    environment: *entorno-crm
+    healthcheck: { disable: true }
+    restart: unless-stopped
+    depends_on:
+      rabbitmq: { condition: service_healthy }
     networks: [adorbit-red]
 
   portal-cliente:
@@ -170,10 +195,8 @@ services:
     environment:
       PORT: "8081"
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_RABBITMQ_PORT: "5672"
-      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USUARIO:-guest}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_CLAVE:-guest}
+      ADORBIT_CAMPANAS_URL_RABBITMQ: amqp://${RABBITMQ_USUARIO:-guest}:${RABBITMQ_CLAVE:-guest}@rabbitmq:5672
+      SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP: "true"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: *emisor
       # jwk-set-uri tiene prioridad sobre issuer-uri en Spring Boot (evita el round-trip de
       # auto-discovery a *emisor, que usa "localhost" -- desde DENTRO del contenedor eso es
@@ -181,6 +204,7 @@ services:
       # refused). Mismo patron que ya usan ms-facturacion/ms-clientes-crm/etc, que no pasan
       # por auto-discovery.
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CAMPANAS_AUDIENCIA_JWT: ms-campanas
       ADORBIT_CAMPANAS_URL_BD: ${CAMPANAS_URL_BD:-}
     depends_on:
       rabbitmq: { condition: service_healthy }

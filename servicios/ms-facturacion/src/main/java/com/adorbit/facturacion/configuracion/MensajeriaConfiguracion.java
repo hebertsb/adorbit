@@ -57,10 +57,13 @@ public class MensajeriaConfiguracion {
                 .deadLetterRoutingKey(colaComandos)
                 .build();
         Queue colaErrores = QueueBuilder.durable(colaComandos + ".dlq").build();
-        Binding emitirFactura = BindingBuilder.bind(comandos).to(saga).with("emitir.factura");
-        Binding emitirNota = BindingBuilder.bind(comandos).to(saga).with("emitir.nota.credito");
+        // Clave de enrutamiento = nombre del servicio destino (una cola por servicio, no por tipo de
+        // comando) -- misma convencion que usan ms-campanas al publicar (ver encolarComandoSaga) y las
+        // colas saga.crm/saga.creatividades ya declaradas en el broker compartido. Con "emitir.factura"/
+        // "emitir.nota.credito" el mensaje nunca llegaba: el exchange es "direct" (match exacto).
+        Binding comandosSaga = BindingBuilder.bind(comandos).to(saga).with(colaComandos);
         Binding errorBinding = BindingBuilder.bind(colaErrores).to(errores).with(colaComandos);
-        return new Declarables(saga, eventos, errores, comandos, colaErrores, emitirFactura, emitirNota, errorBinding);
+        return new Declarables(saga, eventos, errores, comandos, colaErrores, comandosSaga, errorBinding);
     }
 
     @Bean

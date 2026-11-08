@@ -16,7 +16,7 @@ public interface SagaTransaccionRepositorio extends JpaRepository<SagaTransaccio
     Optional<SagaTransaccion> findByClaveIdempotencia(String claveIdempotencia);
     Optional<SagaTransaccion> findByCampanaIdAndEstadoIn(UUID campanaId, List<EstadoSaga> estados);
 
-    @Query("SELECT s FROM SagaTransaccion s WHERE s.limiteEn < :ahora AND s.estado NOT IN (adorbit.campanas.dominio.modelo.EstadoSaga.completada, adorbit.campanas.dominio.modelo.EstadoSaga.compensada, adorbit.campanas.dominio.modelo.EstadoSaga.rechazada, adorbit.campanas.dominio.modelo.EstadoSaga.fallida)")
+    @Query("SELECT s FROM SagaTransaccion s WHERE s.limiteEn < :ahora AND s.estado NOT IN (adorbit.campanas.dominio.modelo.EstadoSaga.completada, adorbit.campanas.dominio.modelo.EstadoSaga.compensando, adorbit.campanas.dominio.modelo.EstadoSaga.compensada, adorbit.campanas.dominio.modelo.EstadoSaga.rechazada, adorbit.campanas.dominio.modelo.EstadoSaga.fallida)")
     List<SagaTransaccion> findSagasVencidas(OffsetDateTime ahora);
 }
 

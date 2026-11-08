@@ -25,9 +25,14 @@ public class ConfiguracionRabbitMQ {
         return new DirectExchange(EXCHANGE_SAGA, true, false);
     }
 
+    // Argumentos de dead-letter idénticos a los de plataforma/rabbitmq/definiciones.json;
+    // RabbitMQ rechaza redeclarar una cola existente con otros argumentos (406 PRECONDITION_FAILED).
     @Bean
     public Queue colaSagaCampanas() {
-        return QueueBuilder.durable(COLA_SAGA_CAMPANAS).build();
+        return QueueBuilder.durable(COLA_SAGA_CAMPANAS)
+            .withArgument("x-dead-letter-exchange", "adorbit.dlx")
+            .withArgument("x-dead-letter-routing-key", "saga.campanas.dlq")
+            .build();
     }
 
     @Bean

@@ -131,6 +131,78 @@
       "arguments": {}
     },
     {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "credito.reservado",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "credito.rechazado",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "piezas.bloqueadas",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "bloqueo.fallido",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "factura.emitida",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "facturacion.fallida",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "credito.liberado",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "piezas.desbloqueadas",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "saga.campanas",
+      "destination_type": "queue",
+      "routing_key": "nota.credito.emitida",
+      "arguments": {}
+    },
+    {
       "source": "adorbit.saga",
       "vhost": "/",
       "destination": "saga.crm",

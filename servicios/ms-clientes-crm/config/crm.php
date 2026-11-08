@@ -18,7 +18,7 @@ return [
         'clave' => env('ADORBIT_CRM_RABBITMQ_CLAVE', 'guest'),
         'exchange_eventos' => 'adorbit.eventos',
         'exchange_saga' => 'adorbit.saga',
-        'exchange_errores' => 'adorbit.saga.dlx',
+        'exchange_errores' => 'adorbit.dlx',
         'cola_comandos' => 'saga.crm',
         'max_intentos' => 5,
         'espera_inicial_segundos' => (int) env('ADORBIT_CRM_REINTENTO_INICIAL', 1),

@@ -1,10 +1,11 @@
 export const typeDefs = `#graphql
   enum EstadoCampana {
     borrador
+    pendiente_aprobacion
     pendiente
     activa
     pausada
-    completada
+    finalizada
     cancelada
     rechazada
   }
@@ -145,10 +146,14 @@ export const resolvers = {
       const headers: Record<string, string> = {};
       if (contexto.token) headers["Authorization"] = contexto.token;
       
-      const respuesta = await peticionSegura<{ contenido: any[] }>(url, { headers });
-      if (!respuesta || !respuesta.contenido) return [];
+      // ms-campanas devuelve Page<T> de Spring Data, cuyo campo real es "content" (no
+      // "contenido") -- con el nombre en espanol este resolver siempre devolvia [],
+      // sin importar cuantas campanas reales existieran (encontrado probando en vivo:
+      // la mutacion crearCampana si funcionaba, pero la lista nunca mostraba nada nuevo).
+      const respuesta = await peticionSegura<{ content: any[] }>(url, { headers });
+      if (!respuesta || !respuesta.content) return [];
 
-      return respuesta.contenido.map((c) => ({
+      return respuesta.content.map((c) => ({
         id: c.id,
         clienteId: c.cliente_id,
         nombre: c.nombre,
@@ -217,7 +222,7 @@ export const resolvers = {
       if (!s) return null;
 
       return {
-        sagaId: s.saga_id,
+        sagaId: s.id,
         campanaId: s.campana_id,
         estado: s.estado,
         pasoActual: s.paso_actual,
@@ -293,9 +298,33 @@ export const resolvers = {
       const headers: Record<string, string> = {};
       if (contexto.token) headers["Authorization"] = contexto.token;
 
-      const res = await peticionSegura<any[]>(url, { headers });
-      if (!res || !Array.isArray(res)) return [];
-      return [];
+      const obtener = async (direccion: string) => {
+        const respuesta = await fetch(direccion, { headers });
+        if (!respuesta.ok) throw new Error(`Error al consultar creatividades: ${respuesta.status}`);
+        return respuesta.json();
+      };
+      const briefs: any[] = [];
+      let pagina = 1;
+      let total = 0;
+      do {
+        const resultado = await obtener(`${url}&page=${pagina}&size=100`);
+        if (!Array.isArray(resultado.items) || typeof resultado.total !== 'number') {
+          throw new Error('Respuesta de briefs inválida');
+        }
+        briefs.push(...resultado.items);
+        total = resultado.total;
+        if (!resultado.items.length && briefs.length < total) throw new Error('Paginación de briefs incompleta');
+        pagina++;
+      } while (briefs.length < total);
+      const grupos = await Promise.all(briefs.map(async (brief) => {
+        const resultado = await obtener(`${URL_CREATIVIDADES}/api/v1/briefs/${encodeURIComponent(brief.id)}/piezas`);
+        if (!Array.isArray(resultado.items)) throw new Error('Respuesta de piezas inválida');
+        return resultado.items.map((p: any) => ({
+          id: p.id, titulo: p.nombre, tipoMedio: p.tipo, estado: p.estado,
+          urlArchivo: p.archivo?.ruta, version: p.versionNumero
+        }));
+      }));
+      return grupos.flat();
     },
 
     facturas: async (padre: any, _: unknown, contexto: any) => {
@@ -377,9 +406,9 @@ export const resolvers = {
 
       const datos = await res.json();
       return {
-        sagaId: datos.saga_id,
+        sagaId: datos.id,
         estado: datos.estado,
-        mensaje: datos.mensaje
+        mensaje: "Contratación iniciada"
       };
     }
   }

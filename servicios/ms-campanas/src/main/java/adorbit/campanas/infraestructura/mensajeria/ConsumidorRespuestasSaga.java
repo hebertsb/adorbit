@@ -32,10 +32,13 @@ public class ConsumidorRespuestasSaga {
         try {
             JsonNode nodo = objectMapper.readTree(mensajeJson);
             String tipoEvento = nodo.path("tipo_evento").asText();
-            String sagaIdStr = nodo.path("agregado_id").asText();
+            // correlacion_id es el saga_id en la convencion de los 3 participantes (ms-clientes-crm,
+            // ms-creatividades, ms-facturacion): todos usan agregado_id para el campana_id/entidad y
+            // correlacion_id para correlacionar con la SAGA. agregado_id queda solo de respaldo.
+            String sagaIdStr = nodo.path("correlacion_id").asText();
 
             if (sagaIdStr == null || sagaIdStr.isEmpty()) {
-                sagaIdStr = nodo.path("correlacion_id").asText();
+                sagaIdStr = nodo.path("agregado_id").asText();
             }
 
             if (sagaIdStr == null || sagaIdStr.isEmpty()) {

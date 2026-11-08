@@ -22,17 +22,15 @@ final class ConexionRabbit
     {
         $c = config('crm.mensajeria');
         $canal->exchange_declare($c['exchange_eventos'], 'topic', false, true, false);
-        $canal->exchange_declare($c['exchange_saga'], 'topic', false, true, false);
-        $canal->exchange_declare($c['exchange_errores'], 'direct', false, true, false);
+        $canal->exchange_declare($c['exchange_saga'], 'direct', false, true, false);
+        $canal->exchange_declare($c['exchange_errores'], 'fanout', false, true, false);
 
         $canal->queue_declare($c['cola_comandos'], false, true, false, false, false, new AMQPTable([
             'x-dead-letter-exchange' => $c['exchange_errores'],
-            'x-dead-letter-routing-key' => $c['cola_comandos'],
+            'x-dead-letter-routing-key' => $c['cola_comandos'].'.dlq',
         ]));
-        $canal->queue_bind($c['cola_comandos'], $c['exchange_saga'], 'reservar.credito');
-        $canal->queue_bind($c['cola_comandos'], $c['exchange_saga'], 'liberar.credito');
-
-        $canal->queue_declare($c['cola_comandos'].'.dlq', false, true, false, false);
-        $canal->queue_bind($c['cola_comandos'].'.dlq', $c['exchange_errores'], $c['cola_comandos']);
+        $canal->queue_bind($c['cola_comandos'], $c['exchange_saga'], $c['cola_comandos']);
+        $canal->queue_declare('cola.muerta', false, true, false, false);
+        $canal->queue_bind('cola.muerta', $c['exchange_errores']);
     }
 }

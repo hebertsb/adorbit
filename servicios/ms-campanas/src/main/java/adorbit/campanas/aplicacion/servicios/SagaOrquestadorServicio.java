@@ -7,9 +7,12 @@ import adorbit.campanas.dominio.modelo.*;
 import adorbit.campanas.dominio.repositorio.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -22,19 +25,22 @@ public class SagaOrquestadorServicio {
     private final PresupuestoRepositorio presupuestoRepositorio;
     private final BandejaSalidaRepositorio outboxRepositorio;
     private final ObjectMapper objectMapper;
+    private final BigDecimal tasaImpuesto;
 
     public SagaOrquestadorServicio(SagaTransaccionRepositorio sagaRepositorio,
                                    SagaPasoRepositorio sagaPasoRepositorio,
                                    CampanaRepositorio campanaRepositorio,
                                    PresupuestoRepositorio presupuestoRepositorio,
                                    BandejaSalidaRepositorio outboxRepositorio,
-                                   ObjectMapper objectMapper) {
+                                   ObjectMapper objectMapper,
+                                   @Value("${adorbit.campanas.negocio.tasa-impuesto:0.13}") BigDecimal tasaImpuesto) {
         this.sagaRepositorio = sagaRepositorio;
         this.sagaPasoRepositorio = sagaPasoRepositorio;
         this.campanaRepositorio = campanaRepositorio;
         this.presupuestoRepositorio = presupuestoRepositorio;
         this.outboxRepositorio = outboxRepositorio;
         this.objectMapper = objectMapper;
+        this.tasaImpuesto = tasaImpuesto;
     }
 
     @Transactional
@@ -103,7 +109,7 @@ public class SagaOrquestadorServicio {
         cargaComando.put("clave_comando", claveComandoPaso2);
         cargaComando.put("campana_id", campana.getId().toString());
         cargaComando.put("cliente_id", campana.getClienteId().toString());
-        cargaComando.put("monto", presupuesto.getMontoTotal());
+        cargaComando.put("monto", presupuesto.getMontoTotal().toPlainString());
         cargaComando.put("moneda", presupuesto.getMoneda());
         encolarComandoSaga("ms-clientes-crm", "ReservarCredito", saga.getId(), cargaComando);
 
@@ -198,12 +204,25 @@ public class SagaOrquestadorServicio {
             saga.setEstado(EstadoSaga.facturando);
             sagaRepositorio.save(saga);
 
+            // ms-facturacion recalcula subtotal+impuestos desde "items" y exige que coincida EXACTO
+            // con "total" (total_no_coincide); hay que reproducir aqui su misma formula y redondeo
+            // (HALF_UP, 2 decimales - ver Dinero.java) en vez de mandar el presupuesto crudo.
+            BigDecimal subtotal = presupuesto.getMontoTotal()
+                .divide(BigDecimal.ONE.add(tasaImpuesto), 2, RoundingMode.HALF_UP);
+            BigDecimal impuestos = subtotal.multiply(tasaImpuesto).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal totalFactura = subtotal.add(impuestos).setScale(2, RoundingMode.HALF_UP);
+
             Map<String, Object> carga = new HashMap<>();
             carga.put("saga_id", saga.getId().toString());
             carga.put("clave_comando", claveComandoPaso4);
             carga.put("campana_id", campana.getId().toString());
             carga.put("cliente_id", campana.getClienteId().toString());
-            carga.put("total", presupuesto.getMontoTotal());
+            carga.put("items", List.of(Map.of(
+                "descripcion", "Servicios de campaña publicitaria",
+                "cantidad", 1,
+                "precio_unitario", subtotal.toPlainString()
+            )));
+            carga.put("total", totalFactura.toPlainString());
             carga.put("moneda", presupuesto.getMoneda());
             encolarComandoSaga("ms-facturacion", "EmitirFactura", saga.getId(), carga);
         } else {
@@ -353,8 +372,11 @@ public class SagaOrquestadorServicio {
             carga.put("saga_id", saga.getId().toString());
             carga.put("clave_comando", claveComp);
             carga.put("campana_id", saga.getCampanaId().toString());
+            if (campana != null) {
+                carga.put("cliente_id", campana.getClienteId().toString());
+            }
             if (presupuesto != null) {
-                carga.put("monto", presupuesto.getMontoTotal());
+                carga.put("monto", presupuesto.getMontoTotal().toPlainString());
                 carga.put("moneda", presupuesto.getMoneda());
             }
             encolarComandoSaga("ms-clientes-crm", "LiberarCredito", saga.getId(), carga);
