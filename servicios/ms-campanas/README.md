@@ -36,6 +36,7 @@ Seguridad: JWT de Keycloak, idempotencia en toda escritura, outbox para eventos 
 4. [x] Outbox + relay RabbitMQ
 5. [x] Orquestador SAGA (5 pasos + compensaciones + job de timeouts)
 6. [x] Tests: camino feliz, fallos y reenvío (ver `documentacion/02-saga.md`)
+7. [x] Consulta interna de metadatos pendientes de bandeja (primera etapa; MCP de ms-ia pendiente). Configurar `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI`, `SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI` (JWKS interna) y `ADORBIT_CAMPANAS_AUDIENCIA_JWT`; si falta alguno, el acceso queda cerrado.
 
 ## Definición de terminado
 Caso feliz + idempotencia probados · contrato y BD al día en los `.md` · demostrable en la defensa.
