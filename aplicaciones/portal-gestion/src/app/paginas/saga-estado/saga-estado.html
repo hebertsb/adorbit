@@ -1,41 +1,54 @@
-@if (error(); as mensajeError) { <p role="alert">{{ mensajeError }}</p> }
-@if (saga(); as estadoSaga) {
-<a [routerLink]="['/campanas', estadoSaga.idCampana]" class="volver">← Volver a la campaña</a>
-
-<div class="encabezado">
-  <div>
-    <h1>Contratando campaña: {{ estadoSaga.nombreCampana }}</h1>
-    <p class="subtitulo">Cliente: {{ estadoSaga.cliente }}</p>
-  </div>
-</div>
-
-@if (estadoSaga.resultado === 'rechazada') {
-  <ao-tarjeta [compacta]="true" class="aviso aviso--peligro">
-    La contratación fue rechazada o falló. Consulta el motivo informado por el servicio.
-    @if (estadoSaga.motivoRechazo) {
-      <br /><strong>Motivo:</strong> {{ estadoSaga.motivoRechazo }}
-    }
-  </ao-tarjeta>
-} @else {
-  <ao-tarjeta [compacta]="true" class="aviso aviso--info">
-    Orquestación en curso: {{ pasosCompletados() }} de {{ estadoSaga.pasos.length }} pasos completados. Tiempo límite: 10
-    minutos.
-  </ao-tarjeta>
+@if (error(); as mensajeError) {
+  <div class="aviso aviso--peligro" role="alert">{{ mensajeError }}</div>
 }
+@if (saga(); as estadoSaga) {
+  <div class="barra-superior">
+    <a [routerLink]="['/campanas', estadoSaga.idCampana]" class="volver">← Volver a la campaña</a>
+    <span class="estado-global estado-global--{{ estadoSaga.resultado }}">
+      @switch (estadoSaga.resultado) {
+        @case ('en_progreso') { En progreso }
+        @case ('completada') { Completada }
+        @case ('rechazada') { Rechazada }
+      }
+    </span>
+  </div>
 
-<ol class="pasos">
-  @for (paso of estadoSaga.pasos; track paso.orden) {
-    <li class="paso paso--{{ paso.estado }}">
-      <span class="paso__indicador" aria-hidden="true"></span>
-      <div class="paso__cuerpo">
-        <div class="paso__cabecera">
-          <strong>Paso {{ paso.orden }} · {{ paso.titulo }}</strong>
-          <span class="dato-mono paso__servicio">{{ paso.servicio }}</span>
-        </div>
-        <p class="paso__detalle">{{ paso.detalle }}</p>
-      </div>
-      <span class="paso__estado">{{ etiquetaEstadoPaso(paso.estado) }}</span>
-    </li>
+  <header class="encabezado">
+    <h1>Contratando campaña: {{ estadoSaga.nombreCampana }}</h1>
+    <p>Cliente: <strong>{{ estadoSaga.cliente }}</strong> <span aria-hidden="true">·</span> ID campaña: <strong class="dato-mono">{{ estadoSaga.idCampana }}</strong></p>
+  </header>
+
+  @if (estadoSaga.resultado === 'rechazada') {
+    <section class="aviso aviso--peligro" aria-label="Resultado de la contratación">
+      <h2>No se pudo contratar la campaña</h2>
+      <p>La contratación fue rechazada o falló. Consulta el motivo informado por el servicio.</p>
+      @if (estadoSaga.motivoRechazo) { <p class="motivo"><strong>Motivo:</strong> {{ estadoSaga.motivoRechazo }}</p> }
+    </section>
   }
-</ol>
+
+  <section class="panel" aria-labelledby="titulo-flujo">
+    <div class="panel__cabecera">
+      <div>
+        <h2 id="titulo-flujo">Orquestación de contratación distribuida (SAGA)</h2>
+        <p>Seguimiento de los pasos de contratación y compensación.</p>
+      </div>
+    </div>
+    <div class="progreso">
+      <div class="progreso__texto"><span>Progreso del flujo: <strong>{{ pasosCompletados() }} de {{ estadoSaga.pasos.length }} pasos completados</strong></span><strong>{{ porcentajeCompletado() }}%</strong></div>
+      <div class="progreso__barra" role="progressbar" aria-label="Pasos completados" [attr.aria-valuenow]="porcentajeCompletado()" aria-valuemin="0" aria-valuemax="100"><span [style.width.%]="porcentajeCompletado()"></span></div>
+    </div>
+    <ol class="pasos">
+      @for (paso of estadoSaga.pasos; track paso.orden) {
+        <li class="paso paso--{{ paso.estado }}">
+          <span class="paso__indicador" aria-hidden="true">@switch (paso.estado) { @case ('completado') { ✓ } @case ('fallido') { × } @case ('compensado') { ↶ } @case ('en_curso') { · } @default { · } }</span>
+          <div class="paso__cuerpo">
+            <div class="paso__cabecera"><span class="paso__numero">Paso {{ paso.orden }}</span><strong>{{ paso.titulo }}</strong><span class="paso__servicio">{{ paso.servicio }}</span><span class="paso__estado">{{ etiquetaEstadoPaso(paso.estado) }}</span></div>
+            <p class="paso__detalle">{{ paso.detalle }}</p>
+          </div>
+        </li>
+      } @empty { <li class="vacio">No hay pasos disponibles.</li> }
+    </ol>
+  </section>
+} @else if (!error()) {
+  <p class="cargando" role="status">Consultando el estado de la contratación...</p>
 }

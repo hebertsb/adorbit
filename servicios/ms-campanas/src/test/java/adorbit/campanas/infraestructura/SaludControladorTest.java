@@ -7,7 +7,9 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.security.test.context.support.WithMockUser;
+import adorbit.campanas.infraestructura.configuracion.ConfiguracionSeguridad;
+import adorbit.campanas.infraestructura.configuracion.SeguridadBandeja;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -17,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(SaludControlador.class)
 @ActiveProfiles("test")
+@Import({ConfiguracionSeguridad.class, SeguridadBandeja.class})
 class SaludControladorTest {
 
     @Autowired
@@ -26,7 +29,14 @@ class SaludControladorTest {
     private ClaveIdempotenciaRepositorio claveIdempotenciaRepositorio;
 
     @Test
-    @WithMockUser
+    void rechazarAccesoAnonimo() throws Exception {
+        mockMvc.perform(get("/campanas"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/campanas").header("Authorization", "Bearer invalido"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void responderSaludOk() throws Exception {
         mockMvc.perform(get("/salud"))
                 .andExpect(status().isOk())

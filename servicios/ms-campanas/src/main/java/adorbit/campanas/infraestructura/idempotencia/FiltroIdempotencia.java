@@ -60,6 +60,8 @@ public class FiltroIdempotencia extends OncePerRequestFilter {
         // misma clave ya habia ejecutado el controlador (y duplicado el recurso) para cuando
         // recien se revisaba si esa clave ya existia.
         byte[] requestBody = request.getInputStream().readAllBytes();
+        // La clave almacenada no identifica al solicitante: no se pueden repetir respuestas
+        // de escrituras sin una asociacion segura de identidad y ruta en la persistencia.
         String huella = calcularSha256(requestBody);
         HttpServletRequest requestConCuerpoReleido = new CuerpoReleidoRequest(request, requestBody);
 
@@ -79,12 +81,8 @@ public class FiltroIdempotencia extends OncePerRequestFilter {
                 return;
             }
 
-            // COMPLETADO con la misma huella: reenviar la respuesta guardada sin re-ejecutar.
-            response.setStatus(registro.getCodigoEstado() != null ? registro.getCodigoEstado() : 200);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            if (registro.getRespuesta() != null) {
-                response.getWriter().write(registro.getRespuesta());
-            }
+            escribirError(response, HttpServletResponse.SC_CONFLICT, "IDEMPOTENCIA_NO_VERIFICABLE",
+                    "No se puede verificar el propietario de la respuesta guardada");
             return;
         }
 

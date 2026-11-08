@@ -44,11 +44,19 @@ export class Dashboard {
     () => this.campanas().filter((c) => c.estado === 'activa').length,
   );
 
-  protected readonly presupuestoReservado = computed(() =>
-    this.campanas().reduce((total, c) => total + c.montoGastado, 0),
+  protected readonly estadoCarga = this.campanasDatos.estadoCarga;
+  protected readonly gastoBob = computed(() =>
+    this.campanas().filter((c) => c.moneda === 'BOB').reduce((total, c) => total + Number(c.montoGastado), 0),
+  );
+  protected readonly gastoUsd = computed(() =>
+    this.campanas().filter((c) => c.moneda === 'USD').reduce((total, c) => total + Number(c.montoGastado), 0),
   );
 
   protected readonly ultimasCampanas = computed(() => this.campanas().slice(0, 4));
+
+  protected reintentar(): void {
+    void this.campanasDatos.sincronizarConBackend();
+  }
 
   // Alerta de presupuesto al límite: calculada de verdad a partir de los datos (no inventada).
   // TODO Carlos/ms-ia: el resto de alertas (facturas, piezas) las genera el agente monitor
@@ -67,27 +75,12 @@ export class Dashboard {
       .map((c) => ({
         severidad: 'alta',
         titulo: `Presupuesto de ${c.nombre} al ${Math.round((c.montoGastado / c.presupuestoTotal) * 100)}%`,
-        detalle: `Cliente: ${c.cliente} · Consumo: Bs ${formatoBs.format(c.montoGastado)} / Bs ${formatoBs.format(c.presupuestoTotal)}`,
+        detalle: `Cliente: ${c.cliente} · Consumo: ${c.moneda} ${formatoBs.format(c.montoGastado)} / ${c.moneda} ${formatoBs.format(c.presupuestoTotal)}`,
         accion: 'Revisar campaña',
         rutaCampana: c.id,
       }));
 
-    return [
-      ...alertasPresupuesto,
-      {
-        severidad: 'aviso',
-        titulo: '1 pieza gráfica espera aprobación',
-        detalle: 'Campaña: Lanzamiento Fibra Óptica 500M · Esperando revisión',
-        accion: 'Ver piezas',
-        rutaCampana: '1',
-      },
-      {
-        severidad: 'info',
-        titulo: 'SAGA de contratación completada con éxito',
-        detalle: 'Presupuesto reservado y crédito validado',
-        accion: 'Proceso finalizado',
-      },
-    ];
+    return alertasPresupuesto;
   });
 
   tonoDe(estado: EstadoCampana): TonoEtiqueta {

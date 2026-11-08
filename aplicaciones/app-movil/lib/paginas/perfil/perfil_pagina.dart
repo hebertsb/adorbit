@@ -47,7 +47,7 @@ class _PerfilPaginaState extends ConsumerState<PerfilPagina> {
     final iso = _ultimaSincronizacion;
     if (iso == null) return Textos.t(idioma, 'perfil.ultima_sync_nunca');
     final fecha = DateTime.parse(iso);
-    final dos = (int n) => n.toString().padLeft(2, '0');
+    String dos(int n) => n.toString().padLeft(2, '0');
     return '${dos(fecha.day)}/${dos(fecha.month)}/${fecha.year} ${dos(fecha.hour)}:${dos(fecha.minute)}';
   }
 
@@ -102,47 +102,47 @@ class _PerfilPaginaState extends ConsumerState<PerfilPagina> {
         padding: const EdgeInsets.all(16),
         children: [
           TarjetaAo(
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 CircleAvatar(
-                  radius: 26,
-                  backgroundColor: c.marcaSuave,
+                  radius: 40,
+                  backgroundColor: c.marca,
                   child: Text(
                     iniciales,
-                    style: TextStyle(
-                      color: c.marca,
-                      fontWeight: FontWeight.w800,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        sub,
-                        style: TextStyle(
-                          color: c.texto,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: c.marcaSuave,
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Text(
-                          rol,
-                          style: TextStyle(color: c.marca, fontSize: 11),
-                        ),
-                      ),
-                    ],
+                const SizedBox(height: 14),
+                Text(
+                  sub,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: c.texto,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: c.marcaSuave,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      rol,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: c.marca, fontSize: 13),
+                    ),
                   ),
                 ),
               ],
@@ -180,24 +180,27 @@ class _PerfilPaginaState extends ConsumerState<PerfilPagina> {
                   ),
                 ),
                 const Divider(),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(t('perfil.idioma_titulo')),
-                  subtitle: Text(
-                    t('perfil.idioma_subtitulo'),
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  trailing: SegmentedButton<Idioma>(
-                    segments: const [
-                      ButtonSegment(value: Idioma.es, label: Text('ES')),
-                      ButtonSegment(value: Idioma.en, label: Text('EN')),
-                    ],
-                    selected: {idioma},
-                    onSelectionChanged: (seleccion) => ref
-                        .read(idiomaControllerProvider.notifier)
-                        .establecer(seleccion.first),
-                    showSelectedIcon: false,
-                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(t('perfil.idioma_titulo')),
+                    Text(
+                      t('perfil.idioma_subtitulo'),
+                      style: TextStyle(color: c.textoSuave, fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    SegmentedButton<Idioma>(
+                      segments: const [
+                        ButtonSegment(value: Idioma.es, label: Text('ES')),
+                        ButtonSegment(value: Idioma.en, label: Text('EN')),
+                      ],
+                      selected: {idioma},
+                      onSelectionChanged: (seleccion) => ref
+                          .read(idiomaControllerProvider.notifier)
+                          .establecer(seleccion.first),
+                      showSelectedIcon: false,
+                    ),
+                  ],
                 ),
               ],
             ),

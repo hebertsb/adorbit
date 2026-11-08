@@ -22,6 +22,10 @@ Dependencias hacia adentro: los casos de uso no conocen Next.js ni Mongo.
 ## API
 `/briefs`, `/briefs/{id}`, `/briefs/{id}/piezas` (GET lista + POST crea), `/piezas/{id}`, `/piezas/{id}/aprobar`, `/piezas/{id}/validaciones`, `/piezas/{id}/archivo`.
 
+<!-- AUTO-GENERATED: lectura de briefs -->
+**Lectura implementada en código:** `GET /api/v1/briefs` acepta `campana_id` opcional como UUID y paginación `page` (por defecto 1) y `size` (por defecto 20, máximo 100); rechaza parámetros desconocidos o repetidos. Devuelve `items`, `total`, `page` y `size`. Requiere JWT y rol ejecutivo, creativo, gerente o cliente; para cliente filtra por el `cliente_id` válido del token. La existencia de la ruta no acredita una prueba integrada del flujo completo.
+<!-- /AUTO-GENERATED: lectura de briefs -->
+
 ## Eventos
 Publica: `BriefRecibido`, `PiezaSubida`, `PiezaAprobada`, `PiezasBloqueadas`, `BloqueoFallido`, `PiezasDesbloqueadas`. Consume: `BloquearPiezas`, `DesbloquearPiezas`, `PiezaAnalizada`.
 

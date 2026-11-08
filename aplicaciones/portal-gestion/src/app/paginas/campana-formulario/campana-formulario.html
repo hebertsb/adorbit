@@ -2,17 +2,23 @@
 
 <h1>{{ modoEdicion ? 'Editar campaña' : 'Crear nueva campaña' }}</h1>
 <p class="subtitulo">
-  {{ modoEdicion ? 'Actualiza los parámetros de la campaña.' : 'Ingresa los parámetros iniciales de la campaña. Se registrará en estado Borrador.' }}
+  {{ modoEdicion ? 'La edición no está disponible de forma segura por el momento.' : 'Ingresa los parámetros iniciales de la campaña. Se registrará en estado Borrador.' }}
 </p>
 
+@if (modoEdicion) {
+  <p class="error" role="alert">No se pueden guardar cambios: la edición segura de campañas aún no está disponible.</p>
+}
+@if (errorGuardado()) {
+  <p class="error" role="alert">{{ errorGuardado() }}</p>
+}
 <ao-tarjeta class="tarjeta-formulario">
   <form [formGroup]="formulario" (ngSubmit)="guardar()">
     <div class="campo">
       <div class="campo__cabecera">
         <label for="nombre">Nombre de la campaña *</label>
-        <span class="contador">{{ caracteresNombre() }}/200</span>
+        <span class="contador">{{ formulario.controls.nombre.value.length }}/200</span>
       </div>
-      <input id="nombre" type="text" formControlName="nombre" aria-describedby="error-nombre" />
+      <input id="nombre" type="text" formControlName="nombre" maxlength="200" [attr.aria-describedby]="intentoEnviar() && formulario.controls.nombre.invalid ? 'error-nombre' : null" />
       @if (intentoEnviar() && formulario.controls.nombre.invalid) {
         <p id="error-nombre" class="error">Este campo es obligatorio (máximo 200 caracteres).</p>
       }
@@ -34,11 +40,12 @@
     <div class="campo">
       <div class="campo__cabecera">
         <label for="descripcion">Descripción (opcional)</label>
-        <span class="contador">{{ caracteresDescripcion() }}/2000</span>
+        <span class="contador">{{ formulario.controls.descripcion.value.length }}/2000</span>
       </div>
       <textarea
         id="descripcion"
         formControlName="descripcion"
+        maxlength="2000"
         rows="3"
         placeholder="Objetivos de comunicación, público meta y alcance esperado..."
       ></textarea>
@@ -82,7 +89,7 @@
 
     <div class="acciones">
       <ao-boton variante="secundario" tipo="button" (click)="volver()">Cancelar</ao-boton>
-      <ao-boton variante="primario" tipo="submit">Guardar campaña</ao-boton>
+      <ao-boton variante="primario" tipo="submit" [deshabilitado]="modoEdicion || guardando() || envioBloqueado()">Guardar campaña</ao-boton>
     </div>
   </form>
 </ao-tarjeta>

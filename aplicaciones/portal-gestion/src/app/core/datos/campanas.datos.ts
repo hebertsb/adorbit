@@ -35,6 +35,7 @@ const MAPA_ESTADO_PIEZA_GQL: Record<string, PiezaCreatividad['estado']> = {
 @Injectable({ providedIn: 'root' })
 export class CampanasDatos {
   private readonly auth = inject(AutenticacionService);
+  readonly estadoCarga = signal<'cargando' | 'disponible' | 'error'>('cargando');
 
   private readonly listaCampanas = signal<Campana[]>([
     {
@@ -155,6 +156,7 @@ export class CampanasDatos {
   }
 
   async sincronizarConBackend(): Promise<void> {
+    this.estadoCarga.set('cargando');
     const consultaGql = {
       query: `
         query ObtenerCampanas {
@@ -189,7 +191,7 @@ export class CampanasDatos {
         body: JSON.stringify(consultaGql),
       });
 
-      if (!respuesta.ok) return;
+      if (!respuesta.ok) throw new Error('No se pudieron consultar las campañas');
 
       const resultado = await respuesta.json();
       if (resultado.errors?.length) throw new Error(resultado.errors[0].message);
@@ -216,9 +218,12 @@ export class CampanasDatos {
         }));
 
         this.listaCampanas.set(mapeadas);
+        this.estadoCarga.set('disponible');
+      } else {
+        throw new Error('Respuesta de campañas inválida');
       }
     } catch {
-      // Si la pasarela está offline, permanece con la lista en memoria
+      this.estadoCarga.set('error');
     }
   }
 
@@ -340,12 +345,7 @@ export class CampanasDatos {
     fechaFin: string;
     presupuestoTotal: number;
     moneda: 'BOB' | 'USD';
-  }): Promise<Campana> {
-    const idLocal = 'cmp-' + Date.now();
-    const clienteIdReal = datos.clienteId;
-
-    // 1. Intento por mutación GraphQL hacia el Gateway
-    try {
+  }): Promise<void> {
       const mutacion = {
         query: `
           mutation CrearCampana($input: CrearCampanaInput!) {
@@ -362,7 +362,7 @@ export class CampanasDatos {
         `,
         variables: {
           input: {
-            clienteId: clienteIdReal,
+            clienteId: datos.clienteId,
             nombre: datos.nombre,
             descripcion: datos.descripcion || '',
             fechaInicio: datos.fechaInicio,
@@ -377,57 +377,25 @@ export class CampanasDatos {
         body: JSON.stringify(mutacion),
       });
 
-      if (resGql.ok) {
-        const cuerpo = await resGql.json();
-        if (cuerpo.data?.crearCampana) {
-          const campanaGql = cuerpo.data.crearCampana;
+      if (!resGql.ok) throw new Error('No se pudo confirmar la creación. Verifica la lista de campañas antes de volver a intentarlo.');
+      const cuerpo = await resGql.json();
+      const id = cuerpo.data?.crearCampana?.id;
+      if (!id) throw new Error('No se pudo confirmar la creación. Verifica la lista de campañas antes de volver a intentarlo.');
 
-          // El presupuesto no forma parte de CrearCampanaInput (ver esquema.ts) — se registra
-          // aparte contra ms-campanas, igual que hace el flujo de piezas/briefs.
-          await fetch(`${URL_GATEWAY_REST}/campanas/${campanaGql.id}/presupuesto`, {
-            method: 'POST',
-            headers: {
-              ...this.cabecerasAuth(),
-              'Idempotency-Key': `presupuesto-${campanaGql.id}-${Date.now()}`,
-            },
-            body: JSON.stringify({ monto_total: datos.presupuestoTotal, moneda: datos.moneda }),
-          }).catch(() => {});
-
-          const nuevaCampana: Campana = {
-            id: campanaGql.id,
-            codigoReferencia: `CMP-2026-${String(this.listaCampanas().length + 1).padStart(3, '0')}`,
-            nombre: campanaGql.nombre,
-            cliente: 'Cliente Anunciante',
-            estado: 'borrador',
-            presupuestoTotal: datos.presupuestoTotal,
-            montoGastado: 0,
-            moneda: datos.moneda,
-            fechaInicio: campanaGql.fechaInicio,
-            fechaFin: campanaGql.fechaFin,
-          };
-          this.listaCampanas.update((previas) => [nuevaCampana, ...previas]);
-          return nuevaCampana;
-        }
+      try {
+        const respuesta = await fetch(`${URL_GATEWAY_REST}/campanas/${id}/presupuesto`, {
+          method: 'POST',
+          headers: {
+            ...this.cabecerasAuth(),
+            'Idempotency-Key': `presupuesto-${id}-${Date.now()}`,
+          },
+          body: JSON.stringify({ monto_total: datos.presupuestoTotal, moneda: datos.moneda }),
+        });
+        if (!respuesta.ok) throw new Error();
+      } catch {
+        throw new Error(`La campaña ${id} fue creada, pero no se pudo confirmar su presupuesto. Verifica su estado antes de continuar; no vuelvas a crearla.`);
       }
-    } catch {
-      // Fallback a almacenamiento local si el backend no responde
-    }
-
-    // Fallback reactivo
-    const campanaFallback: Campana = {
-      id: idLocal,
-      codigoReferencia: `CMP-2026-${String(this.listaCampanas().length + 1).padStart(3, '0')}`,
-      nombre: datos.nombre,
-      cliente: 'Cliente Demo',
-      estado: 'borrador',
-      presupuestoTotal: datos.presupuestoTotal,
-      montoGastado: 0,
-      moneda: datos.moneda,
-      fechaInicio: datos.fechaInicio,
-      fechaFin: datos.fechaFin,
-    };
-    this.listaCampanas.update((previas) => [campanaFallback, ...previas]);
-    return campanaFallback;
+      await this.sincronizarConBackend();
   }
 
   async contratarCampana(idCampana: string): Promise<{ sagaId: string; estado: string; mensaje: string }> {

@@ -1,150 +1,51 @@
-.volver {
-  display: inline-block;
-  color: var(--ao-texto);
-  text-decoration: none;
-  font-weight: 600;
-  margin-bottom: var(--ao-espacio-3);
+:host { display: block; }
+.barra-superior { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
+.volver { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 8px; background: var(--ao-neutro-fondo); color: var(--ao-texto); text-decoration: none; font-size: .85rem; font-weight: 600; }
+.volver:focus-visible { outline: 2px solid var(--ao-info); outline-offset: 3px; }
+.estado-global, .paso__estado { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 12px; background: var(--ao-neutro-fondo); color: var(--ao-neutro); font-size: .75rem; font-weight: 700; }
+.estado-global--en_progreso, .paso--en_curso .paso__estado { background: var(--ao-info-fondo); color: var(--ao-info); }
+.estado-global--completada, .paso--completado .paso__estado { background: var(--ao-ok-fondo); color: var(--ao-ok); }
+.estado-global--rechazada, .paso--fallido .paso__estado { background: var(--ao-peligro-fondo); color: var(--ao-peligro); }
+.encabezado, .panel { background: var(--ao-superficie); border: 1px solid var(--ao-borde); border-radius: 12px; box-shadow: var(--ao-sombra); }
+.encabezado { padding: 24px; margin-bottom: 24px; overflow-wrap: anywhere; }
+h1 { margin: 0; font-size: 1.5rem; line-height: 1.3; }
+.encabezado p, .panel__cabecera p { color: var(--ao-texto-suave); font-size: .85rem; margin: 8px 0 0; }
+.encabezado strong { color: var(--ao-texto); }
+.dato-mono, .paso__servicio, .paso__numero { font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+.aviso { padding: 20px 24px; border-radius: 12px; margin-bottom: 24px; overflow-wrap: anywhere; }
+.aviso--peligro { background: var(--ao-peligro-fondo); color: var(--ao-peligro); }
+.aviso h2 { font-size: 1.1rem; margin: 0 0 8px; }
+.aviso p { margin: 6px 0 0; }
+.motivo { padding: 12px; border-radius: 8px; background: var(--ao-superficie); }
+.panel { overflow: hidden; }
+.panel__cabecera { padding: 24px; border-bottom: 1px solid var(--ao-borde); }
+.panel__cabecera h2 { margin: 0; font-size: 1.1rem; }
+.progreso { padding: 16px 24px; background: var(--ao-neutro-fondo); }
+.progreso__texto { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: .85rem; color: var(--ao-texto-suave); }
+.progreso__texto strong { color: var(--ao-texto); }
+.progreso__barra { height: 8px; margin-top: 10px; background: var(--ao-borde); border-radius: 999px; overflow: hidden; }
+.progreso__barra span { display: block; height: 100%; background: var(--ao-ok); transition: width .3s ease; }
+.pasos { display: grid; gap: 12px; list-style: none; margin: 0; padding: 24px; }
+.paso { display: flex; align-items: flex-start; gap: 16px; padding: 16px; border: 1px solid var(--ao-borde); border-radius: 12px; overflow-wrap: anywhere; }
+.paso--en_curso { background: var(--ao-info-fondo); }
+.paso--fallido { background: var(--ao-peligro-fondo); }
+.paso__indicador { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ao-neutro-fondo); color: var(--ao-neutro); font-size: 1.3rem; font-weight: 700; }
+.paso--completado .paso__indicador { background: var(--ao-ok-fondo); color: var(--ao-ok); }
+.paso--en_curso .paso__indicador { background: var(--ao-info); color: var(--ao-superficie); }
+.paso--fallido .paso__indicador { background: var(--ao-peligro); color: var(--ao-superficie); }
+.paso__cuerpo { flex: 1; min-width: 0; }
+.paso__cabecera { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.paso__numero, .paso__servicio { color: var(--ao-texto-suave); font-size: .75rem; }
+.paso__servicio { padding: 3px 7px; border-radius: 4px; background: var(--ao-neutro-fondo); }
+.paso__estado { margin-left: auto; }
+.paso__detalle { margin: 8px 0 0; color: var(--ao-texto-suave); font-size: .85rem; line-height: 1.5; }
+.vacio, .cargando { color: var(--ao-texto-suave); }
+@media (max-width: 600px) {
+  h1 { font-size: 1.25rem; }
+  .encabezado, .panel__cabecera, .aviso { padding: 16px; }
+  .progreso { padding: 16px; }
+  .pasos { padding: 16px; }
+  .paso { gap: 12px; padding: 12px; }
+  .paso__estado { margin-left: 0; }
 }
-
-.encabezado {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--ao-espacio-3);
-  margin-bottom: var(--ao-espacio-4);
-}
-
-h1 {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.subtitulo {
-  color: var(--ao-texto-suave);
-  margin-top: 4px;
-}
-
-.selector-demo {
-  display: flex;
-  gap: var(--ao-espacio-2);
-}
-
-.aviso {
-  margin-bottom: var(--ao-espacio-6);
-  font-size: 0.88rem;
-}
-
-.aviso--info {
-  background: var(--ao-info-fondo);
-  color: var(--ao-info);
-}
-
-.aviso--peligro {
-  background: var(--ao-peligro-fondo);
-  color: var(--ao-peligro);
-}
-
-.pasos {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--ao-espacio-3);
-}
-
-.paso {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--ao-espacio-3);
-  padding: var(--ao-espacio-3) var(--ao-espacio-4);
-  background: var(--ao-superficie);
-  border: 1px solid var(--ao-borde);
-  border-radius: var(--ao-radio-grande);
-  box-shadow: var(--ao-sombra);
-}
-
-.paso__indicador {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin-top: 4px;
-  border-radius: 50%;
-  background: var(--ao-neutro-fondo);
-  border: 2px solid var(--ao-neutro);
-}
-
-.paso--completado .paso__indicador {
-  background: var(--ao-ok);
-  border-color: var(--ao-ok);
-}
-
-.paso--en_curso .paso__indicador {
-  background: var(--ao-info);
-  border-color: var(--ao-info);
-  animation: pulso 1.2s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .paso--en_curso .paso__indicador {
-    animation: none;
-  }
-}
-
-@keyframes pulso {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.paso--fallido .paso__indicador {
-  background: var(--ao-peligro);
-  border-color: var(--ao-peligro);
-}
-
-.paso--compensado .paso__indicador {
-  background: var(--ao-neutro);
-  border-color: var(--ao-neutro);
-}
-
-.paso--omitido {
-  opacity: 0.6;
-}
-
-.paso__cuerpo {
-  flex: 1;
-  min-width: 0;
-}
-
-.paso__cabecera {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--ao-espacio-2);
-}
-
-.paso__servicio {
-  color: var(--ao-texto-suave);
-  font-size: 0.76rem;
-  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-}
-
-.paso__detalle {
-  color: var(--ao-texto-suave);
-  font-size: 0.86rem;
-  margin-top: 2px;
-}
-
-.paso__estado {
-  flex: none;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--ao-texto-suave);
-}
-
-.paso--completado .paso__estado {
-  color: var(--ao-ok);
-}
-
-.paso--fallido .paso__estado {
-  color: var(--ao-peligro);
-}
+@media (prefers-reduced-motion: reduce) { .progreso__barra span { transition: none; } }

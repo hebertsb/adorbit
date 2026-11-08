@@ -6,6 +6,15 @@
   <ao-boton variante="primario" routerLink="/campanas/nueva">+ Nueva campaña</ao-boton>
 </div>
 
+@if (estadoCarga() === 'cargando') {
+  <p role="status">Cargando datos de campañas…</p>
+} @else if (estadoCarga() === 'error') {
+  <div class="estado-carga" role="alert">
+    <p>No se pudieron actualizar los datos de campañas. Intenta nuevamente.</p>
+    <button type="button" (click)="reintentar()">Reintentar</button>
+  </div>
+} @else {
+<p class="alcance">Datos de hasta 50 campañas consultadas. Los importes se muestran por moneda.</p>
 <div class="rejilla-kpi">
   <ao-tarjeta class="kpi">
     <div class="kpi__fila">
@@ -18,22 +27,21 @@
   </ao-tarjeta>
   <ao-tarjeta class="kpi">
     <div class="kpi__fila">
-      <p class="kpi__etiqueta">Presupuesto reservado</p>
+      <p class="kpi__etiqueta">Gasto registrado (BOB)</p>
       <span class="kpi__icono kpi__icono--info">
         <svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><circle cx="16" cy="14.5" r="1.3" /></svg>
       </span>
     </div>
-    <p class="dato-mono kpi__valor">{{ presupuestoReservado() | currency: 'BOB' : 'Bs ' : '1.2-2' }}</p>
+    <p class="dato-mono kpi__valor">{{ gastoBob() | currency: 'BOB' : 'Bs ' : '1.2-2' }}</p>
   </ao-tarjeta>
   <ao-tarjeta class="kpi">
     <div class="kpi__fila">
-      <p class="kpi__etiqueta">Facturas a vencer (&lt;5d)</p>
+      <p class="kpi__etiqueta">Gasto registrado (USD)</p>
       <span class="kpi__icono kpi__icono--aviso">
         <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M12 14v2M12 18h.01" /></svg>
       </span>
     </div>
-    <!-- TODO Luis: estos dos vienen de ms-facturacion / ms-creatividades, no de ms-campanas. -->
-    <p class="dato-mono kpi__valor">3</p>
+    <p class="dato-mono kpi__valor">{{ gastoUsd() | currency: 'USD' : 'US$ ' : '1.2-2' }}</p>
   </ao-tarjeta>
   <ao-tarjeta class="kpi">
     <div class="kpi__fila">
@@ -42,14 +50,14 @@
         <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 15l2 2 4-4" /></svg>
       </span>
     </div>
-    <p class="dato-mono kpi__valor">9</p>
+    <p class="kpi__sin-datos">Dato no disponible</p>
   </ao-tarjeta>
 </div>
 
 <section class="seccion">
   <div class="seccion__cabecera">
     <h2>Alertas recientes <span class="contador-chico">{{ alertas().length }}</span></h2>
-    <span class="nota-prioridad">Prioridad operativa activa</span>
+    <span class="nota-prioridad">Consumo de presupuesto desde 85 %</span>
   </div>
   <div class="lista-alertas">
     @for (alerta of alertas(); track alerta.titulo) {
@@ -67,12 +75,14 @@
           <span class="alerta__accion-texto">{{ alerta.accion }}</span>
         }
       </ao-tarjeta>
+    } @empty {
+      <p>No hay alertas de presupuesto para las campañas consultadas.</p>
     }
   </div>
 </section>
 
 <section class="seccion">
-  <h2>Últimas campañas actualizadas</h2>
+  <h2>Campañas consultadas</h2>
   <ao-tarjeta [compacta]="true">
     <table class="tabla">
       <thead>
@@ -80,7 +90,7 @@
           <th>Nombre de campaña</th>
           <th>Cliente</th>
           <th>Estado</th>
-          <th class="num">Presupuesto (Bs)</th>
+          <th class="num">Presupuesto</th>
           <th>Fecha fin</th>
         </tr>
       </thead>
@@ -92,11 +102,14 @@
             <td data-etiqueta="Estado">
               <ao-etiqueta-estado [texto]="etiquetas[campana.estado]" [tono]="tonoDe(campana.estado)" />
             </td>
-            <td data-etiqueta="Presupuesto" class="num dato-mono">{{ campana.presupuestoTotal | currency: 'BOB' : 'Bs ' : '1.2-2' }}</td>
+            <td data-etiqueta="Presupuesto" class="num dato-mono">{{ campana.presupuestoTotal | currency: campana.moneda : 'code' : '1.2-2' }}</td>
             <td data-etiqueta="Fecha fin" class="dato-mono">{{ campana.fechaFin }}</td>
           </tr>
+        } @empty {
+          <tr><td colspan="5">No hay campañas disponibles.</td></tr>
         }
       </tbody>
     </table>
   </ao-tarjeta>
 </section>
+}

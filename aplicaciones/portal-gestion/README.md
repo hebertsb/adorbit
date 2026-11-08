@@ -2,6 +2,15 @@
 
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.5.
 
+## Estado verificado en código
+
+<!-- AUTO-GENERATED: estado funcional -->
+- Campañas: listado y detalle consultan GraphQL; el detalle incluye calendario y piezas. El formulario obtiene clientes por REST e intenta crear por GraphQL y registrar presupuesto por separado. Si falla la creación, agrega una campaña solo a la memoria local; esto no confirma persistencia. El registro de presupuesto no comprueba el resultado. El formulario en modo edición aún invoca creación, no actualización.
+- Creatividades muestra campañas y sus piezas obtenidas en la consulta de campañas, no un listado independiente de briefs. La selección y los contadores son de presentación; agregar medio y subir creatividad en el detalle no están conectados.
+- Contratar envía una petición REST y la pantalla de SAGA consulta su estado periódicamente cada 2,5 segundos; el flujo completo entre servicios no queda demostrado por la existencia de estas vistas.
+- Pendiente verificar la adaptación responsive en celular y escritorio; la revisión de código no sustituye esas pruebas ni una prueba integrada.
+<!-- /AUTO-GENERATED: estado funcional -->
+
 ## Development server
 
 To start a local development server, run:

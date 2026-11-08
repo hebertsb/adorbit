@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
@@ -37,6 +37,9 @@ export class CampanaFormulario {
 
   protected readonly intentoEnviar = signal(false);
   protected readonly clientes = signal<ClienteReal[]>([]);
+  protected readonly guardando = signal(false);
+  protected readonly errorGuardado = signal('');
+  protected readonly envioBloqueado = signal(false);
 
   protected readonly formulario = this.fb.nonNullable.group(
     {
@@ -50,9 +53,6 @@ export class CampanaFormulario {
     },
     { validators: fechaFinNoAnteriorAInicio },
   );
-
-  protected readonly caracteresNombre = computed(() => this.formulario.controls.nombre.value.length);
-  protected readonly caracteresDescripcion = computed(() => this.formulario.controls.descripcion.value.length);
 
   constructor() {
     void this.campanasDatos.listarClientesReales().then((clientes) => this.clientes.set(clientes));
@@ -76,11 +76,14 @@ export class CampanaFormulario {
   }
 
   async guardar(): Promise<void> {
+    if (this.modoEdicion || this.guardando() || this.envioBloqueado()) return;
     this.intentoEnviar.set(true);
     if (this.formulario.invalid) {
       return;
     }
     const valores = this.formulario.getRawValue();
+    this.guardando.set(true);
+    try {
     await this.campanasDatos.crearCampana({
       nombre: valores.nombre,
       clienteId: valores.clienteId,
@@ -90,6 +93,14 @@ export class CampanaFormulario {
       presupuestoTotal: valores.presupuestoTotal,
       moneda: valores.moneda,
     });
-    this.router.navigateByUrl('/campanas');
+    await this.router.navigateByUrl('/campanas');
+    } catch (error) {
+      this.envioBloqueado.set(true);
+      this.errorGuardado.set(error instanceof Error && error.message.startsWith('La campaña ')
+        ? error.message
+        : 'No se pudo confirmar la creación. Verifica la lista de campañas antes de volver a intentarlo.');
+    } finally {
+      this.guardando.set(false);
+    }
   }
 }

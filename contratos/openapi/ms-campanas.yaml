@@ -8,6 +8,58 @@ servers:
     description: Servidor local
 
 paths:
+  /interno/bandeja-salida/pendientes:
+    get:
+      summary: Consultar metadatos actuales de eventos pendientes
+      description: Solo uso interno; no incluye carga ni constituye diagnóstico completo.
+      security:
+        - bearerJwt: []
+      parameters:
+        - in: query
+          name: despues_de_secuencia
+          description: Secuencia del cursor exclusivo; enviar junto con despues_de_id u omitir ambos.
+          schema: { type: integer, format: int64, minimum: 1 }
+        - in: query
+          name: despues_de_id
+          description: UUID del cursor exclusivo; enviar junto con despues_de_secuencia.
+          schema: { type: string, format: uuid }
+        - in: query
+          name: size
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Página ordenada por secuencia ascendente; los pendientes pueden cambiar entre solicitudes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [contenido, size, hay_mas, siguiente_cursor]
+                properties:
+                  contenido:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, secuencia, tipo_agregado, agregado_id, tipo_evento, creado_en]
+                      properties:
+                        id: { type: string, format: uuid }
+                        secuencia: { type: integer, format: int64 }
+                        tipo_agregado: { type: string }
+                        agregado_id: { type: string, format: uuid }
+                        tipo_evento: { type: string }
+                        creado_en: { type: string, format: date-time }
+                  siguiente_cursor:
+                    type: object
+                    nullable: true
+                    description: Ultima clave devuelta; null si no hay mas resultados.
+                    required: [secuencia, id]
+                    properties:
+                      secuencia: { type: integer, format: int64 }
+                      id: { type: string, format: uuid }
+                  size: { type: integer }
+                  hay_mas: { type: boolean }
+        '400': { description: Parámetros inválidos }
+        '401': { description: JWT ausente o inválido }
+        '403': { description: Requiere rol gerente }
   /salud:
     get:
       summary: Verificación de salud
@@ -190,6 +242,11 @@ paths:
                 $ref: '#/components/schemas/SagaRespuesta'
 
 components:
+  securitySchemes:
+    bearerJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     CampanaCrear:
       type: object

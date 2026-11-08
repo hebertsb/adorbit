@@ -1,64 +1,75 @@
-<div class="encabezado">
-  <h1>Briefs y piezas de creatividad</h1>
+<header class="encabezado">
+  <div class="encabezado__titulo"><h1>Briefs y piezas de creatividad</h1><span class="insignia">Creatividades</span></div>
   <p>Gestión de piezas publicitarias y control de aprobación.</p>
-</div>
+</header>
 
+@if (campanasDatos.estadoCarga() === 'cargando') {
+  <p role="status">Cargando campañas y piezas...</p>
+} @else if (campanasDatos.estadoCarga() === 'error') {
+  <div role="alert">
+    <p>No se pudieron consultar las campañas y sus piezas. Comprueba la conexión y vuelve a intentarlo.</p>
+    <button type="button" (click)="campanasDatos.sincronizarConBackend()">Reintentar</button>
+  </div>
+} @else {
 <div class="rejilla">
-  <ao-tarjeta [compacta]="true" class="lista-briefs">
-    <h2>Briefs activos ({{ briefs().length }})</h2>
+  <section class="lista-briefs" aria-labelledby="titulo-briefs">
+    <div class="lista-briefs__cabecera">
+      <h2 id="titulo-briefs">Campañas vinculadas <span>{{ briefs().length }}</span></h2>
+      <p>Selecciona una campaña</p>
+    </div>
     <ul>
       @for (brief of briefs(); track brief.idCampana) {
-        <li>
-          <button
-            type="button"
-            class="item-brief"
-            [class.item-brief--activo]="brief.idCampana === idBriefSeleccionado()"
-            (click)="idBriefSeleccionado.set(brief.idCampana)"
-          >
-            <strong>{{ brief.titulo }}</strong>
-            <span>{{ brief.cliente }} · {{ brief.piezas.length }} piezas</span>
-          </button>
-        </li>
+        <li><button type="button" class="item-brief"
+          [class.item-brief--activo]="brief.idCampana === briefSeleccionado()?.idCampana"
+          [attr.aria-pressed]="brief.idCampana === briefSeleccionado()?.idCampana"
+          (click)="idBriefSeleccionado.set(brief.idCampana)">
+          <strong>{{ brief.titulo }}</strong>
+          <span class="item-brief__cliente">{{ brief.cliente }}</span>
+          <span class="item-brief__pie">{{ brief.piezas.length }} {{ brief.piezas.length === 1 ? 'pieza' : 'piezas' }}</span>
+        </button></li>
+      } @empty {
+        <li class="vacio">No hay campañas disponibles.</li>
       }
     </ul>
-  </ao-tarjeta>
+  </section>
 
   @if (briefSeleccionado(); as brief) {
-    <div class="panel-piezas">
-      <h2>{{ brief.titulo }}</h2>
-      <p class="subtitulo">Cliente: {{ brief.cliente }}</p>
-
+    <section class="panel-piezas" aria-labelledby="titulo-seleccion">
+      <div class="resumen">
+        <div><span class="resumen__etiqueta">Campaña seleccionada</span><h2 id="titulo-seleccion">{{ brief.titulo }}</h2><p>Cliente: <strong>{{ brief.cliente }}</strong></p></div>
+        <div class="resumen__estados" aria-label="Resumen de piezas">
+          <span><i class="punto punto--ok"></i>{{ contar('aprobada') }} aprobadas</span>
+          <span><i class="punto punto--aviso"></i>{{ contar('pendiente') }} pendientes</span>
+          <span><i class="punto punto--peligro"></i>{{ contar('rechazada') }} rechazadas</span>
+          <span><i class="punto punto--neutro"></i>{{ contar('bloqueada') }} bloqueadas</span>
+        </div>
+      </div>
+      <div class="seccion-titulo"><h2>Piezas de creatividad</h2><span>{{ brief.piezas.length }} en total</span></div>
       <div class="rejilla-piezas">
-        @for (pieza of brief.piezas; track pieza.nombreArchivo) {
-          <ao-tarjeta [compacta]="true" class="pieza">
+        @for (pieza of brief.piezas; track $index) {
+          <article class="pieza" [class.pieza--bloqueada]="pieza.estado === 'bloqueada'">
+            @if (pieza.estado === 'bloqueada') { <div class="pieza__bloqueo">Bloqueada por contratación</div> }
             <div class="pieza__vista" [style.background]="degradadoPieza[pieza.degradado]">
-              <span class="pieza__overlay">{{ pieza.overlay }}</span>
+              @if (pieza.overlay) { <span class="pieza__overlay">{{ pieza.overlay }}</span> }
+              <span class="pieza__version">Versión {{ pieza.version }}</span>
+              @if (pieza.formato) { <span class="pieza__formato">{{ pieza.formato }}</span> }
             </div>
-            <ao-etiqueta-estado [texto]="pieza.estado" [tono]="tonoDe(pieza.estado)" />
-            <p class="pieza__nombre">{{ pieza.titulo }}</p>
-            <p class="dato-mono pieza__meta">
-              {{ pieza.nombreArchivo }} · v{{ pieza.version }} · {{ (pieza.confianzaMarca * 100).toFixed(0) }}% confianza
-            </p>
-
-            @if (pieza.estado === 'bloqueada') {
-              <p class="pieza__nota">
-                Bloqueada por contratación — no se puede editar ni re-aprobar en esta etapa.
-              </p>
-            }
-
-            @if (pieza.estado === 'rechazada' && pieza.observacion) {
-              <p class="pieza__observacion">{{ pieza.observacion }}</p>
-            }
-
-            @if (pieza.estado === 'pendiente') {
-              <div class="pieza__acciones">
-                <ao-boton variante="peligro">Rechazar</ao-boton>
-                <ao-boton variante="primario">Aprobar</ao-boton>
-              </div>
-            }
-          </ao-tarjeta>
+            <div class="pieza__cuerpo">
+              <div class="pieza__titulo"><h3>{{ pieza.titulo }}</h3><ao-etiqueta-estado [texto]="pieza.estado" [tono]="tonoDe(pieza.estado)" /></div>
+              @if (pieza.nombreArchivo) { <p class="pieza__archivo">{{ pieza.nombreArchivo }}</p> }
+              @if (pieza.confianzaMarca > 0) { <div class="pieza__validacion"><span>Validación de marca</span><strong>{{ (pieza.confianzaMarca * 100).toFixed(0) }}% de confianza</strong></div> }
+              @if (pieza.estado === 'bloqueada') { <p class="pieza__nota">No se puede editar ni aprobar mientras esté bloqueada por contratación.</p> }
+              @if (pieza.estado === 'rechazada' && pieza.observacion) { <p class="pieza__observacion">{{ pieza.observacion }}</p> }
+              @if (pieza.estado === 'pendiente') { <p class="pieza__nota">Pendiente de revisión.</p> }
+            </div>
+          </article>
+        } @empty {
+          <p class="vacio vacio--piezas">Esta campaña no tiene piezas disponibles.</p>
         }
       </div>
-    </div>
+    </section>
+  } @else {
+    <section class="vacio vacio--panel">Selecciona una campaña para consultar sus piezas.</section>
   }
 </div>
+}
