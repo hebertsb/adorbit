@@ -279,6 +279,9 @@ services:
           path: package.json
     environment:
       PORT: "8000"
+      ADORBIT_ULTRAMSG_INSTANCE: ${ADORBIT_ULTRAMSG_INSTANCE:-}
+      ADORBIT_ULTRAMSG_TOKEN: ${ADORBIT_ULTRAMSG_TOKEN:-}
+      ADORBIT_WHATSAPP_NUMERO_GERENCIA: ${ADORBIT_WHATSAPP_NUMERO_GERENCIA:-+59169215158}
       ADORBIT_PASARELA_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_PASARELA_EMISOR: *emisor
       KEYCLOAK_ADMIN_BASE_URL: http://keycloak:8080
