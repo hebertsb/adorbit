@@ -35,6 +35,7 @@ export function middlewareAutenticacion(req: PeticionAutenticada, res: Response,
   if (
     ruta === "/salud" ||
     ruta === "/listo" ||
+    ruta === "/api/v1/simulador-whatsapp" ||
     req.method === "OPTIONS"
   ) {
     next();

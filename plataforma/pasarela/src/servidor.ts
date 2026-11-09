@@ -31,6 +31,48 @@ async function iniciarServidor() {
     res.json({ estado: "LISTO", servicio: "adorbit-pasarela" });
   });
 
+  // Canal WhatsApp (despacho real por UltraMsg + registro en consola)
+  app.post("/api/v1/simulador-whatsapp", express.json(), async (req, res) => {
+    const { telefono, mensaje, canal } = req.body || {};
+    const destino = telefono || process.env.ADORBIT_WHATSAPP_NUMERO_GERENCIA || "+59169215158";
+    console.log(`[WHATSAPP ADORBIT] Destino: ${destino}`);
+    console.log(`[WHATSAPP MENSAJE]:\n${mensaje}\n-----------------------------------`);
+
+    const ultramsgInstance = process.env.ADORBIT_ULTRAMSG_INSTANCE;
+    const ultramsgToken = process.env.ADORBIT_ULTRAMSG_TOKEN;
+
+    if (ultramsgInstance && ultramsgToken && mensaje) {
+      try {
+        const url = `https://api.ultramsg.com/${ultramsgInstance}/messages/chat`;
+        const cuerpo = new URLSearchParams({
+          token: ultramsgToken,
+          to: destino,
+          body: String(mensaje)
+        });
+        const respuesta = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AdOrbit/1.0"
+          },
+          body: cuerpo
+        });
+        const jsonResp = await respuesta.json();
+        console.log(`[WHATSAPP ULTRAMSG ENTREGADO]:`, jsonResp);
+      } catch (error) {
+        console.warn(`[WHATSAPP ULTRAMSG ERROR]:`, error);
+      }
+    }
+
+    res.status(200).json({
+      ok: true,
+      mensaje: "Mensaje procesado por el canal de WhatsApp de AdOrbit",
+      canal: canal || "whatsapp",
+      destinatario: destino,
+      entregado_en: new Date().toISOString()
+    });
+  });
+
   // Autenticación global
   app.use(middlewareAutenticacion as any);
 
@@ -99,48 +141,6 @@ async function iniciarServidor() {
       pathRewrite: (_ruta, req) => (req as Request).originalUrl
     })
   );
-
-  // Canal WhatsApp (despacho real por UltraMsg + registro en consola)
-  app.post("/api/v1/simulador-whatsapp", express.json(), async (req, res) => {
-    const { telefono, mensaje, canal } = req.body || {};
-    const destino = telefono || process.env.ADORBIT_WHATSAPP_NUMERO_GERENCIA || "+59169215158";
-    console.log(`[WHATSAPP ADORBIT] Destino: ${destino}`);
-    console.log(`[WHATSAPP MENSAJE]:\n${mensaje}\n-----------------------------------`);
-
-    const ultramsgInstance = process.env.ADORBIT_ULTRAMSG_INSTANCE;
-    const ultramsgToken = process.env.ADORBIT_ULTRAMSG_TOKEN;
-
-    if (ultramsgInstance && ultramsgToken && mensaje) {
-      try {
-        const url = `https://api.ultramsg.com/${ultramsgInstance}/messages/chat`;
-        const cuerpo = new URLSearchParams({
-          token: ultramsgToken,
-          to: destino,
-          body: String(mensaje)
-        });
-        const respuesta = await fetch(url, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AdOrbit/1.0"
-          },
-          body: cuerpo
-        });
-        const jsonResp = await respuesta.json();
-        console.log(`[WHATSAPP ULTRAMSG ENTREGADO]:`, jsonResp);
-      } catch (error) {
-        console.warn(`[WHATSAPP ULTRAMSG ERROR]:`, error);
-      }
-    }
-
-    res.status(200).json({
-      ok: true,
-      mensaje: "Mensaje procesado por el canal de WhatsApp de AdOrbit",
-      canal: canal || "whatsapp",
-      destinatario: destino,
-      entregado_en: new Date().toISOString()
-    });
-  });
 
   // GraphQL Apollo Server
   const servidorApolo = new ApolloServer({
