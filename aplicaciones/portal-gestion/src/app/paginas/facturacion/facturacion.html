@@ -1,0 +1,244 @@
+<header class="cabecera-operativa">
+  <div>
+    <span>Control financiero</span>
+    <h1>Facturación</h1>
+    <p>Seguimiento de facturas, vencimientos, saldos y cobros.</p>
+  </div>
+  <button class="boton-primario" (click)="mostrarOperacion.set(!mostrarOperacion())">
+    {{ mostrarOperacion() ? 'Cerrar' : '+ Nueva operación' }}
+  </button>
+</header>
+@if (error()) {
+  <div class="mensaje mensaje--error" role="alert">
+    {{ error() }} <button (click)="cargar()">Reintentar</button>
+  </div>
+}
+@if (resultadoOperacion()) {
+  <div class="mensaje mensaje--ok" role="status">{{ resultadoOperacion() }}</div>
+}
+@if (mostrarOperacion()) {
+  <form class="panel formulario-factura" (ngSubmit)="crearOperacion()">
+    <div class="selector-operacion" role="group" aria-label="Tipo de operación">
+      <button
+        type="button"
+        [attr.aria-pressed]="operacion.tipo === 'factura'"
+        (click)="operacion.tipo = 'factura'"
+      >
+        Factura
+      </button>
+      <button
+        type="button"
+        [attr.aria-pressed]="operacion.tipo === 'cotizacion'"
+        (click)="operacion.tipo = 'cotizacion'"
+      >
+        Cotización
+      </button>
+    </div>
+    <label
+      ><span>Cliente</span
+      ><select name="cliente" [(ngModel)]="operacion.cliente_id" required>
+        <option value="">Seleccione una cuenta</option>
+        @for (c of clientes(); track c.id) {
+          <option [value]="c.id">{{ c.razon_social }}</option>
+        }
+      </select></label
+    >
+    @if (operacion.tipo === 'factura') {
+      <label
+        ><span>Campaña</span
+        ><select name="campana" [(ngModel)]="operacion.campana_id" required>
+          <option value="">Seleccione una campaña</option>
+          @for (c of campanasCliente(); track c.id) {
+            <option [value]="c.id">{{ c.nombre }}</option>
+          }
+        </select></label
+      >
+    }
+    <label class="campo-amplio"
+      ><span>Concepto</span
+      ><input
+        name="descripcion"
+        [(ngModel)]="operacion.descripcion"
+        placeholder="Servicio publicitario"
+        required
+    /></label>
+    <label
+      ><span>Cantidad</span
+      ><input name="cantidad" type="number" min="1" [(ngModel)]="operacion.cantidad" required
+    /></label>
+    <label
+      ><span>Precio unitario</span
+      ><input name="precio" [(ngModel)]="operacion.precio_unitario" inputmode="decimal" required
+    /></label>
+    <label
+      ><span>Moneda</span
+      ><select name="moneda" [(ngModel)]="operacion.moneda">
+        <option>BOB</option>
+        <option>USD</option>
+      </select></label
+    >
+    @if (operacion.tipo === 'factura') {
+      <label
+        ><span>Vencimiento</span
+        ><input name="vencimiento" type="date" [(ngModel)]="operacion.fecha_vencimiento" required
+      /></label>
+    }
+    <button class="boton-primario" [disabled]="guardando()">
+      {{
+        guardando()
+          ? 'Procesando…'
+          : operacion.tipo === 'factura'
+            ? 'Emitir factura'
+            : 'Calcular cotización'
+      }}
+    </button>
+  </form>
+}
+<section class="metricas" aria-label="Resumen de facturación">
+  <article>
+    <span>Facturas consultadas</span><strong>{{ facturas().length }}</strong>
+  </article>
+  <article>
+    <span>Saldo pendiente (BOB)</span><strong>{{ dinero(saldoBob(), 'BOB') }}</strong>
+  </article>
+  <article>
+    <span>Facturas vencidas</span><strong class="texto-peligro">{{ vencidas() }}</strong>
+  </article>
+  <article>
+    <span>Facturas pagadas</span><strong>{{ cobradas() }}</strong>
+  </article>
+</section>
+<div class="disposicion-facturas" [class.disposicion-facturas--detalle]="seleccionada()">
+  <section class="panel">
+    <form class="barra-filtros" (ngSubmit)="cargar()">
+      <label
+        ><span>Estado de factura</span
+        ><select name="estado" [(ngModel)]="estado">
+          <option value="">Todos los estados</option>
+          <option value="emitida">Emitida</option>
+          <option value="pagada_parcial">Pago parcial</option>
+          <option value="pagada">Pagada</option>
+          <option value="vencida">Vencida</option>
+          <option value="anulada">Anulada</option>
+        </select></label
+      ><button class="boton-secundario">Aplicar filtro</button>
+    </form>
+    @if (cargando()) {
+      <p class="estado-carga">Consultando facturas…</p>
+    } @else {
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Factura</th>
+              <th>Cliente</th>
+              <th>Estado</th>
+              <th>Emisión</th>
+              <th>Vencimiento</th>
+              <th>Total</th>
+              <th>Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of facturas(); track f.id) {
+              <tr class="fila-accion" (click)="ver(f)" tabindex="0" (keydown.enter)="ver(f)">
+                <td data-label="Factura">
+                  <strong>{{ referencia(f.id) }}</strong>
+                </td>
+                <td data-label="Cliente">{{ cliente(f.cliente_id) }}</td>
+                <td data-label="Estado">
+                  <span
+                    class="estado"
+                    [class.estado--ok]="f.estado === 'pagada'"
+                    [class.estado--peligro]="f.estado === 'vencida'"
+                    >{{ f.estado.replace('_', ' ') }}</span
+                  >
+                </td>
+                <td data-label="Emisión">{{ f.fecha_emision }}</td>
+                <td data-label="Vencimiento">{{ f.fecha_vencimiento }}</td>
+                <td data-label="Total" class="numero">{{ dinero(f.total, f.moneda) }}</td>
+                <td data-label="Saldo" class="numero">
+                  <strong>{{ dinero(f.saldo, f.moneda) }}</strong>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="vacio">No hay facturas para este estado.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+  @if (seleccionada(); as f) {
+    <aside class="panel detalle-factura">
+      <header>
+        <div>
+          <span class="sobrelinea">Detalle de factura</span>
+          <h2>{{ referencia(f.id) }}</h2>
+        </div>
+        <button
+          type="button"
+          class="cerrar"
+          aria-label="Cerrar detalle"
+          (click)="seleccionada.set(null)"
+        >
+          ×
+        </button>
+      </header>
+      <dl>
+        <div>
+          <dt>Cliente</dt>
+          <dd>{{ cliente(f.cliente_id) }}</dd>
+        </div>
+        <div>
+          <dt>Estado</dt>
+          <dd>
+            <span class="estado">{{ f.estado.replace('_', ' ') }}</span>
+          </dd>
+        </div>
+        <div>
+          <dt>Total</dt>
+          <dd>{{ dinero(f.total, f.moneda) }}</dd>
+        </div>
+        <div>
+          <dt>Saldo</dt>
+          <dd>
+            <strong>{{ dinero(f.saldo, f.moneda) }}</strong>
+          </dd>
+        </div>
+      </dl>
+      <h3>Conceptos</h3>
+      <ul class="lista-conceptos">
+        @for (item of f.items || []; track $index) {
+          <li>
+            <span>{{ item.descripcion }} × {{ item.cantidad }}</span
+            ><strong>{{
+              dinero(item.subtotal || +item.precio_unitario * item.cantidad, f.moneda)
+            }}</strong>
+          </li>
+        } @empty {
+          <li>Sin detalle de conceptos.</li>
+        }
+      </ul>
+      @if (f.estado !== 'pagada' && f.estado !== 'anulada') {
+        <form class="formulario-cobro" (ngSubmit)="registrarCobro()">
+          <h3>Registrar cobro</h3>
+          <label
+            ><span>Monto</span
+            ><input name="monto" [(ngModel)]="cobro.monto" inputmode="decimal" required /></label
+          ><label
+            ><span>Fecha</span
+            ><input name="fecha" [(ngModel)]="cobro.fecha" type="date" required /></label
+          ><label
+            ><span>Referencia</span
+            ><input name="referencia" [(ngModel)]="cobro.referencia" /></label
+          ><button class="boton-primario" [disabled]="guardando()">
+            {{ guardando() ? 'Registrando…' : 'Registrar cobro' }}
+          </button>
+        </form>
+      }
+    </aside>
+  }
+</div>

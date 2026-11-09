@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
 import { BarraLateral } from '../barra-lateral/barra-lateral';
 import { BarraSuperior } from '../barra-superior/barra-superior';
 import { LogoAdorbit } from '../logo-adorbit/logo-adorbit';
@@ -7,7 +7,7 @@ import { TemaService } from '../../core/tema.service';
 
 @Component({
   selector: 'ao-shell-principal',
-  imports: [RouterOutlet, BarraLateral, BarraSuperior, LogoAdorbit],
+  imports: [RouterLink, RouterOutlet, BarraLateral, BarraSuperior, LogoAdorbit],
   templateUrl: './shell-principal.html',
   styleUrl: './shell-principal.css',
 })

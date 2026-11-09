@@ -1,32 +1,97 @@
 <header class="barra-superior">
   <div class="buscador">
-    <input id="buscador-global" name="buscador-global" type="search" placeholder="Buscar campañas, creatividades o clientes..." aria-label="Buscar" />
+    <input
+      id="buscador-global"
+      type="search"
+      placeholder="Buscar campañas o clientes..."
+      aria-label="Buscar"
+      [value]="consulta()"
+      (input)="consulta.set($any($event.target).value); buscadorAbierto.set(true)"
+      (focus)="buscadorAbierto.set(true)"
+    />
+    @if (buscadorAbierto() && consulta().trim().length >= 2) {
+      <div class="desplegable desplegable--busqueda">
+        <span class="desplegable__titulo">Resultados</span>
+        @for (campana of resultadosCampanas(); track campana.id) {
+          <button type="button" (click)="abrir('/campanas/' + campana.id)">
+            <span class="resultado__tipo">Campaña · {{ campana.codigoReferencia }}</span
+            ><strong>{{ campana.nombre }}</strong
+            ><small>{{ campana.cliente }}</small>
+          </button>
+        }
+        @for (cliente of resultadosClientes(); track cliente.id) {
+          <button type="button" (click)="abrir('/clientes/' + cliente.id)">
+            <span class="resultado__tipo">Cliente</span><strong>{{ cliente.razon_social }}</strong
+            ><small>NIT {{ cliente.nit || 'no registrado' }}</small>
+          </button>
+        }
+        @if (resultadosCampanas().length === 0 && resultadosClientes().length === 0) {
+          <p>No se encontraron coincidencias.</p>
+        }
+      </div>
+    }
   </div>
-
   <div class="acciones">
     <button
       type="button"
       class="icono-boton"
       (click)="tema.alternar()"
-      [attr.aria-label]="tema.temaActual() === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
+      [attr.aria-label]="
+        tema.temaActual() === 'oscuro' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'
+      "
     >
       @if (tema.temaActual() === 'oscuro') {
-        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19" /></svg>
+        <svg class="ic" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"
+          />
+        </svg>
       } @else {
-        <svg class="ic" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" /></svg>
+        <svg class="ic" viewBox="0 0 24 24">
+          <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" />
+        </svg>
       }
     </button>
-
-    <button type="button" class="icono-boton" aria-label="Notificaciones">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z" /><path d="M10 19a2 2 0 0 0 4 0" /></svg>
-    </button>
-
-    <div class="usuario" (click)="cerrarSesion()" title="Hacer clic para cerrar sesión" style="cursor: pointer;">
+    <div class="notificaciones">
+      <button
+        type="button"
+        class="icono-boton"
+        aria-label="Notificaciones"
+        [attr.aria-expanded]="notificacionesAbiertas()"
+        (click)="notificacionesAbiertas.set(!notificacionesAbiertas())"
+      >
+        <svg class="ic" viewBox="0 0 24 24">
+          <path d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10z" />
+          <path d="M10 19a2 2 0 0 0 4 0" />
+        </svg>
+        @if (alertas().length) {
+          <span class="contador">{{ alertas().length }}</span>
+        }
+      </button>
+      @if (notificacionesAbiertas()) {
+        <div class="desplegable desplegable--notificaciones">
+          <span class="desplegable__titulo">Alertas operativas</span>
+          @for (campana of alertas(); track campana.id) {
+            <button type="button" (click)="abrir('/campanas/' + campana.id)">
+              <strong
+                >Presupuesto al
+                {{ ((campana.montoGastado / campana.presupuestoTotal) * 100).toFixed(0) }} %</strong
+              ><small>{{ campana.nombre }}</small>
+            </button>
+          } @empty {
+            <p>No hay alertas pendientes.</p>
+          }
+        </div>
+      }
+    </div>
+    <div class="usuario">
       <span class="usuario__avatar" aria-hidden="true">{{ nombreUsuario().charAt(0) }}</span>
-      <span class="usuario__datos">
-        <strong>{{ nombreUsuario() }}</strong>
-        <small>{{ rolUsuario() }} · Salir</small>
-      </span>
+      <span class="usuario__datos"
+        ><strong>{{ nombreUsuario() }}</strong
+        ><small>{{ rolUsuario() }}</small></span
+      >
+      <button type="button" class="salir" (click)="cerrarSesion()">Salir</button>
     </div>
   </div>
 </header>

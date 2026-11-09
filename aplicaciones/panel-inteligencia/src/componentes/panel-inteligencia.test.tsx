@@ -240,6 +240,42 @@ describe('PanelInteligencia', () => {
     expect(falso).toHaveBeenCalledTimes(2);
   });
 
+  it('construye una consulta real con filtros de estado y fechas', async () => {
+    const falso = simularIa({});
+    render(<PanelInteligencia contexto={contextoDePrueba()} />);
+
+    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'pausada');
+    await userEvent.type(screen.getByLabelText('Desde'), '2026-01-01');
+    await userEvent.type(screen.getByLabelText('Hasta'), '2026-12-31');
+    await userEvent.click(screen.getByRole('button', { name: /Aplicar filtros/ }));
+    await screen.findByRole('table');
+
+    const cuerpo = JSON.parse(String((falso.mock.calls[0]![1] as RequestInit).body));
+    expect(cuerpo.pregunta).toBe(
+      'Campañas en estado pausada con fecha de inicio desde 2026-01-01 y fecha de fin hasta 2026-12-31',
+    );
+    expect(screen.getByRole('textbox', { name: /pregunta/i })).toHaveValue(cuerpo.pregunta);
+  });
+
+  it('adapta los filtros a facturacion y clientes', async () => {
+    const falso = simularIa({});
+    render(<PanelInteligencia contexto={contextoDePrueba()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Facturación' }));
+    await userEvent.selectOptions(screen.getByLabelText('Próximo vencimiento'), '60');
+    await userEvent.click(screen.getByRole('button', { name: /Aplicar filtros/ }));
+    await screen.findByRole('table');
+
+    const primera = JSON.parse(String((falso.mock.calls[0]![1] as RequestInit).body));
+    expect(primera.pregunta).toBe('Facturas que vencen en los próximos 60 días');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Clientes' }));
+    await userEvent.click(screen.getByRole('button', { name: /Aplicar filtros/ }));
+    await waitFor(() => expect(falso).toHaveBeenCalledTimes(2));
+    const segunda = JSON.parse(String((falso.mock.calls[1]![1] as RequestInit).body));
+    expect(segunda.pregunta).toBe('Clientes morosos');
+  });
+
   it('dicta por voz: el texto reconocido llena la pregunta y se pide reconocimiento local', async () => {
     const voz = instalarVozFalsa();
     simularIa({});
@@ -249,13 +285,25 @@ describe('PanelInteligencia', () => {
       lang: 'es-BO',
       continuous: false,
       interimResults: true,
-      processLocally: true,
+      processLocally: false,
     });
 
     act(() => voz.emitir('clientes morosos'));
     expect(screen.getByRole('textbox', { name: /pregunta/i })).toHaveValue('clientes morosos');
     await userEvent.click(screen.getByRole('button', { name: /Escuchando/ }));
     expect(screen.getByRole('button', { name: /Dictar/ })).toBeInTheDocument();
+  });
+
+  it('permite alternar entre barras, distribucion y tarjetas', async () => {
+    simularIa({});
+    render(<PanelInteligencia contexto={contextoDePrueba()} />);
+    await preguntar('Campañas activas');
+    await screen.findByRole('table');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Distribución' }));
+    expect(screen.getByLabelText(/Distribución de Gasto/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Tarjetas' }));
+    expect(screen.getByRole('list', { name: 'Resumen en tarjetas' })).toBeInTheDocument();
   });
 
   it('si no se permite el microfono lo explica; sin soporte de voz no muestra el boton', async () => {

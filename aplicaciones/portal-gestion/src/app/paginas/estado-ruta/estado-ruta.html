@@ -1,0 +1,15 @@
+<section class="estado-ruta">
+  <div class="estado-ruta__codigo">{{ sinAcceso ? '403' : '404' }}</div>
+  <div>
+    <span class="estado-ruta__sobrelinea">AdOrbit · Seguridad</span>
+    <h1>{{ sinAcceso ? 'No tiene acceso a esta sección' : 'No encontramos esta página' }}</h1>
+    <p>
+      {{
+        sinAcceso
+          ? 'Su sesión es válida, pero el rol asignado no permite utilizar esta función.'
+          : 'La dirección solicitada no existe o fue modificada.'
+      }}
+    </p>
+    <a [routerLink]="rutaInicio">Volver al inicio</a>
+  </div>
+</section>

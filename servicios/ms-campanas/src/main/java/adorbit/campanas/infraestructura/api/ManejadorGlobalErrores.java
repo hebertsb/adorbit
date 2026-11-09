@@ -4,6 +4,7 @@ import adorbit.campanas.dominio.excepcion.ConflictoEdicionExcepcion;
 import adorbit.campanas.dominio.excepcion.IdempotenciaEnCursoExcepcion;
 import adorbit.campanas.dominio.excepcion.RecursoNoEncontradoExcepcion;
 import adorbit.campanas.dominio.excepcion.ReglaNegocioExcepcion;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -57,6 +58,11 @@ public class ManejadorGlobalErrores {
         }
         return construirRespuesta(HttpStatus.BAD_REQUEST, "VALIDACION_FALLIDA",
                 "Los datos enviados contienen errores de validación", detalles);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> manejarAccesoDenegado(AccessDeniedException ex) {
+        return construirRespuesta(HttpStatus.FORBIDDEN, "ACCESO_DENEGADO", "Acceso denegado", null);
     }
 
     @ExceptionHandler(Exception.class)

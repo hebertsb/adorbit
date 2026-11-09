@@ -75,6 +75,13 @@
       }
     },
     {
+      "name": "n8n.factura-emitida",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    },
+    {
       "name": "eventos.creatividades",
       "vhost": "/",
       "durable": true,
@@ -240,6 +247,14 @@
       "destination": "eventos.n8n",
       "destination_type": "queue",
       "routing_key": "factura.#",
+      "arguments": {}
+    },
+    {
+      "source": "adorbit.eventos",
+      "vhost": "/",
+      "destination": "n8n.factura-emitida",
+      "destination_type": "queue",
+      "routing_key": "factura.emitida",
       "arguments": {}
     },
     {

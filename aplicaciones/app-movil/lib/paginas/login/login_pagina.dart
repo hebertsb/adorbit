@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../compartido/logo_adorbit.dart';
 import '../../compartido/tarjeta_ao.dart';
 import '../../core/auth/sesion_controller.dart';
+import '../../core/config/entorno.dart';
 import '../../core/i18n/idioma_controller.dart';
 import '../../core/i18n/textos.dart';
 import '../../core/red/api_excepcion.dart';
@@ -36,19 +38,21 @@ class _LoginPaginaState extends ConsumerState<LoginPagina> {
     }
   }
 
-  /// Mientras Roly no tenga el Keycloak real corriendo, inicia sesion contra el emisor
-  /// de JWT de prueba (ver core/auth/sesion_controller.dart) -- el mismo que ya usa
-  /// ms-ia. No es un bypass: ms-creatividades verifica el token con su codigo real.
-  /// TODO Hebert: reemplazar por flutter_appauth contra el realm real de Keycloak (OIDC/OAuth2).
+  /// Usa OIDC Authorization Code + PKCE en Android/iOS. El acceso directo al emisor
+  /// local solo existe para la compilación web de desarrollo y requiere habilitarlo
+  /// expresamente con ADORBIT_PERMITIR_EMISOR_PRUEBA=true.
   Future<void> _iniciarSesion() async {
     setState(() {
       _conectando = true;
       _error = null;
     });
     try {
-      await ref
-          .read(sesionControllerProvider.notifier)
-          .iniciarSesionDev(rol: 'creativo');
+      final sesion = ref.read(sesionControllerProvider.notifier);
+      if (kIsWeb && Entorno.permitirEmisorPrueba) {
+        await sesion.iniciarSesionDev(rol: 'creativo');
+      } else {
+        await sesion.iniciarSesion();
+      }
       if (!mounted) return;
       context.go('/briefs');
     } on ApiExcepcion catch (error) {

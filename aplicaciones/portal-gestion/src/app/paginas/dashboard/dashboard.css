@@ -188,3 +188,69 @@
   font-size: 0.8rem;
   flex: none;
 }
+
+.rejilla-agentes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--ao-espacio-4);
+  margin-top: var(--ao-espacio-3);
+}
+
+.tarjeta-agente {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ao-espacio-3);
+  padding: 16px;
+  border-left: 4px solid var(--ao-marca);
+}
+
+.agente__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.agente__badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ao-marca);
+}
+
+.agente__nombre {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.agente__mision {
+  font-size: 0.85rem;
+  color: var(--ao-texto-suave);
+  line-height: 1.45;
+}
+
+.agente__resultado {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: var(--ao-radio);
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--ao-borde);
+  font-size: 0.8rem;
+}
+
+.agente__resultado--ok {
+  border-left: 3px solid var(--ao-ok);
+}
+
+.agente__salida {
+  margin: 6px 0 0 0;
+  font-family: var(--ao-fuente-mono, monospace);
+  font-size: 0.75rem;
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

@@ -80,23 +80,16 @@ export class CampanaDetalle implements OnInit {
   private readonly idCampana = this.ruta.snapshot.paramMap.get('id') ?? '';
 
   // Datos reales (ms-campanas + ms-creatividades via el resolver GraphQL de la
-  // pasarela) una vez cargados; mientras tanto o si la pasarela no responde, se cae
-  // a los datos locales (lista ya sincronizada / mocks de calendario y piezas).
+  // pasarela). No se muestran datos ficticios cuando la lectura falla.
   private readonly detalleReal = signal<{
     campana: Campana;
     calendario: MedioCalendario[];
     piezas: PiezaCreatividad[];
   } | null>(null);
 
-  protected readonly campana = computed(
-    () => this.detalleReal()?.campana ?? this.campanasDatos.buscarPorId(this.idCampana)
-  );
-  protected readonly calendario = computed(
-    () => this.detalleReal()?.calendario ?? this.campanasDatos.calendarioDe(this.idCampana)
-  );
-  protected readonly piezas = computed(
-    () => this.detalleReal()?.piezas ?? this.campanasDatos.piezasDe(this.idCampana)
-  );
+  protected readonly campana = computed(() => this.detalleReal()?.campana);
+  protected readonly calendario = computed(() => this.detalleReal()?.calendario ?? []);
+  protected readonly piezas = computed(() => this.detalleReal()?.piezas ?? []);
 
   async ngOnInit(): Promise<void> {
     this.cargandoDetalleReal.set(true);

@@ -1,12 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { EstadoSaga, PasoSaga, EstadoPasoSaga } from './saga.modelo';
 import { AutenticacionService } from '../auth/autenticacion.service';
+import { CampanasDatos } from './campanas.datos';
 
 const URL_GATEWAY_SAGA = 'http://localhost:8000/api/v1/sagas';
 
 @Injectable({ providedIn: 'root' })
 export class SagaDatos {
   private readonly auth = inject(AutenticacionService);
+  private readonly campanas = inject(CampanasDatos);
 
   async consultarSaga(idSaga: string): Promise<EstadoSaga> {
     try {
@@ -81,10 +83,13 @@ export class SagaDatos {
       };
     });
 
+    const campanaReal = d.campana_id ? this.campanas.buscarPorId(d.campana_id) : undefined;
     return {
-      idCampana: d.campana_id || '2',
-      nombreCampana: `Campaña ${d.campana_id?.substring(0, 8) || 'Contratada'}`,
-      cliente: 'Cliente Anunciante',
+      idCampana: d.campana_id || campanaReal?.id || '',
+      nombreCampana:
+        campanaReal?.nombre ||
+        (d.campana_id ? `Campaña ${d.campana_id.substring(0, 8)}` : 'Campaña Contratada'),
+      cliente: campanaReal?.cliente || 'Cliente Anunciante',
       resultado,
       motivoRechazo: d.motivo_fallo,
       pasos,

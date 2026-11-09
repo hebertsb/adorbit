@@ -9,6 +9,6 @@
     "id": "adorbit-rabbit",
     "name": "AdOrbit RabbitMQ (local)",
     "type": "rabbitmq",
-    "data": { "hostname": "host.docker.internal", "port": 5672, "username": "guest", "password": "guest", "vhost": "/", "ssl": false }
+    "data": { "hostname": "rabbitmq", "port": 5672, "username": "guest", "password": "guest", "vhost": "/", "ssl": false }
   }
 ]

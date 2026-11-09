@@ -30,15 +30,26 @@ class Entorno {
       ? const String.fromEnvironment('ADORBIT_EMISOR_PRUEBA_BASE_URL')
       : 'http://$_hostLocal:8180';
 
-  /// ms-ia (FastAPI, puerto 8085 -- ver docker-compose.yml). Usado por la pantalla de
-  /// Auditoria para POST /api/v1/vision/analizar (deteccion real con YOLOv8n).
-  static String get baseUrlIa =>
-      const String.fromEnvironment(
-        'ADORBIT_IA_BASE_URL',
-        defaultValue: '',
-      ).isNotEmpty
-      ? const String.fromEnvironment('ADORBIT_IA_BASE_URL')
-      : 'http://$_hostLocal:8085';
+  static String get emisorOidc =>
+      const String.fromEnvironment('ADORBIT_OIDC_EMISOR', defaultValue: '').isNotEmpty
+      ? const String.fromEnvironment('ADORBIT_OIDC_EMISOR')
+      : 'http://localhost:8180/realms/adorbit';
+
+  static const clienteOidc = String.fromEnvironment(
+    'ADORBIT_OIDC_CLIENTE_ID',
+    defaultValue: 'adorbit-movil',
+  );
+  static const redireccionOidc = 'com.grupo23.adorbit:/oauth2redirect';
+  static const redireccionSalidaOidc = 'com.grupo23.adorbit:/logout';
+
+  /// Solo debe activarse en una ejecución local deliberada. Producción siempre usa
+  /// Authorization Code + PKCE mediante [emisorOidc].
+  static const permitirEmisorPrueba = bool.fromEnvironment(
+    'ADORBIT_PERMITIR_EMISOR_PRUEBA',
+    defaultValue: false,
+  );
+
+  static bool get permitirHttpOidc => Uri.parse(emisorOidc).scheme == 'http';
 
   static String get _hostLocal {
     if (kIsWeb) return 'localhost';

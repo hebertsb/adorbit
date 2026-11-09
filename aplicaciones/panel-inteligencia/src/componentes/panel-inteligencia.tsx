@@ -56,8 +56,21 @@ export function PanelInteligencia({ contexto }: { contexto: ContextoPanel }) {
       data-tema={contexto.tema === 'claro' || contexto.tema === 'oscuro' ? contexto.tema : undefined}
     >
       <header className="panel__cabecera">
-        <h1>Panel de inteligencia</h1>
-        {contexto.usuario?.nombre && <span className="panel__usuario">{contexto.usuario.nombre}</span>}
+        <div>
+          <span className="panel__sobrelinea">AdOrbit Intelligence</span>
+          <h1>Centro de análisis</h1>
+          <p>Decisiones claras a partir de campañas, clientes y facturación.</p>
+        </div>
+        {contexto.usuario?.nombre && (
+          <span className="panel__usuario">
+            <i>{contexto.usuario.nombre.charAt(0).toUpperCase()}</i>
+            <span>
+              Vista de
+              <br />
+              <strong>{contexto.usuario.nombre}</strong>
+            </span>
+          </span>
+        )}
       </header>
 
       <div className="panel__cuerpo">

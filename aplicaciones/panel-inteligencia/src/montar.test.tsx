@@ -16,7 +16,7 @@ describe('montarPanel (contrato con el contenedor)', () => {
 
     expect(elemento.shadowRoot).not.toBeNull();
     expect(elemento.childElementCount).toBe(0); // nada en el DOM "normal" del anfitrion
-    expect(elemento.shadowRoot?.querySelector('h1')?.textContent).toBe('Panel de inteligencia');
+    expect(elemento.shadowRoot?.querySelector('h1')?.textContent).toBe('Centro de análisis');
     expect(elemento.shadowRoot?.querySelector('style')).not.toBeNull();
     expect(document.querySelector('h1')).toBeNull(); // el contenido no se filtra al documento
 

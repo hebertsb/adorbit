@@ -1,9 +1,9 @@
 <div class="app">
   <aside class="app__lateral" [class.app__lateral--abierta]="menuAbierto()">
-    <div class="app__marca">
+    <a routerLink="/" class="app__marca">
       <ao-logo-adorbit [tamano]="44" />
       AdOrbit
-    </div>
+    </a>
     <ao-barra-lateral (click)="cerrarMenu()" />
 
     <div class="app__pie-lateral">

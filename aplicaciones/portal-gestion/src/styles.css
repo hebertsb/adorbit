@@ -30,7 +30,7 @@ body {
 /* Datos numericos/tecnicos (montos, fechas, IDs, especificaciones de archivo):
    monoespaciada en toda la app, igual que en el mockup aprobado. */
 .dato-mono {
-  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 

@@ -14,6 +14,7 @@ import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import java.util.Collection;
 import java.util.Map;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 @EnableWebSecurity
@@ -40,10 +41,11 @@ public class ConfiguracionSeguridad {
                     }
                     Object realm = jwt.getToken().getClaims().get("realm_access");
                     Object roles = realm instanceof Map<?, ?> mapa ? mapa.get("roles") : null;
-                    // Clientes se cierran hasta contar con aislamiento comprobable en todos los flujos.
-                    return new AuthorizationDecision(roles instanceof Collection<?> lista
-                            && !lista.contains("cliente")
-                            && (lista.contains("ejecutivo") || lista.contains("gerente")));
+                    boolean interno = tieneRol(roles, "ejecutivo") || tieneRol(roles, "gerente");
+                    boolean clienteSoloLectura = tieneRol(roles, "cliente")
+                            && contexto.getRequest().getMethod().equals(HttpMethod.GET.name())
+                            && consultaCampanaBasica(contexto.getRequest().getRequestURI());
+                    return new AuthorizationDecision(interno || clienteSoloLectura);
                 })
                 .anyRequest().denyAll()
             )
@@ -51,6 +53,14 @@ public class ConfiguracionSeguridad {
             .addFilterAfter(filtro, AuthorizationFilter.class);
 
         return http.build();
+    }
+
+    private static boolean tieneRol(Object roles, String rol) {
+        return roles instanceof Collection<?> lista && lista.contains(rol);
+    }
+
+    private static boolean consultaCampanaBasica(String ruta) {
+        return ruta.equals("/api/v1/campanas") || ruta.matches("/api/v1/campanas/[0-9a-fA-F-]{36}");
     }
 }
 

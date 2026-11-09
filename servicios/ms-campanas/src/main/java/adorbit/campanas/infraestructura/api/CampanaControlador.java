@@ -12,8 +12,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.access.AccessDeniedException;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -45,15 +50,51 @@ public class CampanaControlador {
             @RequestParam(required = false) UUID clienteId,
             @RequestParam(required = false) EstadoCampana estado,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        if (size > 100) size = 100;
+            @RequestParam(defaultValue = "20") int size,
+            Authentication autenticacion) {
+        if (size < 1 || size > 100 || page < 0) {
+            throw new IllegalArgumentException("Paginacion fuera de rango");
+        }
+        UUID clienteToken = clienteDelToken(autenticacion);
+        if (esCliente(autenticacion)) {
+            if (clienteToken == null) {
+                throw new AccessDeniedException("El token cliente_id es obligatorio y debe ser UUID");
+            }
+            clienteId = clienteToken;
+        }
         PageRequest pageRequest = PageRequest.of(page, size, Sort.by("creadoEn").descending());
         return ResponseEntity.ok(campanaServicio.listarCampanas(clienteId, estado, pageRequest));
     }
 
+    private UUID clienteDelToken(Authentication autenticacion) {
+        if (!(autenticacion instanceof JwtAuthenticationToken jwt)) return null;
+        Object valor = jwt.getToken().getClaims().get("cliente_id");
+        if (valor == null) return null;
+        try {
+            return UUID.fromString(valor.toString());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
+    }
+
+    private boolean esCliente(Authentication autenticacion) {
+        if (!(autenticacion instanceof JwtAuthenticationToken jwt)) return false;
+        Object realm = jwt.getToken().getClaims().get("realm_access");
+        Object roles = realm instanceof Map<?, ?> mapa ? mapa.get("roles") : null;
+        return roles instanceof Collection<?> lista && lista.contains("cliente");
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<CampanaRespuestaDto> obtenerCampana(@PathVariable UUID id) {
-        return ResponseEntity.ok(campanaServicio.obtenerPorId(id));
+    public ResponseEntity<CampanaRespuestaDto> obtenerCampana(@PathVariable UUID id, Authentication autenticacion) {
+        UUID clienteToken = esCliente(autenticacion) ? clienteDelToken(autenticacion) : null;
+        if (esCliente(autenticacion) && clienteToken == null) {
+            throw new AccessDeniedException("El token cliente_id es obligatorio y debe ser UUID");
+        }
+        CampanaRespuestaDto respuesta = campanaServicio.obtenerPorId(id);
+        if (esCliente(autenticacion) && !clienteToken.equals(respuesta.getClienteId())) {
+            throw new AccessDeniedException("La campana no pertenece al cliente autenticado");
+        }
+        return ResponseEntity.ok(respuesta);
     }
 
     @PutMapping("/{id}")

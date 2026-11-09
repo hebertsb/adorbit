@@ -1,0 +1,51 @@
+.estado-ruta {
+  min-height: min(620px, calc(100vh - 110px));
+  display: grid;
+  grid-template-columns: auto minmax(0, 520px);
+  place-content: center;
+  align-items: center;
+  gap: 32px;
+  padding: 24px;
+}
+.estado-ruta__codigo {
+  color: var(--ao-marca);
+  font:
+    700 clamp(4rem, 12vw, 8rem)/1 ui-monospace,
+    monospace;
+  opacity: 0.2;
+}
+.estado-ruta__sobrelinea {
+  color: var(--ao-marca);
+  font-size: 0.75rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 6px 0 10px;
+  font-size: clamp(1.5rem, 4vw, 2.1rem);
+}
+p {
+  margin: 0 0 22px;
+  color: var(--ao-texto-suave);
+}
+a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: var(--ao-radio);
+  background: var(--ao-marca);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+@media (max-width: 600px) {
+  .estado-ruta {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .estado-ruta__codigo {
+    font-size: 4rem;
+  }
+}

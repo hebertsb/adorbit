@@ -3,12 +3,12 @@ package adorbit.campanas.infraestructura;
 import adorbit.campanas.dominio.repositorio.ClaveIdempotenciaRepositorio;
 import adorbit.campanas.infraestructura.api.SaludControlador;
 import org.junit.jupiter.api.Test;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import adorbit.campanas.infraestructura.configuracion.ConfiguracionSeguridad;
 import adorbit.campanas.infraestructura.configuracion.SeguridadBandeja;
+import jakarta.persistence.EntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +27,12 @@ class SaludControladorTest {
 
     @MockBean
     private ClaveIdempotenciaRepositorio claveIdempotenciaRepositorio;
+
+    @MockBean
+    private org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+
+    @MockBean
+    private EntityManager entityManager;
 
     @Test
     void rechazarAccesoAnonimo() throws Exception {

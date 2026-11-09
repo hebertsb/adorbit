@@ -1,6 +1,6 @@
 @if (campana(); as c) {
   <div class="encabezado">
-    @if (errorContratacion()) { <p role="alert">{{ errorContratacion() }}</p> }
+    @if (errorContratacion()) { <p role="alert" aria-live="assertive">{{ errorContratacion() }}</p> }
     <button type="button" (click)="volver()" class="volver">← Volver</button>
     <div class="encabezado__acciones">
       <ao-boton variante="secundario" [routerLink]="['/campanas', c.id, 'editar']">Editar campaña</ao-boton>
@@ -96,7 +96,7 @@
         <h2>Calendario de medios</h2>
         <span class="contador-chico">{{ calendario().length }} canales</span>
       </div>
-      <ao-boton variante="secundario">
+      <ao-boton variante="secundario" [routerLink]="['/campanas', c.id, 'editar']">
         <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
         Agregar medio
       </ao-boton>
@@ -140,7 +140,7 @@
   <section class="seccion">
     <div class="seccion__cabecera">
       <h2>Piezas de creatividad <span class="seccion__contador">({{ piezas().length }} piezas cargadas)</span></h2>
-      <ao-boton variante="secundario">
+      <ao-boton variante="secundario" routerLink="/creatividades">
         <svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M5 20h14" /></svg>
         Subir creatividad
       </ao-boton>
@@ -176,5 +176,5 @@
 } @else if (cargandoDetalleReal()) {
   <p role="status">Cargando campaña…</p>
 } @else {
-  <p>No se encontró la campaña.</p>
+  <p role="alert" aria-live="polite">No se pudo cargar la campaña desde la pasarela. Verifica la conexión e inténtalo de nuevo.</p>
 }

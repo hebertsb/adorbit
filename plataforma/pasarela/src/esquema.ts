@@ -120,6 +120,12 @@ export const typeDefs = `#graphql
   }
 `;
 
+/** ms-creatividades valida UUID RFC 4122; algunas campañas semilla antiguas
+ * usan IDs legibles con formato parecido, pero sin versión/variante UUID. */
+export const esUuidRfc4122 = (valor: unknown): valor is string =>
+  typeof valor === 'string' &&
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(valor);
+
 const URL_CAMPANAS = process.env.URL_MS_CAMPANAS || "http://localhost:8081";
 const URL_CRM = process.env.URL_MS_CLIENTES_CRM || "http://localhost:8082";
 const URL_FACTURACION = process.env.URL_MS_FACTURACION || "http://localhost:8083";
@@ -294,6 +300,10 @@ export const resolvers = {
     },
 
     piezas: async (padre: any, _: unknown, contexto: any) => {
+      // Un ID semilla no compatible no puede tener briefs válidos en
+      // ms-creatividades. Se conserva la campaña y se devuelve la relación vacía;
+      // los errores del servicio para UUID reales siguen propagándose.
+      if (!esUuidRfc4122(padre.id)) return [];
       const url = `${URL_CREATIVIDADES}/api/v1/briefs?campana_id=${padre.id}`;
       const headers: Record<string, string> = {};
       if (contexto.token) headers["Authorization"] = contexto.token;

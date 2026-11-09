@@ -23,7 +23,7 @@ from .adapters.postgres.reporte_repos import (
 )
 from .adapters.rabbitmq.consumidor import ConsumidorEventos
 from .adapters.rabbitmq.relevo_bandeja_salida import RelevoBandejaSalida
-from .api import agentes, listo, mcp_auditoria, ml, reportes, salud, vision
+from .api import agentes, asistente, listo, mcp_auditoria, ml, reportes, salud, vision
 from .api.manejador_errores import registrar_manejadores_error
 from .use_cases.procesar_evento import ProcesarEvento
 
@@ -84,6 +84,7 @@ app.include_router(reportes.router)
 app.include_router(agentes.router)
 app.include_router(ml.router)
 app.include_router(vision.router)
+app.include_router(asistente.router)
 # FastMCP ya expone su propia ruta en /mcp (streamable_http_path), por eso se monta en
 # la raiz y no en /mcp — montarlo ahi duplicaria el prefijo (/mcp/mcp). Va al final para
 # que las rutas especificas de arriba se resuelvan primero.

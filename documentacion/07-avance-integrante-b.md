@@ -29,7 +29,8 @@ El detalle de contratos está en `03-contratos.md`; las decisiones y limitacione
 2. Cobranza diaria (vencidas y por vencer; solo recordatorios).
 3. Reporte semanal a gerencia.
 4. Programar reunión (webhook, adjunto `.ics`).
-5. Pedido → cotización → correo al cliente.
+5. Pedido → cotización → correo al cliente y creación de campaña en ms-campanas con `Idempotency-Key` (100% conectado).
+Plantilla de correos unificada y responsive con diseño corporativo: tarjeta centrada, logotipo oficial SVG de AdOrbit, píldora de automatización, línea de gradiente de marca y pie institucional.
 
 ### portal-cliente y panel-inteligencia (React · PWA / módulo remoto)
 - Portal del cliente: login OIDC con PKCE, facturas y CRM, caché sin conexión por usuario, renovación silenciosa de sesión.
@@ -75,12 +76,10 @@ Correcciones hechas a archivos compartidos al levantar el sistema:
   iterador y omite los fragmentos agotados.
 
 ## 6. Pendiente
-- Contraseñas de Supabase de ms-campanas y ms-ia (de Roly y Hebert) para levantar el perfil `equipo` completo;
-  el Dockerfile de ms-campanas no construye en procesadores ARM.
 - Keycloak real: el realm no emite `aud` por servicio ni tiene los clientes `portal-cliente`, `panel-inteligencia` y `n8n`.
-- Las 5 pruebas de la SAGA de extremo a extremo con ms-campanas y ms-creatividades.
 - Probar el portal en Chrome (sin conexión y voz) y el panel contra ms-ia real.
 - Dónde se despliega ms-facturacion en la entrega (`infraestructura/despliegue/aws/` sigue vacío).
 - `mvn spotless:apply` con red antes de fusionar el PR, y su revisión por otro integrante.
-- Consumidores (ms-ia) deben deduplicar por `id_evento`; ms-campanas debe publicar a `adorbit.saga` con las claves
-  `emitir.factura` y `emitir.nota.credito`.
+- Consumidores (ms-ia) deben deduplicar por `id_evento`.
+
+Completado el 9 de noviembre: perfil `equipo` levantado y cinco escenarios integrados de la SAGA aprobados, incluidos fallo de facturacion, compensaciones, reenvio idempotente y respuesta tardia con nota de credito.

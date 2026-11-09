@@ -31,9 +31,18 @@ spring:
             non_contextual_creation: true
   rabbitmq:
     addresses: ${ADORBIT_CAMPANAS_URL_RABBITMQ:amqp://guest:guest@localhost:5672}
+    publisher-confirm-type: correlated
+    publisher-returns: true
     listener:
       simple:
-        auto-startup: false
+        auto-startup: ${ADORBIT_CAMPANAS_CONSUMIDOR_ACTIVO:true}
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 5
+          initial-interval: 1000ms
+          multiplier: 2
+          max-interval: 10000ms
 
 management:
   endpoints:

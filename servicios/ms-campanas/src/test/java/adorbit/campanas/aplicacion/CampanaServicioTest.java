@@ -12,6 +12,10 @@ import adorbit.campanas.dominio.excepcion.ConflictoEdicionExcepcion;
 import adorbit.campanas.dominio.modelo.EstadoCampana;
 import adorbit.campanas.dominio.modelo.EstadoPresupuesto;
 import adorbit.campanas.dominio.modelo.EstadoSaga;
+import adorbit.campanas.dominio.repositorio.BandejaSalidaRepositorio;
+import adorbit.campanas.dominio.repositorio.SagaTransaccionRepositorio;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -24,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,6 +45,15 @@ class CampanaServicioTest {
 
     @Autowired
     private SagaOrquestadorServicio sagaServicio;
+
+    @Autowired
+    private BandejaSalidaRepositorio bandejaRepositorio;
+
+    @Autowired
+    private SagaTransaccionRepositorio sagaRepositorio;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     @DisplayName("Debe crear una campaña correctamente con estado inicial borrador")
@@ -138,7 +152,7 @@ class CampanaServicioTest {
         assertEquals(4, estadoPaso4.getPasoActual());
 
         // 4. Simular respuesta exitosa de Facturación (Paso 4 -> Paso 5 finalización local)
-        sagaServicio.procesarRespuestaFactura(saga.getId(), true, null, null);
+        sagaServicio.procesarRespuestaFactura(saga.getId(), true, null, Map.of("factura_id", UUID.randomUUID().toString()));
         SagaRespuestaDto finalSaga = sagaServicio.obtenerEstado(saga.getId());
         assertEquals(EstadoSaga.completada, finalSaga.getEstado());
         assertEquals(5, finalSaga.getPasoActual());
@@ -149,6 +163,36 @@ class CampanaServicioTest {
 
         PresupuestoDto presFinal = presupuestoServicio.obtenerPresupuesto(campana.getId());
         assertEquals(EstadoPresupuesto.consumido, presFinal.getEstado());
+    }
+
+    @Test
+    void comandosSinDestinoYCompensacionConFacturaPersistida() throws Exception {
+        CampanaCrearDto dto = new CampanaCrearDto();
+        dto.setClienteId(UUID.randomUUID());
+        dto.setNombre("Campana compensacion factura");
+        CampanaRespuestaDto campana = campanaServicio.crearCampana(dto);
+        PresupuestoDto presupuesto = new PresupuestoDto();
+        presupuesto.setMontoTotal(new BigDecimal("1000.00"));
+        presupuestoServicio.asignarPresupuesto(campana.getId(), presupuesto);
+        SagaRespuestaDto saga = sagaServicio.iniciarContratacion(campana.getId(), "idem-" + UUID.randomUUID());
+        sagaServicio.procesarRespuestaCredito(saga.getId(), true, null, null);
+        sagaServicio.procesarRespuestaPiezas(saga.getId(), true, null, null);
+        assertThrows(IllegalArgumentException.class,
+                () -> sagaServicio.procesarRespuestaFactura(saga.getId(), true, null, Map.of()));
+        String facturaId = UUID.randomUUID().toString();
+        sagaServicio.procesarRespuestaFactura(saga.getId(), true, null, Map.of("factura_id", facturaId));
+        sagaServicio.ejecutarCompensacion(sagaRepositorio.findById(saga.getId()).orElseThrow(), "prueba");
+        var comandos = bandejaRepositorio.findAll().stream()
+                .filter(e -> "SagaComando".equals(e.getTipoAgregado())).toList();
+        assertEquals(6, comandos.size());
+        for (var comando : comandos) {
+            JsonNode sobre = objectMapper.readTree(comando.getCarga());
+            assertFalse(sobre.has("destino"));
+            if ("EmitirNotaCredito".equals(comando.getTipoEvento())) {
+                assertEquals(facturaId, sobre.path("carga").path("factura_id").asText());
+            }
+        }
+        assertTrue(comandos.stream().anyMatch(e -> "EmitirNotaCredito".equals(e.getTipoEvento())));
     }
 
     @Test

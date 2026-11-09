@@ -1,33 +1,68 @@
 <nav class="barra-lateral" aria-label="Navegación principal">
   @if (vePestanaCampanas()) {
+    <a routerLink="/dashboard" routerLinkActive="activo" class="enlace">
+      <svg class="ic" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="9" rx="1" />
+        <rect x="14" y="3" width="7" height="5" rx="1" />
+        <rect x="14" y="12" width="7" height="9" rx="1" />
+        <rect x="3" y="16" width="7" height="5" rx="1" />
+      </svg>
+      Dashboard
+    </a>
     <a routerLink="/campanas" routerLinkActive="activo" class="enlace">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 14v-3z" /><path d="M11 13v5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4" /></svg>
+      <svg class="ic" viewBox="0 0 24 24">
+        <path d="M3 11l18-5v12L3 14v-3z" />
+        <path d="M11 13v5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4" />
+      </svg>
       Campañas
     </a>
   }
   @if (vePestanaCreatividades()) {
     <a routerLink="/creatividades" routerLinkActive="activo" class="enlace">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20c1.5 0 2-1 2-2s-.5-1.5-.5-2.5A2 2 0 0 1 15.5 15H17a4 4 0 0 0 4-4c0-5-4-9-9-9z" /><circle cx="7.5" cy="10.5" r="1.1" /><circle cx="11" cy="7" r="1.1" /><circle cx="15.5" cy="9" r="1.1" /></svg>
+      <svg class="ic" viewBox="0 0 24 24">
+        <path
+          d="M12 2a10 10 0 1 0 0 20c1.5 0 2-1 2-2s-.5-1.5-.5-2.5A2 2 0 0 1 15.5 15H17a4 4 0 0 0 4-4c0-5-4-9-9-9z"
+        />
+        <circle cx="7.5" cy="10.5" r="1.1" />
+        <circle cx="11" cy="7" r="1.1" />
+        <circle cx="15.5" cy="9" r="1.1" />
+      </svg>
       Creatividades
     </a>
   }
 
-  <!-- Reportes: ms-ia (panel-inteligencia) ya existe y funciona, pero es una app aparte
-       (Module Federation remote todavia no integrado al shell) -- se enlaza en pestaña
-       nueva mientras tanto, en vez de dejarla como boton muerto. -->
-  <a [href]="urlReportes" target="_blank" rel="noopener" class="enlace">
-    <svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M7 15l4-5 3 3 5-7" /></svg>
-    Reportes
-  </a>
+  @if (vePestanaCampanas()) {
+    <a routerLink="/reportes" routerLinkActive="activo" class="enlace">
+      <svg class="ic" viewBox="0 0 24 24">
+        <path d="M3 3v18h18" />
+        <path d="M7 15l4-5 3 3 5-7" />
+      </svg>
+      Reportes
+    </a>
+  }
 
-  <!-- Pendientes de verdad: ms-clientes-crm y ms-facturacion no tienen pantallas propias
-       todavia; se dejan visibles pero sin ruta hasta que exista esa pantalla. -->
-  <span class="enlace enlace--pendiente" title="Próximamente">
-    <svg class="ic" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><circle cx="17" cy="9" r="2.3" /><path d="M15.5 14.2c2.4.4 4.5 2.4 4.5 5.8" /></svg>
-    Clientes
-  </span>
-  <span class="enlace enlace--pendiente" title="Próximamente">
-    <svg class="ic" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-3 2-3-2-3 2-2-2V3z" /><path d="M8 8h8M8 12h8M8 16h5" /></svg>
-    Facturación
-  </span>
+  @if (vePestanaCampanas()) {
+    <a routerLink="/clientes" routerLinkActive="activo" class="enlace">
+      <svg class="ic" viewBox="0 0 24 24">
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+        <circle cx="17" cy="9" r="2.3" />
+        <path d="M15.5 14.2c2.4.4 4.5 2.4 4.5 5.8" />
+      </svg>
+      Clientes
+    </a>
+    <a routerLink="/facturacion" routerLinkActive="activo" class="enlace">
+      <svg class="ic" viewBox="0 0 24 24">
+        <path d="M5 3h14v18l-3-2-3 2-3-2-3 2-2-2V3z" />
+        <path d="M8 8h8M8 12h8M8 16h5" />
+      </svg>
+      Facturación
+    </a>
+  }
+  @if (veAdministracion()) {
+    <a routerLink="/usuarios" routerLinkActive="activo" class="enlace">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M12 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8z"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/><path d="M19 8v4M17 10h4"/></svg>
+      Usuarios
+    </a>
+  }
 </nav>

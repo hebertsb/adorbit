@@ -42,8 +42,8 @@ public class ConsumidorRespuestasSaga {
             }
 
             if (sagaIdStr == null || sagaIdStr.isEmpty()) {
-                log.warn("Mensaje SAGA recibido sin agregado_id ni correlacion_id: {}", mensajeJson);
-                return;
+                throw new org.springframework.amqp.AmqpRejectAndDontRequeueException(
+                        "Mensaje SAGA sin agregado_id ni correlacion_id");
             }
 
             UUID sagaId = UUID.fromString(sagaIdStr);
@@ -88,8 +88,11 @@ public class ConsumidorRespuestasSaga {
                     log.debug("Evento no manejado por ConsumidorRespuestasSaga: {}", tipoEvento);
                     break;
             }
+        } catch (org.springframework.amqp.AmqpRejectAndDontRequeueException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error al procesar mensaje de respuesta SAGA: {}", e.getMessage(), e);
+            throw new IllegalStateException("No se pudo procesar la respuesta SAGA", e);
         }
     }
 }

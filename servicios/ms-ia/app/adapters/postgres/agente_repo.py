@@ -72,3 +72,24 @@ class EjecucionAgenteRepositorioPg:
         datos["entrada"] = json.loads(datos["entrada"]) if datos["entrada"] is not None else None
         datos["salida"] = json.loads(datos["salida"]) if datos["salida"] is not None else None
         return EjecucionAgente(**datos)
+
+    async def listar_recientes(self, limite: int = 20, id_agente: UUID | None = None) -> list[EjecucionAgente]:
+        pool = await obtener_pool_principal()
+        if id_agente:
+            filas = await pool.fetch(
+                "SELECT * FROM ejecuciones_agente WHERE agente_id = $1 ORDER BY started_at DESC LIMIT $2",
+                id_agente,
+                limite,
+            )
+        else:
+            filas = await pool.fetch(
+                "SELECT * FROM ejecuciones_agente ORDER BY started_at DESC LIMIT $1",
+                limite,
+            )
+        salida = []
+        for fila in filas:
+            datos = dict(fila)
+            datos["entrada"] = json.loads(datos["entrada"]) if datos["entrada"] is not None else None
+            datos["salida"] = json.loads(datos["salida"]) if datos["salida"] is not None else None
+            salida.append(EjecucionAgente(**datos))
+        return salida
