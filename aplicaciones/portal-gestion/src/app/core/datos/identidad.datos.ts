@@ -10,6 +10,7 @@ export interface UsuarioIdentidad {
   nombre: string;
   habilitado: boolean;
   cliente_id: string | null;
+  telefono?: string | null;
   roles: string[];
 }
 

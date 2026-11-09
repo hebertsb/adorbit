@@ -18,7 +18,7 @@ export class Usuarios {
   protected readonly mostrarFormulario = signal(false);
   protected nuevo = {
     usuario: '', email: '', nombre: '', apellido: '', contrasena_temporal: '',
-    roles: [] as string[], cliente_id: '',
+    roles: [] as string[], cliente_id: '', telefono: '',
   };
 
   constructor() { void this.cargar(); }
@@ -46,8 +46,9 @@ export class Usuarios {
       await this.identidad.crear({
         ...this.nuevo,
         ...(this.nuevo.cliente_id ? { cliente_id: this.nuevo.cliente_id } : {}),
+        ...(this.nuevo.telefono ? { telefono: this.nuevo.telefono } : {}),
       });
-      this.nuevo = { usuario: '', email: '', nombre: '', apellido: '', contrasena_temporal: '', roles: [], cliente_id: '' };
+      this.nuevo = { usuario: '', email: '', nombre: '', apellido: '', contrasena_temporal: '', roles: [], cliente_id: '', telefono: '' };
       this.mostrarFormulario.set(false); this.exito.set('Cuenta creada. La contraseña deberá cambiarse en el primer ingreso.');
       await this.cargar();
     } catch (error) { this.error.set(error instanceof Error ? error.message : 'No se pudo crear la cuenta.'); }

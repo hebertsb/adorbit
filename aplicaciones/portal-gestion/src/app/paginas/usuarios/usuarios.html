@@ -7,6 +7,7 @@
     <label><span>Correo</span><input name="email" type="email" [(ngModel)]="nuevo.email" required /></label>
     <label><span>Nombre</span><input name="nombre" [(ngModel)]="nuevo.nombre" required /></label>
     <label><span>Apellido</span><input name="apellido" [(ngModel)]="nuevo.apellido" /></label>
+    <label><span>WhatsApp / Teléfono</span><input name="telefono" [(ngModel)]="nuevo.telefono" placeholder="+59170012345" /></label>
     <label><span>Contraseña temporal</span><input name="contrasena" type="password" minlength="8" [(ngModel)]="nuevo.contrasena_temporal" required /></label>
     <fieldset class="roles-cuenta"><legend>Permisos</legend>
       @for (rol of ['ejecutivo', 'creativo', 'cliente', 'gerente']; track rol) { <label><input type="checkbox" [checked]="nuevo.roles.includes(rol)" (change)="alternarRol(rol, $any($event.target).checked)" /> {{ rol }}</label> }
@@ -18,7 +19,7 @@
 <section class="panel">
   @if (cargando()) { <p class="estado-carga">Consultando Keycloak…</p> } @else {
     <div class="tabla-contenedor"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Roles</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
-      @for (usuario of usuarios(); track usuario.id) { <tr><td data-label="Usuario"><strong>{{ usuario.usuario }}</strong><small class="dato-secundario">{{ usuario.email }}</small></td><td data-label="Nombre">{{ usuario.nombre || 'Sin nombre' }}</td><td data-label="Roles"><div class="roles-lista">@for (rol of usuario.roles; track rol) { <span class="estado">{{ rol }}</span> }</div></td><td data-label="Estado"><span class="estado" [class.estado--ok]="usuario.habilitado" [class.estado--peligro]="!usuario.habilitado">{{ usuario.habilitado ? 'habilitada' : 'deshabilitada' }}</span></td><td data-label="Acciones"><div class="acciones-tabla"><button class="boton-secundario" (click)="restablecer(usuario)">Contraseña</button><button class="boton-secundario" (click)="cambiarEstado(usuario)">{{ usuario.habilitado ? 'Deshabilitar' : 'Habilitar' }}</button></div></td></tr> }
+      @for (usuario of usuarios(); track usuario.id) { <tr><td data-label="Usuario"><strong>{{ usuario.usuario }}</strong><small class="dato-secundario">{{ usuario.email }} @if (usuario.telefono) { · 📱 {{ usuario.telefono }} }</small></td><td data-label="Nombre">{{ usuario.nombre || 'Sin nombre' }}</td><td data-label="Roles"><div class="roles-lista">@for (rol of usuario.roles; track rol) { <span class="estado">{{ rol }}</span> }</div></td><td data-label="Estado"><span class="estado" [class.estado--ok]="usuario.habilitado" [class.estado--peligro]="!usuario.habilitado">{{ usuario.habilitado ? 'habilitada' : 'deshabilitada' }}</span></td><td data-label="Acciones"><div class="acciones-tabla"><button class="boton-secundario" (click)="restablecer(usuario)">Contraseña</button><button class="boton-secundario" (click)="cambiarEstado(usuario)">{{ usuario.habilitado ? 'Deshabilitar' : 'Habilitar' }}</button></div></td></tr> }
     </tbody></table></div>
   }
 </section>

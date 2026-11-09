@@ -68,11 +68,20 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.ADORBIT_WHATSAPP_API_URL || 'http://pasarela:8000/api/v1/simulador-whatsapp' }}",
+        "url": "={{ $env.ADORBIT_WHATSAPP_TOKEN ? ($env.ADORBIT_WHATSAPP_API_URL || ('https://graph.facebook.com/v19.0/' + ($env.ADORBIT_WHATSAPP_PHONE_ID || 'me') + '/messages')) : 'http://pasarela:8000/api/v1/simulador-whatsapp' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ $env.ADORBIT_WHATSAPP_TOKEN ? ('Bearer ' + $env.ADORBIT_WHATSAPP_TOKEN) : '' }}"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ telefono: $json.whatsapp.telefono, mensaje: $json.whatsapp.mensaje, canal: 'whatsapp' }) }}",
+        "jsonBody": "={{ $env.ADORBIT_WHATSAPP_TOKEN ? JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: $json.whatsapp.telefono.replace(/[^0-9]/g, ''), type: 'text', text: { preview_url: false, body: $json.whatsapp.mensaje } }) : JSON.stringify({ telefono: $json.whatsapp.telefono, mensaje: $json.whatsapp.mensaje, canal: 'whatsapp' }) }}",
         "options": {
           "neverError": true
         }
