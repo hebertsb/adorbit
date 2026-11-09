@@ -163,6 +163,9 @@ services:
       ADORBIT_CAMPANAS_URL: http://ms-campanas:8081
       ADORBIT_CORREO_REMITENTE: "AdOrbit <no-responder@adorbit.local>"
       ADORBIT_CORREO_GERENCIA: gerencia@adorbit.local
+      ADORBIT_WHATSAPP_TOKEN: ${ADORBIT_WHATSAPP_TOKEN:-}
+      ADORBIT_WHATSAPP_PHONE_ID: ${ADORBIT_WHATSAPP_PHONE_ID:-}
+      ADORBIT_WHATSAPP_NUMERO_GERENCIA: ${ADORBIT_WHATSAPP_NUMERO_GERENCIA:-+59170000000}
     volumes:
       - n8n_datos:/home/node/.n8n
       - ../plataforma/n8n/flujos:/flujos:ro

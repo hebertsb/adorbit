@@ -135,14 +135,14 @@ paths:
   /api/v1/reportes/{id}/exportar:
     get:
       tags: [reportes]
-      summary: Exporta un reporte ya generado a PDF o Excel (tabla + grafico cuando aplica)
+      summary: Exporta un reporte ya generado a PDF, Excel o TXT estructurado
       security: [{ bearerAuth: [] }]
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: formato, in: query, required: false, schema: { type: string, enum: [pdf, xlsx], default: pdf } }
+        - { name: formato, in: query, required: false, schema: { type: string, enum: [pdf, xlsx, txt], default: pdf } }
       responses:
         '200':
-          description: Archivo binario (application/pdf o application/vnd.openxmlformats-officedocument.spreadsheetml.sheet)
+          description: Archivo exportado (application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, o text/plain)
         '404': { description: No existe un reporte con ese id }
 
   /api/v1/agentes:

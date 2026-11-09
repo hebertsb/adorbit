@@ -19,7 +19,7 @@ from ..domain.puertos import ReporteGeneradoRepositorio
 from ..domain.reporte_generado import ReporteGenerado
 from .compartido.forma_tabla import columna_dto, columna_numerica_y_texto as _columna_numerica_y_texto
 
-FORMATOS_VALIDOS = {"pdf", "xlsx"}
+FORMATOS_VALIDOS = {"pdf", "xlsx", "txt"}
 
 
 def _resumen_limpio(reporte: ReporteGenerado) -> str:
@@ -136,7 +136,7 @@ class ExportarReporte:
     async def ejecutar(self, id_reporte: UUID, formato: str) -> tuple[bytes, str, str]:
         """Devuelve (bytes, content_type, nombre_archivo)."""
         if formato not in FORMATOS_VALIDOS:
-            raise ExcepcionDominio("formato_invalido", "formato debe ser pdf o xlsx")
+            raise ExcepcionDominio("formato_invalido", "formato debe ser pdf, xlsx o txt")
 
         reporte = await self._repositorio.buscar(id_reporte)
         if reporte is None:
@@ -144,7 +144,139 @@ class ExportarReporte:
 
         if formato == "xlsx":
             return _exportar_xlsx(reporte)
+        if formato == "txt":
+            return _exportar_txt(reporte)
         return _exportar_pdf(reporte)
+
+
+def _formatear_txt(clave: str, valor: Any, fila: dict[str, Any]) -> str:
+    if valor is None:
+        return "—"
+    if clave.endswith("_id"):
+        return _referencia_empresarial(clave, valor, fila)
+    dto = columna_dto(clave)
+    if dto["tipo"] == "dinero":
+        numero = _a_numero(valor)
+        if isinstance(numero, (int, float)):
+            return f"Bs {numero:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    if dto["tipo"] == "porcentaje":
+        numero = _a_numero(valor)
+        if isinstance(numero, (int, float)):
+            return f"{numero:.1f}%"
+    if dto["tipo"] == "fecha" and isinstance(valor, (date, datetime)):
+        return valor.strftime("%d/%m/%Y")
+    if dto["tipo"] == "fecha" and isinstance(valor, str):
+        try:
+            return date.fromisoformat(valor[:10]).strftime("%d/%m/%Y")
+        except ValueError:
+            pass
+    return str(valor)
+
+
+def _exportar_txt(reporte: ReporteGenerado) -> tuple[bytes, str, str]:
+    ancho_total = 88
+    linea_doble = "=" * ancho_total
+    linea_simple = "-" * ancho_total
+
+    fecha_gen = reporte.creado_en or datetime.now()
+    fecha_str = fecha_gen.strftime("%d/%m/%Y %H:%M:%S")
+
+    lineas: list[str] = [
+        linea_doble,
+        "                         ADORBIT ADVERTISING PLATFORM",
+        "                      REPORTE EJECUTIVO DE INTELIGENCIA",
+        linea_doble,
+        f"ID Reporte    : {reporte.id}",
+        f"Fecha/Hora    : {fecha_str}",
+        f"Consulta      : {reporte.pregunta}",
+    ]
+
+    if reporte.herramientas_usadas:
+        ultima = reporte.herramientas_usadas[-1]
+        lineas.append(f"Herramienta   : {ultima.get('herramienta', 'mcp_consultas')}")
+    lineas.extend([
+        f"Registros     : {len(reporte.filas)} encontrados",
+        linea_simple,
+        "",
+        "1. RESUMEN EJECUTIVO & SÍNTESIS DE INTELIGENCIA ARTIFICIAL",
+        linea_simple,
+        _resumen_limpio(reporte),
+        "",
+    ])
+
+    if reporte.columnas and reporte.filas:
+        columnas_tabla = reporte.columnas
+        etiquetas = [_etiqueta_excel(c) for c in columnas_tabla]
+
+        anchos = [len(e) for e in etiquetas]
+        matriz_celdas: list[list[str]] = []
+        for fila in reporte.filas:
+            fila_txt = [_formatear_txt(c, fila.get(c), fila) for c in columnas_tabla]
+            matriz_celdas.append(fila_txt)
+            for i, celda in enumerate(fila_txt):
+                if len(celda) > anchos[i]:
+                    anchos[i] = min(40, len(celda))
+
+        borde_horiz = "+" + "+".join("-" * (w + 2) for w in anchos) + "+"
+
+        lineas.extend([
+            "2. TABLA DETALLADA DE DATOS",
+            linea_simple,
+            borde_horiz,
+            "|" + "|".join(f" {etiquetas[i].ljust(anchos[i])[:anchos[i]]} " for i in range(len(columnas_tabla))) + "|",
+            borde_horiz,
+        ])
+
+        for fila_txt in matriz_celdas:
+            celdas_fmt = []
+            for i, celda in enumerate(fila_txt):
+                col = columnas_tabla[i]
+                dto = columna_dto(col)
+                ancho = anchos[i]
+                valor_cortado = celda[:ancho]
+                if dto["tipo"] in {"dinero", "numero", "porcentaje"}:
+                    celdas_fmt.append(f" {valor_cortado.rjust(ancho)} ")
+                else:
+                    celdas_fmt.append(f" {valor_cortado.ljust(ancho)} ")
+            lineas.append("|" + "|".join(celdas_fmt) + "|")
+
+        lineas.append(borde_horiz)
+        lineas.append("")
+
+        kpis: list[str] = []
+        for c in columnas_tabla:
+            dto = columna_dto(c)
+            if dto["tipo"] in {"dinero", "numero"}:
+                valores_num = [_a_numero(f.get(c)) for f in reporte.filas]
+                validos = [float(v) for v in valores_num if isinstance(v, (int, float))]
+                if validos:
+                    total = sum(validos)
+                    promedio = total / len(validos)
+                    etiqueta = _etiqueta_excel(c)
+                    if dto["tipo"] == "dinero":
+                        tot_fmt = f"Bs {total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        prom_fmt = f"Bs {promedio:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+                        kpis.append(f"• {etiqueta:<28}: Total = {tot_fmt} | Promedio = {prom_fmt}")
+                    else:
+                        kpis.append(f"• {etiqueta:<28}: Total = {total:,.1f} | Promedio = {promedio:,.1f}")
+
+        if kpis:
+            lineas.extend([
+                "3. INDICADORES CLAVE (KPIs)",
+                linea_simple,
+                *kpis,
+                "",
+            ])
+
+    lineas.extend([
+        linea_doble,
+        "  AdOrbit Intelligence Engine · Generado automáticamente · Documento Confidencial",
+        linea_doble,
+    ])
+
+    contenido_txt = "\n".join(lineas) + "\n"
+    nombre_archivo = f"reporte-{reporte.id}.txt"
+    return contenido_txt.encode("utf-8"), "text/plain; charset=utf-8", nombre_archivo
 
 
 def _exportar_xlsx(reporte: ReporteGenerado) -> tuple[bytes, str, str]:

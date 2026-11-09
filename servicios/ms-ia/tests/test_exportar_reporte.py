@@ -6,7 +6,7 @@ from openpyxl import load_workbook
 
 from app.domain.reporte_generado import ReporteGenerado
 from app.use_cases.compartido.forma_tabla import columna_numerica_y_texto
-from app.use_cases.exportar_reporte import _exportar_pdf, _exportar_xlsx
+from app.use_cases.exportar_reporte import _exportar_pdf, _exportar_txt, _exportar_xlsx
 
 
 def _reporte() -> ReporteGenerado:
@@ -75,3 +75,21 @@ def test_pdf_formal_tiene_portada_tabla_y_pagina_de_grafico() -> None:
     assert tipo == "application/pdf"
     assert contenido.startswith(b"%PDF")
     assert contenido.count(b"/Type /Page\n") >= 2
+
+
+def test_txt_formal_tiene_tabla_y_kpis() -> None:
+    reporte = _reporte()
+    contenido, tipo, nombre = _exportar_txt(reporte)
+
+    assert tipo == "text/plain; charset=utf-8"
+    assert nombre == f"reporte-{reporte.id}.txt"
+    texto = contenido.decode("utf-8")
+
+    assert "ADORBIT ADVERTISING PLATFORM" in texto
+    assert "REPORTE EJECUTIVO DE INTELIGENCIA" in texto
+    assert "1. RESUMEN EJECUTIVO & SÍNTESIS DE INTELIGENCIA ARTIFICIAL" in texto
+    assert "2. TABLA DETALLADA DE DATOS" in texto
+    assert "3. INDICADORES CLAVE (KPIs)" in texto
+    assert "Campaña institucional" in texto
+    assert "Bs 185.000,00" in texto
+    assert "AdOrbit Intelligence Engine" in texto

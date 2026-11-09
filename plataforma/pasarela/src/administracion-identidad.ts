@@ -77,6 +77,7 @@ export function crearRouterAdministracionIdentidad(): Router {
         nombre: [usuario.firstName, usuario.lastName].filter(Boolean).join(" "),
         habilitado: usuario.enabled ?? false,
         cliente_id: usuario.attributes?.cliente_id?.[0] ?? null,
+        telefono: usuario.attributes?.telefono?.[0] ?? null,
         roles: await rolesUsuario(usuario.id),
       })));
       res.json({ contenido: salida, total: salida.length });
@@ -87,7 +88,7 @@ export function crearRouterAdministracionIdentidad(): Router {
 
   router.post("/usuarios", async (req: PeticionAutenticada, res) => {
     if (!exigirGerencia(req, res)) return;
-    const { usuario, email, nombre, apellido, contrasena_temporal, roles, cliente_id } = req.body ?? {};
+    const { usuario, email, nombre, apellido, contrasena_temporal, roles, cliente_id, telefono } = req.body ?? {};
     if (!usuario || !email || !nombre || !contrasena_temporal || !Array.isArray(roles) || roles.length === 0 ||
         roles.some((rol: string) => !ROLES_ADORBIT.includes(rol))) {
       return res.status(400).json({ mensaje: "Datos de usuario o roles inválidos" });
@@ -101,7 +102,10 @@ export function crearRouterAdministracionIdentidad(): Router {
         body: JSON.stringify({
           username: usuario, email, firstName: nombre, lastName: apellido ?? "",
           enabled: true, emailVerified: false,
-          ...(cliente_id ? { attributes: { cliente_id: [cliente_id] } } : {}),
+          attributes: {
+            ...(cliente_id ? { cliente_id: [cliente_id] } : {}),
+            ...(telefono ? { telefono: [telefono] } : {}),
+          },
           credentials: [{ type: "password", value: contrasena_temporal, temporary: true }],
         }),
       });
@@ -114,7 +118,7 @@ export function crearRouterAdministracionIdentidad(): Router {
       const representaciones = await representacionesRoles(roles);
       const asignacion = await keycloak(`/users/${id}/role-mappings/realm`, { method: "POST", body: JSON.stringify(representaciones) });
       if (!asignacion.ok) throw new Error(`No se pudieron asignar roles (${asignacion.status})`);
-      res.status(201).json({ id, usuario, email, roles, habilitado: true, cliente_id: cliente_id ?? null });
+      res.status(201).json({ id, usuario, email, roles, habilitado: true, cliente_id: cliente_id ?? null, telefono: telefono ?? null });
     } catch (error) {
       res.status(502).json({ mensaje: error instanceof Error ? error.message : "Fallo de identidad" });
     }

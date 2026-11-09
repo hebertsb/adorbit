@@ -231,7 +231,10 @@ const servidor = createServer(async (req, res) => {
         firstName: u.nombre?.split(' ')[0] || u.usuario,
         lastName: u.nombre?.split(' ').slice(1).join(' ') || '',
         enabled: u.habilitado ?? true,
-        attributes: u.cliente_id ? { cliente_id: [u.cliente_id] } : undefined,
+        attributes: {
+          ...(u.cliente_id ? { cliente_id: [u.cliente_id] } : {}),
+          ...(u.telefono ? { telefono: [u.telefono] } : {}),
+        },
       }))
     );
   }
@@ -242,14 +245,17 @@ const servidor = createServer(async (req, res) => {
     const body = JSON.parse(raw || '{}');
     const nuevoId = randomUUID();
     const clienteId = body.attributes?.cliente_id?.[0];
+    const telefono = body.attributes?.telefono?.[0];
     const u = {
       id: nuevoId,
       usuario: body.username,
       email: body.email || body.username,
       nombre: [body.firstName, body.lastName].filter(Boolean).join(' ') || body.username,
+      telefono: telefono || null,
       habilitado: body.enabled ?? true,
       roles: [],
       cliente_id: clienteId,
+      attributes: body.attributes || {},
       credentials: body.credentials || [],
     };
     usuariosAdmin.push(u);

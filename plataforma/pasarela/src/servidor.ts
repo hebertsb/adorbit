@@ -100,6 +100,20 @@ async function iniciarServidor() {
     })
   );
 
+  // Simulador de canal WhatsApp (desarrollo y pruebas locales de n8n)
+  app.post("/api/v1/simulador-whatsapp", express.json(), (req, res) => {
+    const { telefono, mensaje, canal } = req.body || {};
+    console.log(`[WHATSAPP SIMULADO] Destino: ${telefono || 'general'}`);
+    console.log(`[WHATSAPP MENSAJE]:\n${mensaje}\n-----------------------------------`);
+    res.status(200).json({
+      ok: true,
+      mensaje: "Mensaje entregado al simulador de WhatsApp",
+      canal: canal || "whatsapp",
+      destinatario: telefono || "+59170000000",
+      entregado_en: new Date().toISOString()
+    });
+  });
+
   // GraphQL Apollo Server
   const servidorApolo = new ApolloServer({
     typeDefs,

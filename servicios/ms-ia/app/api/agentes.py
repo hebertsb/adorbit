@@ -9,8 +9,9 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, BackgroundTasks, Depends, Header
 
+from ..adapters.notificaciones.webhook_notificador import notificar_evento_multicanal
 from ..adapters.postgres.agente_repo import AgenteRepositorioPg, EjecucionAgenteRepositorioPg
 from ..adapters.postgres.auditoria_mcp_repo import AuditoriaMcpRepositorioPg
 from ..adapters.postgres.conexion import obtener_pool_principal
@@ -70,6 +71,7 @@ async def listar_agentes(
 async def ejecutar_agente(
     id_agente: UUID,
     identidad: Annotated[IdentidadAutenticada, Depends(verificar_jwt)],
+    background_tasks: BackgroundTasks,
     idempotency_key: Annotated[str | None, Header()] = None,
     cuerpo: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -87,6 +89,21 @@ async def ejecutar_agente(
             clave_idempotencia=idempotency_key,
             conexion=conexion,
         )
+
+    tipo_alerta = "alerta_campana" if "presupuesto" in str(ejecucion.salida or "").lower() else "cobranza"
+    background_tasks.add_task(
+        notificar_evento_multicanal,
+        tipo=tipo_alerta,
+        titulo=f"Ejecución de Agente Autónomo ({disparador}): {ejecucion.estado.upper()}",
+        datos={
+            "ejecucion_id": str(ejecucion.id),
+            "agente_id": str(ejecucion.agente_id),
+            "estado": ejecucion.estado,
+            "hallazgos": str(ejecucion.salida)[:200] if ejecucion.salida else "Sin hallazgos críticos",
+        },
+        enlace_accion="http://localhost:4200/dashboard",
+    )
+
     return _ejecucion_a_dict(ejecucion)
 
 

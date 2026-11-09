@@ -12,9 +12,10 @@ servicios reales (ms-facturacion, ms-clientes-crm), RabbitMQ y un Keycloak simul
 | 03 | Reporte semanal | Cron lunes 8:00 (y manual) | Resume facturación por estado y moneda y lo envía a gerencia | Probado |
 | 04 | Programar reunión | `POST /webhook/reunion` | Valida, busca el contacto y envía la invitación con adjunto `.ics` | Probado |
 | 05 | Pedido → cotización → notificar | `POST /webhook/pedido` | Cotiza en ms-facturacion y envía la cotización; crea la campaña en ms-campanas con `Idempotency-Key`. Los reintentos del mismo pedido no reenvían el correo | Probado y conectado |
+| 06 | Notificaciones multicanal y alertas WhatsApp | `POST /webhook/notificacion-multicanal` | Recibe alertas de análisis de IA (visión/logos), presupuesto o facturas, formatea el mensaje enriquecido para WhatsApp y despacha correo corporativo a Mailpit | Probado y conectado |
 
 ### Contratos de los webhooks
-Ambos exigen el encabezado `X-Webhook-Token` (variable `ADORBIT_N8N_WEBHOOK_TOKEN`) y rechazan campos desconocidos.
+Los webhooks exigen el encabezado `X-Webhook-Token` (variable `ADORBIT_N8N_WEBHOOK_TOKEN`) y rechazan campos desconocidos.
 Errores con la forma `{ codigo, mensaje, detalle }` (400 inválido, 401 sin token, 404 cliente inexistente, 422 sin contacto).
 
 ```bash
@@ -25,6 +26,10 @@ curl -H "X-Webhook-Token: $TOKEN" -H 'Content-Type: application/json' localhost:
 # pedido: 1 a 90 ítems; dinero siempre como texto decimal
 curl -H "X-Webhook-Token: $TOKEN" -H 'Content-Type: application/json' localhost:5678/webhook/pedido \
   -d '{"cliente_id":"<uuid>","nombre_campana":"Verano 2027","moneda":"BOB","items":[{"descripcion":"Banner","cantidad":3,"precio_unitario":"500.00"}]}'
+
+# notificación multicanal (WhatsApp y correo): tipo analisis_ia|factura_emitida|alerta_campana|cobranza|general
+curl -H "X-Webhook-Token: $TOKEN" -H 'Content-Type: application/json' localhost:5678/webhook/notificacion-multicanal \
+  -d '{"tipo":"analisis_ia","titulo":"Auditoría de Valla: Logo AdOrbit Detectado (94.2%)","destinatario_whatsapp":"+59170000000","datos":{"pieza_id":"00000000-0000-0000-0000-00000000d001","confianza":"94.2%","manual_marca":"CONFORME"}}'
 ```
 
 ## Cómo se autentica

@@ -43,3 +43,4 @@ Thumbs.db
 *.log
 logs/
 *.docx
+.m2-cache/
