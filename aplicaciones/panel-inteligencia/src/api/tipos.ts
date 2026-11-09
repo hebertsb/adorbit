@@ -35,6 +35,7 @@ export interface Reporte {
   indicadores?: Indicador[];
   grafico?: Grafico | null;
   advertencias?: string[];
+  respuesta_nl?: string | null;
 }
 
-export type FormatoExportacion = 'pdf' | 'xlsx';
+export type FormatoExportacion = 'pdf' | 'xlsx' | 'txt';

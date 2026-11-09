@@ -613,7 +613,19 @@ code {
 
 .resultado__exportar {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+}
+
+.boton--whatsapp {
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.boton--whatsapp:hover {
+  background: rgba(34, 197, 94, 0.08);
+  border-color: #22c55e;
+  color: #15803d;
 }
 
 .interpretacion {

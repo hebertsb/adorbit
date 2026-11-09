@@ -8,8 +8,9 @@ from __future__ import annotations
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, UploadFile
 
+from ..adapters.notificaciones.webhook_notificador import notificar_evento_multicanal
 from ..adapters.postgres.modelo_ml_repo import ModeloAprendizajeRepositorioPg
 from ..adapters.postgres.vision_resultado_repo import VisionResultadoRepositorioPg
 from ..adapters.seguridad.verificar_jwt import IdentidadAutenticada, exigir_rol, verificar_jwt
@@ -51,6 +52,7 @@ async def analizar(
     identidad: Annotated[IdentidadAutenticada, Depends(verificar_jwt)],
     pieza_id: Annotated[UUID, Form()],
     archivo: Annotated[UploadFile, File()],
+    background_tasks: BackgroundTasks,
     campana_id: Annotated[UUID | None, Form()] = None,
     origen: Annotated[str, Form()] = "servidor",
 ) -> dict[str, Any]:
@@ -67,4 +69,23 @@ async def analizar(
     resultado = await _analizar_vision.ejecutar(
         pieza_id=pieza_id, bytes_imagen=bytes_imagen, campana_id=campana_id, origen=origen
     )
+
+    confianza_pct = f"{round((resultado.confianza or 0) * 100, 1)}%"
+    estado_logo = "Logo AdOrbit Detectado" if resultado.detecta_logo else "Sin logo detectado"
+    background_tasks.add_task(
+        notificar_evento_multicanal,
+        tipo="analisis_ia",
+        titulo=f"Auditoría Visual de Creatividad: {estado_logo} ({confianza_pct})",
+        datos={
+            "pieza_id": str(resultado.pieza_id),
+            "campana_id": str(resultado.campana_id) if resultado.campana_id else "N/A",
+            "detecta_logo": "SI" if resultado.detecta_logo else "NO",
+            "confianza": confianza_pct,
+            "manual_marca": "CONFORME" if resultado.manual_marca_ok else "REVISIÓN",
+            "objetos": ", ".join(resultado.objetos_detectados[:4]) if resultado.objetos_detectados else "Ninguno",
+            "duracion": f"{resultado.duracion_ms} ms",
+        },
+        enlace_accion="http://localhost:4200/creatividades",
+    )
+
     return _a_dict(resultado)

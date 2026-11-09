@@ -1,0 +1,215 @@
+{
+  "id": "adorbit-06",
+  "name": "AdOrbit · 06 Notificaciones multicanal y alertas WhatsApp",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notificacion-multicanal",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f5b214c7-1e34-58a2-94b1-63e8110b42f1",
+      "name": "Webhook notificacion",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "f5b214c7-1e34-58a2-94b1-63e8110b42f1"
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const entrada = $input.first().json;\n  const esperado = $env.ADORBIT_N8N_WEBHOOK_TOKEN || 'token-webhook-local';\n  const recibido = (entrada.headers || {})['x-webhook-token'];\n  const fallo = (estado_http, codigo, mensaje, detalle) => [{\n    json: {\n      ok: false,\n      estado_http,\n      respuesta: { codigo, mensaje, detalle: detalle || null }\n    }\n  }];\n\n  if (!recibido || recibido !== esperado) {\n    return fallo(401, 'no_autenticado', 'Falta o es invalido el encabezado X-Webhook-Token');\n  }\n\n  const b = entrada.body || {};\n  if (!b.titulo || typeof b.titulo !== 'string' || b.titulo.trim() === '') {\n    return fallo(400, 'solicitud_invalida', 'El campo titulo es obligatorio');\n  }\n\n  const tipo = (b.tipo || 'general').toLowerCase();\n  const tel = b.destinatario_whatsapp || $env.ADORBIT_WHATSAPP_NUMERO_GERENCIA || '+59170000000';\n  const email = b.destinatario_email || $env.ADORBIT_CORREO_GERENCIA || 'gerencia@adorbit.local';\n  const enlace = b.enlace_accion || 'http://localhost:4200';\n  const fechaHora = new Date().toLocaleString('es-BO', { timeZone: 'America/La_Paz' });\n\n  const iconos = {\n    analisis_ia: '🤖',\n    factura_emitida: '🧾',\n    alerta_campana: '⚠️',\n    cobranza: '💼',\n    general: '📢'\n  };\n  const icono = iconos[tipo] || '🚀';\n\n  let lineasDetalle = [];\n  let filasHtml = '';\n  if (b.datos && typeof b.datos === 'object') {\n    for (const [k, v] of Object.entries(b.datos)) {\n      if (v !== null && v !== undefined && typeof v !== 'object') {\n        const etiqueta = k.replace(/_/g, ' ').replace(/\\b\\w/g, (l) => l.toUpperCase());\n        lineasDetalle.push(`• *${etiqueta}:* ${v}`);\n        filasHtml += `<tr><td style=\"padding:6px 10px;font-weight:600;color:#475569;border-bottom:1px solid #f1f5f9;font-size:13px;\">${etiqueta}</td><td style=\"padding:6px 10px;color:#0f172a;border-bottom:1px solid #f1f5f9;font-size:13px;\">${String(v)}</td></tr>`;\n      }\n    }\n  }\n\n  const msgWhatsapp = `${icono} *AdOrbit Intelligence · Notificación en Tiempo Real* ${icono}\\n\\n` +\n    `*${b.titulo.trim()}*\\n` +\n    `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n    `• *Tipo:* ${tipo.toUpperCase()}\\n` +\n    `• *Fecha:* ${fechaHora}\\n` +\n    (lineasDetalle.length ? lineasDetalle.join('\\n') + '\\n' : '') +\n    `━━━━━━━━━━━━━━━━━━━━━━\\n` +\n    `🔗 *Ver en plataforma:* ${enlace}\\n\\n` +\n    `_AdOrbit Marketing & AI Platform_`;\n\n  const logoSvg = '<svg width=\"32\" height=\"32\" viewBox=\"0 0 128 128\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" style=\"vertical-align:middle;display:inline-block;\"><path d=\"M25 104 L57 25 Q59 20 65 20 L69 20 Q74 20 76 25 L108 104 L86 104 L65 48 L45 104 Z\" fill=\"#4f46e5\"/><path d=\"M103 37 C80 31 38 48 19 69 C-2 92 21 102 58 91 C80 85 100 74 111 62 L105 57 C91 70 72 79 54 84 C26 92 16 87 28 75 C44 58 80 43 100 44 Z\" fill=\"#4f46e5\"/><circle cx=\"110\" cy=\"39\" r=\"8\" fill=\"#4f46e5\"/></svg>';\n\n  const htmlCorreo = `<div style=\"background-color:#f1f5f9;padding:28px 12px;margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;\">\\n` +\n    `<div style=\"max-width:580px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 10px 15px -3px rgba(0,0,0,0.07);\">\\n` +\n    `  <div style=\"padding:20px 26px;background:#ffffff;border-bottom:1px solid #f1f5f9;\">\\n` +\n    `    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\\n` +\n    `      <tr>\\n` +\n    `        <td style=\"vertical-align:middle;\">\\n` +\n    `          ${logoSvg}\\n` +\n    `          <span style=\"font-size:21px;font-weight:800;color:#0f172a;letter-spacing:-0.5px;margin-left:8px;vertical-align:middle;\">AdOrbit</span>\\n` +\n    `        </td>\\n` +\n    `        <td align=\"right\" style=\"vertical-align:middle;\">\\n` +\n    `          <span style=\"display:inline-block;background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;\">Alerta IA & Notificación</span>\\n` +\n    `        </td>\\n` +\n    `      </tr>\\n` +\n    `    </table>\\n` +\n    `  </div>\\n` +\n    `  <div style=\"height:3px;background:linear-gradient(90deg,#4f46e5 0%,#818cf8 100%);\"></div>\\n` +\n    `  <div style=\"padding:28px 26px;color:#1e293b;font-size:14px;line-height:1.65;\">\\n` +\n    `    <h2 style=\"font-size:19px;font-weight:700;color:#0f172a;margin:0 0 16px 0;letter-spacing:-0.3px;\">${b.titulo.trim()}</h2>\\n` +\n    `    <p style=\"margin:0 0 16px 0;color:#475569;\">Se ha emitido una nueva alerta en la plataforma AdOrbit correspondiente al evento <strong>${tipo}</strong>.</p>\\n` +\n    `    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;margin:16px 0;background:#f8fafc;border-radius:8px;overflow:hidden;\">\\n` +\n    `      ${filasHtml || '<tr><td style=\"padding:10px;\">Sin parámetros adicionales</td></tr>'}\\n` +\n    `    </table>\\n` +\n    `    <div style=\"text-align:center;margin:24px 0 12px 0;\">\\n` +\n    `      <a href=\"${enlace}\" style=\"display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:10px 22px;border-radius:8px;box-shadow:0 4px 6px -1px rgba(79,70,229,0.2);\">Abrir en AdOrbit</a>\\n` +\n    `    </div>\\n` +\n    `  </div>\\n` +\n    `  <div style=\"background:#f8fafc;padding:18px 26px;border-top:1px solid #e2e8f0;text-align:center;font-size:12px;color:#64748b;\">\\n` +\n    `    <p style=\"margin:0 0 4px 0;font-weight:600;color:#334155;\">AdOrbit · Plataforma Publicitaria y Gestión Multicanal</p>\\n` +\n    `    <p style=\"margin:0;font-size:11px;color:#94a3b8;\">Mensaje generado automáticamente por el subsistema de automatización y notificaciones.</p>\\n` +\n    `  </div>\\n` +\n    `</div>\\n` +\n    `</div>`;\n\n  return [{\n    json: {\n      ok: true,\n      whatsapp: {\n        telefono: tel,\n        mensaje: msgWhatsapp\n      },\n      email: {\n        para: email,\n        asunto: `AdOrbit [${tipo.toUpperCase()}]: ${b.titulo.trim()}`,\n        html: htmlCorreo\n      },\n      respuesta: {\n        ok: true,\n        mensaje: 'Notificación multicanal recibida y enrutada',\n        tipo,\n        canales: ['whatsapp', 'email'],\n        destinatarios: { whatsapp: tel, email },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      ok: false,\n      estado_http: 500,\n      respuesta: { codigo: 'error_interno', mensaje: 'Fallo interno en n8n', detalle: String(e && e.message || e) }\n    }\n  }];\n}"
+      },
+      "id": "e7c414d8-2a45-59b3-a5c2-74f9221c53a2",
+      "name": "Validar y formatear alerta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-ok",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9e7314a2-3b56-51cf-b6d3-85a0332d64b3",
+      "name": "Solicitud valida",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ADORBIT_WHATSAPP_API_URL || 'http://pasarela:8000/api/v1/simulador-whatsapp' }}",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ telefono: $json.whatsapp.telefono, mensaje: $json.whatsapp.mensaje, canal: 'whatsapp' }) }}",
+        "options": {
+          "neverError": true
+        }
+      },
+      "id": "a1f845d3-4c67-52df-c7e4-96b1443e75c4",
+      "name": "Despachar WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.ADORBIT_CORREO_REMITENTE || 'notificaciones@adorbit.local' }}",
+        "toEmail": "={{ $('Validar y formatear alerta').first().json.email.para }}",
+        "subject": "={{ $('Validar y formatear alerta').first().json.email.asunto }}",
+        "emailFormat": "html",
+        "html": "={{ $('Validar y formatear alerta').first().json.email.html }}",
+        "options": {}
+      },
+      "id": "c3d956e4-5d78-53ef-d8f5-a7c2554f86d5",
+      "name": "Despachar Correo",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        100
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "adorbit-smtp",
+          "name": "AdOrbit SMTP (Mailpit local)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($('Validar y formatear alerta').first().json.respuesta) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "e5b067f5-6e89-54fa-e906-b8d3665a97e6",
+      "name": "Responder exito",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.respuesta) }}",
+        "options": {
+          "responseCode": "={{ $json.estado_http || 400 }}"
+        }
+      },
+      "id": "f6c178a6-7f90-55ab-fa17-c9e4776ba8f7",
+      "name": "Responder error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook notificacion": {
+      "main": [
+        [
+          {
+            "node": "Validar y formatear alerta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar y formatear alerta": {
+      "main": [
+        [
+          {
+            "node": "Solicitud valida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Solicitud valida": {
+      "main": [
+        [
+          {
+            "node": "Despachar WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Despachar WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Despachar Correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Despachar Correo": {
+      "main": [
+        [
+          {
+            "node": "Responder exito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

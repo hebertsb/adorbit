@@ -48,6 +48,12 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
     }
   };
 
+  const compartirWhatsApp = () => {
+    const texto = `🚀 *AdOrbit Intelligence · Reporte Ejecutivo*\n📊 *${reporte.titulo}*\n_«${reporte.pregunta}»_\n\n${reporte.respuesta_nl ? reporte.respuesta_nl.slice(0, 700) : 'Reporte generado con éxito.'}\n\n🔗 *AdOrbit Platform*`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <article className="resultado" aria-labelledby="titulo-reporte">
       <header className="resultado__cabecera">
@@ -58,18 +64,33 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
           </p>
         </div>
         <div className="resultado__exportar" role="group" aria-label="Exportar reporte">
-          {(['pdf', 'xlsx'] as const).map((formato) => (
+          {(['pdf', 'xlsx', 'txt'] as const).map((formato) => (
             <button
               key={formato}
               type="button"
               className="boton boton--secundario"
               disabled={exportando !== null}
               onClick={() => void exportar(formato)}
+              title={formato === 'txt' ? 'Descargar reporte detallado en formato texto estructurado' : undefined}
             >
               <Icono nombre="descargar" />{' '}
-              {exportando === formato ? 'Preparando…' : formato === 'pdf' ? 'PDF' : 'Excel'}
+              {exportando === formato
+                ? 'Preparando…'
+                : formato === 'pdf'
+                  ? 'PDF'
+                  : formato === 'xlsx'
+                    ? 'Excel'
+                    : 'TXT'}
             </button>
           ))}
+          <button
+            type="button"
+            className="boton boton--secundario boton--whatsapp"
+            onClick={compartirWhatsApp}
+            title="Enviar resumen del análisis a WhatsApp"
+          >
+            <Icono nombre="whatsapp" /> WhatsApp
+          </button>
         </div>
       </header>
       {falloExportar && (
