@@ -57,11 +57,25 @@ function Invocar-AdOrbit {
 $sufijo = [guid]::NewGuid().ToString('N').Substring(0, 8)
 Write-Host "Prueba SAGA: $sufijo" -ForegroundColor Cyan
 
-$tokenRespuesta = Invoke-RestMethod -Uri (
-    'http://localhost:8180/emitir' +
-    '?roles=ejecutivo%2Cgerente%2Ccreativo&email=admin%40adorbit.com'
-)
-$token = $tokenRespuesta.access_token
+try {
+    $tokenRespuesta = Invoke-RestMethod -Uri (
+        'http://localhost:8180/emitir' +
+        '?roles=ejecutivo%2Cgerente%2Ccreativo&email=admin%40adorbit.com'
+    ) -TimeoutSec 3
+    $token = $tokenRespuesta.access_token
+} catch {
+    $cuerpoToken = @{
+        grant_type = 'password'
+        client_id  = 'adorbit-frontend'
+        username   = 'admin@adorbit.com'
+        password   = 'secreto-local'
+        scope      = 'openid'
+    }
+    $tokenRespuesta = Invoke-RestMethod -Uri 'http://localhost:8180/realms/adorbit/protocol/openid-connect/token' `
+        -Method Post `
+        -Body $cuerpoToken
+    $token = $tokenRespuesta.access_token
+}
 if (-not $token) { throw 'El emisor de prueba no devolvio access_token.' }
 
 if ([string]::IsNullOrWhiteSpace($CampanaId)) {
