@@ -70,7 +70,9 @@ paths:
     get:
       tags: [facturas]
       summary: Listar facturas
-      description: El rol cliente solo ve las suyas (cliente_id del token; el parametro se ignora).
+      description: >
+        Requiere al menos cliente o estado; sin ambos devuelve 400 filtro_requerido. El rol cliente solo ve las suyas
+        (cliente_id del token; el parametro se ignora).
       parameters:
         - name: cliente
           in: query

@@ -5,6 +5,9 @@ const TRAZOS = {
   historial: 'M4 12a8 8 0 1 0 3-6.2M4 4v4h4M12 8v4l3 2',
   alerta: 'M12 4 3 20h18zM12 10v4M12 17h.01',
   bloqueo: 'M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6zM9 12l2 2 4-4',
+  filtro: 'M4 5h16l-6 7v5l-4 2v-7z',
+  destello:
+    'M12 3l1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4zM18 15l.8 2.2L21 18l-2.2.8L18 21l-.8-2.2L15 18l2.2-.8z',
 } as const;
 
 export type NombreIcono = keyof typeof TRAZOS;

@@ -1,0 +1,9 @@
+@if (estado() === 'cargando') {
+  <p role="status">Cargando reportes…</p>
+} @else if (estado() === 'error') {
+  <div role="alert">
+    <p>No se pudo cargar el panel de reportes. Verifica su configuración y disponibilidad.</p>
+    <button type="button" (click)="cargar()">Reintentar</button>
+  </div>
+}
+<div #destino class="destino-panel"></div>

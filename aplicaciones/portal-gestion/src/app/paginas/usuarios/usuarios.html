@@ -1,0 +1,24 @@
+<header class="cabecera-operativa"><div><span>Seguridad e identidad</span><h1>Usuarios y accesos</h1><p>Cuentas SSO reales administradas en Keycloak.</p></div><button class="boton-primario" (click)="mostrarFormulario.set(!mostrarFormulario())">{{ mostrarFormulario() ? 'Cerrar' : '+ Nueva cuenta' }}</button></header>
+@if (error()) { <div class="mensaje mensaje--error" role="alert">{{ error() }}</div> }
+@if (exito()) { <div class="mensaje mensaje--ok" role="status">{{ exito() }}</div> }
+@if (mostrarFormulario()) {
+  <form class="panel formulario-factura" (ngSubmit)="crear()">
+    <label><span>Usuario</span><input name="usuario" [(ngModel)]="nuevo.usuario" placeholder="nombre.apellido" required /></label>
+    <label><span>Correo</span><input name="email" type="email" [(ngModel)]="nuevo.email" required /></label>
+    <label><span>Nombre</span><input name="nombre" [(ngModel)]="nuevo.nombre" required /></label>
+    <label><span>Apellido</span><input name="apellido" [(ngModel)]="nuevo.apellido" /></label>
+    <label><span>Contraseña temporal</span><input name="contrasena" type="password" minlength="8" [(ngModel)]="nuevo.contrasena_temporal" required /></label>
+    <fieldset class="roles-cuenta"><legend>Permisos</legend>
+      @for (rol of ['ejecutivo', 'creativo', 'cliente', 'gerente']; track rol) { <label><input type="checkbox" [checked]="nuevo.roles.includes(rol)" (change)="alternarRol(rol, $any($event.target).checked)" /> {{ rol }}</label> }
+    </fieldset>
+    @if (nuevo.roles.includes('cliente')) { <label class="campo-amplio"><span>Cuenta cliente asociada</span><select name="cliente" [(ngModel)]="nuevo.cliente_id" required><option value="">Seleccione un cliente del CRM</option>@for (cliente of clientes(); track cliente.id) { <option [value]="cliente.id">{{ cliente.razon_social }}</option> }</select></label> }
+    <button class="boton-primario" [disabled]="guardando() || nuevo.roles.length === 0">Crear cuenta SSO</button>
+  </form>
+}
+<section class="panel">
+  @if (cargando()) { <p class="estado-carga">Consultando Keycloak…</p> } @else {
+    <div class="tabla-contenedor"><table><thead><tr><th>Usuario</th><th>Nombre</th><th>Roles</th><th>Estado</th><th>Acciones</th></tr></thead><tbody>
+      @for (usuario of usuarios(); track usuario.id) { <tr><td data-label="Usuario"><strong>{{ usuario.usuario }}</strong><small class="dato-secundario">{{ usuario.email }}</small></td><td data-label="Nombre">{{ usuario.nombre || 'Sin nombre' }}</td><td data-label="Roles"><div class="roles-lista">@for (rol of usuario.roles; track rol) { <span class="estado">{{ rol }}</span> }</div></td><td data-label="Estado"><span class="estado" [class.estado--ok]="usuario.habilitado" [class.estado--peligro]="!usuario.habilitado">{{ usuario.habilitado ? 'habilitada' : 'deshabilitada' }}</span></td><td data-label="Acciones"><div class="acciones-tabla"><button class="boton-secundario" (click)="restablecer(usuario)">Contraseña</button><button class="boton-secundario" (click)="cambiarEstado(usuario)">{{ usuario.habilitado ? 'Deshabilitar' : 'Habilitar' }}</button></div></td></tr> }
+    </tbody></table></div>
+  }
+</section>

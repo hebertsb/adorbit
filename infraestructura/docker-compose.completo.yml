@@ -5,9 +5,7 @@
 #   docker compose -f docker-compose.completo.yml --profile equipo --profile mensajeria up -d --build # incluye workers CRM
 # Activar mensajeria puede procesar eventos pendientes contra las bases conectadas.
 #
-# Identidad: usa el Keycloak SIMULADO (herramientas/keycloak-simulado.mjs) porque el realm real de
-# plataforma/keycloak aun no emite la audiencia (aud) por servicio ni tiene los clientes portal-cliente,
-# panel-inteligencia y n8n. Cuando el realm real los tenga, solo cambian las URLs del emisor.
+# Identidad: Keycloak real con Authorization Code + PKCE para portales/app y client_credentials para n8n.
 # RabbitMQ: el local de este compose (no toca el CloudAMQP compartido).
 # Datos: DynamoDB real en AWS (ms-facturacion) y MongoDB Atlas (ms-clientes-crm).
 
@@ -29,28 +27,16 @@ services:
     networks: [adorbit-red]
 
   keycloak:
-    image: node:22-alpine
-    container_name: adorbit-keycloak-simulado
-    working_dir: /app
-    command: ["node", "keycloak-simulado.mjs"]
-    ports: ["8180:8180"]
+    build: { context: ../plataforma/keycloak }
+    container_name: adorbit-keycloak
+    ports: ["8180:8080"]
     environment:
-      PUERTO: "8180"
-      ESCUCHAR: "0.0.0.0"
-      EMISOR: *emisor
-      # 6h en vez de los 300s por defecto -- evita que el token expire a medio probar
-      # manualmente el sistema (visto en vivo: un 401 real por token vencido).
-      DURACION_S: "21600"
-      AUDIENCIAS: ms-facturacion,ms-clientes-crm,ms-ia,ms-creatividades,ms-campanas
-      CLIENTES: '{"n8n":{"secret":"${N8N_CLIENT_SECRET:-secreto-local}","roles":["gerente"]}}'
-      REDIRECCIONES: http://localhost:5173,http://localhost:4173,http://localhost:5174,http://localhost:4174,http://localhost:4200
-    volumes:
-      - ../herramientas/keycloak-simulado.mjs:/app/keycloak-simulado.mjs:ro
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8180/realms/adorbit/protocol/openid-connect/certs"]
-      interval: 10s
-      timeout: 5s
-      retries: 6
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?completar en .env}
+      KEYCLOAK_SEED_PASSWORD: ${KEYCLOAK_SEED_PASSWORD:?completar en .env}
+      N8N_CLIENT_SECRET: ${N8N_CLIENT_SECRET:?completar en .env}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:?completar en .env}
+      KC_HOSTNAME_URL: http://localhost:8180
     networks: [adorbit-red]
 
   # ------------------------------------------------------------------ Integrante B
@@ -60,7 +46,7 @@ services:
     ports: ["8082:8082"]
     environment:
       ADORBIT_FACTURACION_PUERTO: "8082"
-      ADORBIT_FACTURACION_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_FACTURACION_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_FACTURACION_JWT_EMISOR: *emisor
       ADORBIT_FACTURACION_JWT_AUDIENCIA: ms-facturacion
       ADORBIT_FACTURACION_DYNAMODB_REGION: ${AWS_REGION:-us-east-1}
@@ -72,10 +58,10 @@ services:
       ADORBIT_FACTURACION_RABBITMQ_PUERTO: "5672"
       ADORBIT_FACTURACION_RABBITMQ_USUARIO: ${RABBITMQ_USUARIO:-guest}
       ADORBIT_FACTURACION_RABBITMQ_CLAVE: ${RABBITMQ_CLAVE:-guest}
-      ADORBIT_FACTURACION_CORS_ORIGENES: http://localhost:4173,http://localhost:5173
+      ADORBIT_FACTURACION_CORS_ORIGENES: http://localhost:4173,http://localhost:5173,http://localhost:4200
     depends_on:
       rabbitmq: { condition: service_healthy }
-      keycloak: { condition: service_healthy }
+      keycloak: { condition: service_started }
     networks: [adorbit-red]
 
   ms-clientes-crm:
@@ -87,17 +73,17 @@ services:
       DB_CONNECTION: mongodb
       ADORBIT_CRM_MONGO_DSN: ${CRM_MONGO_DSN:?completar en .env}
       ADORBIT_CRM_MONGO_BD: ${CRM_MONGO_BD:-adorbit_crm}
-      ADORBIT_CRM_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CRM_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_CRM_JWT_EMISOR: *emisor
       ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
       ADORBIT_CRM_RABBITMQ_HOST: rabbitmq
       ADORBIT_CRM_RABBITMQ_PUERTO: "5672"
       ADORBIT_CRM_RABBITMQ_USUARIO: ${RABBITMQ_USUARIO:-guest}
       ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_CLAVE:-guest}
-      ADORBIT_CRM_CORS_ORIGENES: http://localhost:4173,http://localhost:5173
+      ADORBIT_CRM_CORS_ORIGENES: http://localhost:4173,http://localhost:5173,http://localhost:4200
     depends_on:
       rabbitmq: { condition: service_healthy }
-      keycloak: { condition: service_healthy }
+      keycloak: { condition: service_started }
     networks: [adorbit-red]
 
   # Procesos separados de la API; solo se activan explicitamente con el perfil mensajeria.
@@ -145,6 +131,16 @@ services:
     ports: ["4174:8080"]
     networks: [adorbit-red]
 
+  portal-gestion:
+    profiles: [equipo]
+    build: { context: ../aplicaciones/portal-gestion }
+    container_name: adorbit-portal-gestion
+    ports: ["4200:8080"]
+    depends_on:
+      pasarela: { condition: service_started }
+      panel-inteligencia: { condition: service_started }
+    networks: [adorbit-red]
+
   n8n:
     image: n8nio/n8n:2.45.7
     container_name: adorbit-n8n
@@ -158,7 +154,7 @@ services:
       N8N_PERSONALIZATION_ENABLED: "false"
       GENERIC_TIMEZONE: America/La_Paz
       TZ: America/La_Paz
-      ADORBIT_KEYCLOAK_TOKEN_URL: http://keycloak:8180/realms/adorbit/protocol/openid-connect/token
+      ADORBIT_KEYCLOAK_TOKEN_URL: http://keycloak:8080/realms/adorbit/protocol/openid-connect/token
       ADORBIT_N8N_CLIENT_ID: n8n
       ADORBIT_N8N_CLIENT_SECRET: ${N8N_CLIENT_SECRET:-secreto-local}
       ADORBIT_N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-token-webhook-local}
@@ -203,12 +199,18 @@ services:
       # el propio contenedor, no el de keycloak, y la resolucion fallaba con Connection
       # refused). Mismo patron que ya usan ms-facturacion/ms-clientes-crm/etc, que no pasan
       # por auto-discovery.
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_CAMPANAS_AUDIENCIA_JWT: ms-campanas
       ADORBIT_CAMPANAS_URL_BD: ${CAMPANAS_URL_BD:-}
+      ADORBIT_CAMPANAS_USUARIO_BD: ${CAMPANAS_USUARIO_BD:-}
+      ADORBIT_CAMPANAS_CONTRASENA_BD: ${CAMPANAS_CONTRASENA_BD:-}
+      # Permite provocar de forma controlada total_no_coincide en la prueba de
+      # compensacion; en operacion normal coincide con facturacion (13 %).
+      ADORBIT_CAMPANAS_NEGOCIO_TASA_IMPUESTO: ${CAMPANAS_TASA_IMPUESTO:-0.13}
+      ADORBIT_CAMPANAS_SAGA_TIEMPO_LIMITE_SEGUNDOS: ${CAMPANAS_TIEMPO_LIMITE_SEGUNDOS:-600}
     depends_on:
       rabbitmq: { condition: service_healthy }
-      keycloak: { condition: service_healthy }
+      keycloak: { condition: service_started }
     networks: [adorbit-red]
 
   ms-creatividades:
@@ -224,7 +226,7 @@ services:
           path: package.json
     environment:
       ADORBIT_CREATIVIDADES_URL_BD: ${CREATIVIDADES_URL_BD:-}
-      ADORBIT_CREATIVIDADES_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CREATIVIDADES_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_CREATIVIDADES_EMISOR: *emisor
       ADORBIT_CREATIVIDADES_AUDIENCIA: ms-creatividades
       ADORBIT_CREATIVIDADES_RABBITMQ_URL: amqp://${RABBITMQ_USUARIO:-guest}:${RABBITMQ_CLAVE:-guest}@rabbitmq:5672
@@ -233,7 +235,7 @@ services:
       ADORBIT_CREATIVIDADES_SUPABASE_BUCKET: ${CREATIVIDADES_SUPABASE_BUCKET:-piezas-creatividades}
     depends_on:
       rabbitmq: { condition: service_healthy }
-      keycloak: { condition: service_healthy }
+      keycloak: { condition: service_started }
     networks: [adorbit-red]
 
   ms-ia:
@@ -250,7 +252,7 @@ services:
     environment:
       ADORBIT_IA_URL_BD: ${IA_URL_BD:-}
       ADORBIT_IA_URL_BD_LECTOR_MCP: ${IA_URL_BD_LECTOR_MCP:-}
-      ADORBIT_IA_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_IA_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_IA_EMISOR: *emisor
       ADORBIT_IA_AUDIENCIA: ms-ia
       ADORBIT_IA_RABBITMQ_URL: amqp://${RABBITMQ_USUARIO:-guest}:${RABBITMQ_CLAVE:-guest}@rabbitmq:5672
@@ -258,7 +260,7 @@ services:
       ADORBIT_IA_GROQ_MODELO: ${IA_GROQ_MODELO:-openai/gpt-oss-120b}
     depends_on:
       rabbitmq: { condition: service_healthy }
-      keycloak: { condition: service_healthy }
+      keycloak: { condition: service_started }
     networks: [adorbit-red]
 
   pasarela:
@@ -274,15 +276,19 @@ services:
           path: package.json
     environment:
       PORT: "8000"
-      ADORBIT_PASARELA_JWKS_URI: http://keycloak:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_PASARELA_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
       ADORBIT_PASARELA_EMISOR: *emisor
+      KEYCLOAK_ADMIN_BASE_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_REALM: adorbit
+      KEYCLOAK_ADMIN_CLIENT_ID: pasarela-admin
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:?completar en .env}
       URL_MS_CAMPANAS: http://ms-campanas:8081
       URL_MS_FACTURACION: http://ms-facturacion:8082
       URL_MS_CREATIVIDADES: http://ms-creatividades:8083
       URL_MS_CLIENTES_CRM: http://ms-clientes-crm:8084
       URL_MS_IA: http://ms-ia:8085
     depends_on:
-      keycloak: { condition: service_healthy }
+      keycloak: { condition: service_started }
     networks: [adorbit-red]
 
 volumes:

@@ -8,6 +8,8 @@
 
 <ao-tarjeta [compacta]="true">
   <div class="filtros">
+    <label class="filtros__grupo" for="buscar-campana">
+      <span>Nombre de campaña</span>
     <input
       id="buscar-campana"
       name="buscar-campana"
@@ -16,21 +18,34 @@
       placeholder="Buscar por nombre de campaña..."
       [value]="textoBusqueda()"
       (input)="textoBusqueda.set($any($event.target).value)"
-      aria-label="Buscar campaña"
     />
+    </label>
+    <label class="filtros__grupo" for="filtro-cliente">
+      <span>Cliente</span>
+      <select id="filtro-cliente" name="filtro-cliente" class="filtros__campo"
+        [value]="filtroCliente()" (change)="filtroCliente.set($any($event.target).value)">
+        <option value="">Todos los clientes</option>
+        @for (cliente of clientesDisponibles(); track cliente) {
+          <option [value]="cliente">{{ cliente }}</option>
+        }
+      </select>
+    </label>
+    <label class="filtros__grupo" for="filtro-estado">
+      <span>Estado</span>
     <select
       id="filtro-estado"
       name="filtro-estado"
       class="filtros__campo"
       [value]="filtroEstado()"
       (change)="filtroEstado.set($any($event.target).value)"
-      aria-label="Filtrar por estado"
     >
       <option value="todos">Todos los estados</option>
       @for (estado of estadosDisponibles; track estado) {
         <option [value]="estado">{{ etiquetas[estado] }}</option>
       }
     </select>
+    </label>
+    <button type="button" class="filtros__limpiar" (click)="limpiarFiltros()">Limpiar filtros</button>
   </div>
 </ao-tarjeta>
 

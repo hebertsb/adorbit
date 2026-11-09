@@ -6,6 +6,7 @@ import { createProxyMiddleware } from "http-proxy-middleware";
 import dotenv from "dotenv";
 import { typeDefs, resolvers } from "./esquema";
 import { middlewareAutenticacion, PeticionAutenticada } from "./autenticacion";
+import { crearRouterAdministracionIdentidad } from "./administracion-identidad";
 
 dotenv.config();
 
@@ -32,6 +33,8 @@ async function iniciarServidor() {
 
   // Autenticación global
   app.use(middlewareAutenticacion as any);
+
+  app.use("/api/v1/administracion", express.json(), crearRouterAdministracionIdentidad());
 
   // Proxies REST transparentes hacia microservicios
   // ms-campanas
@@ -80,7 +83,15 @@ async function iniciarServidor() {
 
   // ms-ia
   app.use(
-    ["/api/v1/reportes", "/api/v1/agentes", "/api/v1/vision", "/api/v1/mcp"],
+    [
+      "/api/v1/reportes",
+      "/api/v1/agentes",
+      "/api/v1/alertas",
+      "/api/v1/vision",
+      "/api/v1/mcp",
+      "/api/v1/ml",
+      "/api/v1/asistente"
+    ],
     createProxyMiddleware({
       target: URL_MS_IA,
       changeOrigin: true,

@@ -1,0 +1,239 @@
+<a routerLink="/clientes" class="volver">← Volver a clientes</a>
+@if (error()) {
+  <div class="mensaje mensaje--error" role="alert">
+    {{ error() }} <button (click)="cargar()">Reintentar</button>
+  </div>
+}
+@if (cargando()) {
+  <p class="estado-carga">Consultando la cuenta…</p>
+} @else if (cliente(); as c) {
+  <header class="cabecera-operativa">
+    <div>
+      <span>Cuenta comercial · {{ referencia(c.id, 'CLI') }}</span>
+      <h1>{{ c.razon_social }}</h1>
+      <p>NIT {{ c.nit || 'sin registrar' }} · Versión {{ c.version }}</p>
+    </div>
+    <div class="acciones-cabecera">
+      <span
+        class="estado"
+        [class.estado--ok]="c.estado === 'activo'"
+        [class.estado--peligro]="c.estado === 'moroso'"
+        >{{ c.estado }}</span
+      ><button class="boton-secundario" (click)="mostrarEdicion.set(!mostrarEdicion())">
+        Editar cliente
+      </button>
+    </div>
+  </header>
+  @if (mostrarEdicion()) {
+    <form class="panel formulario-edicion" (ngSubmit)="guardarCliente()">
+      <div>
+        <span class="sobrelinea">Edición segura</span>
+        <h2>Datos de la cuenta</h2>
+      </div>
+      <label
+        ><span>Razón social</span
+        ><input name="razon" [(ngModel)]="edicion.razon_social" required /></label
+      ><label><span>NIT</span><input name="nit" [(ngModel)]="edicion.nit" required /></label
+      ><label
+        ><span>Límite de crédito</span
+        ><input
+          name="limite"
+          [(ngModel)]="edicion.limite_credito"
+          inputmode="decimal"
+          required /></label
+      ><label
+        ><span>Estado</span
+        ><select name="estado" [(ngModel)]="edicion.estado">
+          <option value="activo">Activo</option>
+          <option value="moroso">Moroso</option>
+          <option value="inactivo">Inactivo</option>
+        </select></label
+      ><button class="boton-primario" [disabled]="guardando()">Guardar cambios</button>
+    </form>
+  }
+  @if (credito(); as cr) {
+    <section class="panel credito-panel">
+      <div>
+        <span class="sobrelinea">Línea de crédito</span>
+        <h2>{{ dinero(cr.linea_credito.limite, cr.linea_credito.moneda) }}</h2>
+        <p>{{ dinero(cr.disponible, cr.linea_credito.moneda) }} disponibles</p>
+      </div>
+      <div class="credito-panel__uso">
+        <div>
+          <span>Utilización</span><strong>{{ usoCredito() }}%</strong>
+        </div>
+        <div class="progreso"><i [style.width.%]="usoCredito()"></i></div>
+        <small>{{ dinero(cr.linea_credito.usado, cr.linea_credito.moneda) }} utilizados</small>
+      </div>
+    </section>
+  }
+  @if (riesgo(); as r) {
+    <section class="panel panel-riesgo">
+      <div class="cabecera-riesgo">
+        <div>
+          <span class="sobrelinea">Evaluación predictiva con Machine Learning (XGBoost)</span>
+          <h2>Riesgo de impago: <span class="badge-riesgo badge-riesgo--{{ r.nivel_riesgo }}">{{ r.nivel_riesgo | uppercase }}</span></h2>
+        </div>
+        <div class="probabilidad-impago">
+          <span>Probabilidad de mora</span>
+          <strong>{{ (r.probabilidad_impago * 100).toFixed(1) }}%</strong>
+        </div>
+      </div>
+      <p class="recomendacion-riesgo">{{ r.recomendacion }}</p>
+      @if (r.features; as f) {
+        <div class="metricas-ml-rejilla">
+          <div class="metrica-ml-caja"><small>Uso de línea</small><span>{{ (f.proporcion_uso * 100).toFixed(0) }}%</span></div>
+          <div class="metrica-ml-caja"><small>Monto vencido</small><span>{{ dinero(f.monto_vencido_total, 'BOB') }}</span></div>
+          <div class="metrica-ml-caja"><small>Mora máxima</small><span>{{ f.dias_vencida_max }} d</span></div>
+          <div class="metrica-ml-caja"><small>Facturas vencidas</small><span>{{ f.facturas_vencidas_count }}</span></div>
+        </div>
+      }
+    </section>
+  }
+  <div class="rejilla-detalle-cliente">
+    <section class="panel">
+      <header class="seccion-operativa">
+        <div>
+          <span class="sobrelinea">Personas</span>
+          <h2>Contactos</h2>
+        </div>
+        <button class="boton-secundario" (click)="mostrarContacto.set(!mostrarContacto())">
+          + Agregar
+        </button>
+      </header>
+      @if (mostrarContacto()) {
+        <form class="formulario-contacto" (ngSubmit)="crearContacto()">
+          <label
+            ><span>Nombre</span
+            ><input name="nombre" [(ngModel)]="nuevoContacto.nombre" required /></label
+          ><label
+            ><span>Correo</span
+            ><input name="email" type="email" [(ngModel)]="nuevoContacto.email" /></label
+          ><label
+            ><span>Teléfono</span
+            ><input name="telefono" [(ngModel)]="nuevoContacto.telefono" /></label
+          ><label
+            ><span>Cargo o rol</span><input name="rol" [(ngModel)]="nuevoContacto.rol" /></label
+          ><button class="boton-primario" [disabled]="guardando()">Guardar contacto</button>
+        </form>
+      }
+      <ul class="lista-entidades">
+        @for (contacto of contactos(); track contacto.id) {
+          <li>
+            <span class="avatar-contacto">{{ contacto.nombre.charAt(0).toUpperCase() }}</span>
+            <div>
+              <strong>{{ contacto.nombre }}</strong
+              ><small
+                >{{ contacto.rol || 'Contacto' }} ·
+                {{ contacto.email || contacto.telefono || 'Sin datos adicionales' }}</small
+              >
+            </div>
+          </li>
+        } @empty {
+          <li class="vacio">Este cliente no tiene contactos registrados.</li>
+        }
+      </ul>
+    </section>
+    <section class="panel">
+      <header class="seccion-operativa">
+        <div>
+          <span class="sobrelinea">Acuerdos</span>
+          <h2>Contratos</h2>
+        </div>
+        <div class="acciones-cabecera">
+          <span class="contador">{{ contratos().length }}</span
+          ><button class="boton-secundario" (click)="mostrarContrato.set(!mostrarContrato())">
+            + Contrato
+          </button>
+        </div>
+      </header>
+      @if (mostrarContrato()) {
+        <form class="formulario-contacto" (ngSubmit)="crearContrato()">
+          <label
+            ><span>Fecha inicial</span
+            ><input
+              name="inicio"
+              type="date"
+              [(ngModel)]="nuevoContrato.fecha_inicio"
+              required /></label
+          ><label
+            ><span>Fecha final</span
+            ><input name="fin" type="date" [(ngModel)]="nuevoContrato.fecha_fin" required /></label
+          ><label
+            ><span>Monto</span
+            ><input
+              name="monto"
+              [(ngModel)]="nuevoContrato.monto"
+              inputmode="decimal"
+              required /></label
+          ><label
+            ><span>Moneda</span
+            ><select name="moneda" [(ngModel)]="nuevoContrato.moneda">
+              <option>BOB</option>
+              <option>USD</option>
+            </select></label
+          ><button class="boton-primario" [disabled]="guardando()">Crear contrato</button>
+        </form>
+      }
+      <ul class="lista-entidades">
+        @for (contrato of contratos(); track contrato.id) {
+          <li>
+            <div>
+              <strong>{{ referencia(contrato.id, 'CON') }}</strong
+              ><small>{{ contrato.fecha_inicio }} — {{ contrato.fecha_fin }}</small>
+            </div>
+            <div class="entidad-derecha">
+              <span class="estado" [class.estado--ok]="contrato.estado === 'vigente'">{{
+                contrato.estado
+              }}</span
+              ><strong>{{ dinero(contrato.monto, contrato.moneda) }}</strong>
+            </div>
+          </li>
+        } @empty {
+          <li class="vacio">No hay contratos registrados para esta cuenta.</li>
+        }
+      </ul>
+    </section>
+  </div>
+  @if (credito(); as cr) {
+    <section class="panel">
+      <header class="seccion-operativa">
+        <div>
+          <span class="sobrelinea">Compromisos</span>
+          <h2>Reservas de crédito activas</h2>
+        </div>
+        <span class="contador">{{ cr.reservas_activas.length }}</span>
+      </header>
+      <div class="tabla-contenedor">
+        <table>
+          <thead>
+            <tr>
+              <th>Reserva</th>
+              <th>Campaña</th>
+              <th>Estado</th>
+              <th>Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of cr.reservas_activas; track r.reserva_id) {
+              <tr>
+                <td data-label="Reserva">{{ referencia(r.reserva_id, 'RES') }}</td>
+                <td data-label="Campaña">{{ referencia(r.campana_id, 'CMP') }}</td>
+                <td data-label="Estado">
+                  <span class="estado">{{ r.estado }}</span>
+                </td>
+                <td data-label="Monto" class="numero">
+                  {{ dinero(r.monto, cr.linea_credito.moneda) }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="4" class="vacio">No existen reservas activas.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  }
+}

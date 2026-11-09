@@ -7,6 +7,7 @@ import adorbit.campanas.dominio.modelo.*;
 import adorbit.campanas.dominio.repositorio.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,14 +27,17 @@ public class SagaOrquestadorServicio {
     private final BandejaSalidaRepositorio outboxRepositorio;
     private final ObjectMapper objectMapper;
     private final BigDecimal tasaImpuesto;
+    private final long tiempoLimiteSegundos;
 
+    @Autowired
     public SagaOrquestadorServicio(SagaTransaccionRepositorio sagaRepositorio,
                                    SagaPasoRepositorio sagaPasoRepositorio,
                                    CampanaRepositorio campanaRepositorio,
                                    PresupuestoRepositorio presupuestoRepositorio,
                                    BandejaSalidaRepositorio outboxRepositorio,
                                    ObjectMapper objectMapper,
-                                   @Value("${adorbit.campanas.negocio.tasa-impuesto:0.13}") BigDecimal tasaImpuesto) {
+                                   @Value("${adorbit.campanas.negocio.tasa-impuesto:0.13}") BigDecimal tasaImpuesto,
+                                   @Value("${adorbit.campanas.saga.tiempo-limite-segundos:600}") long tiempoLimiteSegundos) {
         this.sagaRepositorio = sagaRepositorio;
         this.sagaPasoRepositorio = sagaPasoRepositorio;
         this.campanaRepositorio = campanaRepositorio;
@@ -41,6 +45,22 @@ public class SagaOrquestadorServicio {
         this.outboxRepositorio = outboxRepositorio;
         this.objectMapper = objectMapper;
         this.tasaImpuesto = tasaImpuesto;
+        if (tiempoLimiteSegundos < 1) {
+            throw new IllegalArgumentException("El tiempo limite de la SAGA debe ser positivo");
+        }
+        this.tiempoLimiteSegundos = tiempoLimiteSegundos;
+    }
+
+    /** Constructor conservado para pruebas unitarias; produccion usa la configuracion inyectada. */
+    public SagaOrquestadorServicio(SagaTransaccionRepositorio sagaRepositorio,
+                                   SagaPasoRepositorio sagaPasoRepositorio,
+                                   CampanaRepositorio campanaRepositorio,
+                                   PresupuestoRepositorio presupuestoRepositorio,
+                                   BandejaSalidaRepositorio outboxRepositorio,
+                                   ObjectMapper objectMapper,
+                                   BigDecimal tasaImpuesto) {
+        this(sagaRepositorio, sagaPasoRepositorio, campanaRepositorio, presupuestoRepositorio,
+                outboxRepositorio, objectMapper, tasaImpuesto, 600);
     }
 
     @Transactional
@@ -77,7 +97,8 @@ public class SagaOrquestadorServicio {
         ).orElseThrow(() -> new ReglaNegocioExcepcion("La campaña no tiene un presupuesto en borrador para reservar"));
 
         // 1. Crear transacción SAGA
-        SagaTransaccion saga = new SagaTransaccion(campanaId, claveIdempotencia, null);
+        SagaTransaccion saga = new SagaTransaccion(campanaId, claveIdempotencia, serializarPresupuesto(presupuesto));
+        saga.setLimiteEn(OffsetDateTime.now().plusSeconds(tiempoLimiteSegundos));
         saga = sagaRepositorio.save(saga);
 
         // 2. Paso 1: Reservar presupuesto localmente (ms-campanas)
@@ -111,7 +132,7 @@ public class SagaOrquestadorServicio {
         cargaComando.put("cliente_id", campana.getClienteId().toString());
         cargaComando.put("monto", presupuesto.getMontoTotal().toPlainString());
         cargaComando.put("moneda", presupuesto.getMoneda());
-        encolarComandoSaga("ms-clientes-crm", "ReservarCredito", saga.getId(), cargaComando);
+        encolarComandoSaga("ReservarCredito", saga.getId(), cargaComando);
 
         List<SagaPaso> pasos = sagaPasoRepositorio.findBySagaIdOrderByOrdenAsc(saga.getId());
         return SagaRespuestaDto.desdeEntidad(saga, pasos);
@@ -127,11 +148,17 @@ public class SagaOrquestadorServicio {
 
     @Transactional
     public void procesarRespuestaCredito(UUID sagaId, boolean exito, String motivo, Map<String, Object> detalle) {
-        SagaTransaccion saga = sagaRepositorio.findById(sagaId)
+        SagaTransaccion saga = sagaRepositorio.buscarParaTransicion(sagaId)
                 .orElseThrow(() -> new RecursoNoEncontradoExcepcion("SAGA no encontrada: " + sagaId));
 
         if (saga.getEstado() != EstadoSaga.reservando_credito) {
-            return; // Ya procesado o en otro estado (idempotencia)
+            procesarRespuestaTardia(saga, 2, exito, motivo, detalle);
+            return;
+        }
+        if (saga.getLimiteEn().isBefore(OffsetDateTime.now())) {
+            ejecutarCompensacion(saga, "Tiempo límite excedido");
+            procesarRespuestaTardia(saga, 2, exito, motivo, detalle);
+            return;
         }
 
         SagaPaso paso2 = sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(sagaId, 2, TipoPasoSaga.accion)
@@ -159,10 +186,10 @@ public class SagaOrquestadorServicio {
             carga.put("clave_comando", claveComandoPaso3);
             carga.put("campana_id", saga.getCampanaId().toString());
             carga.put("expira_at", saga.getLimiteEn().toString());
-            encolarComandoSaga("ms-creatividades", "BloquearPiezas", saga.getId(), carga);
+            encolarComandoSaga("BloquearPiezas", saga.getId(), carga);
         } else {
             paso2.setEstado(EstadoPasoPasoSeguro(EstadoPasoSaga.fallido));
-            paso2.setDetalle(motivo);
+            paso2.setDetalle(serializarMotivo(motivo));
             sagaPasoRepositorio.save(paso2);
 
             ejecutarCompensacion(saga, "Rechazo de crédito en ms-clientes-crm: " + motivo);
@@ -171,10 +198,16 @@ public class SagaOrquestadorServicio {
 
     @Transactional
     public void procesarRespuestaPiezas(UUID sagaId, boolean exito, String motivo, Map<String, Object> detalle) {
-        SagaTransaccion saga = sagaRepositorio.findById(sagaId)
+        SagaTransaccion saga = sagaRepositorio.buscarParaTransicion(sagaId)
                 .orElseThrow(() -> new RecursoNoEncontradoExcepcion("SAGA no encontrada: " + sagaId));
 
         if (saga.getEstado() != EstadoSaga.bloqueando_piezas) {
+            procesarRespuestaTardia(saga, 3, exito, motivo, detalle);
+            return;
+        }
+        if (saga.getLimiteEn().isBefore(OffsetDateTime.now())) {
+            ejecutarCompensacion(saga, "Tiempo límite excedido");
+            procesarRespuestaTardia(saga, 3, exito, motivo, detalle);
             return;
         }
 
@@ -192,8 +225,7 @@ public class SagaOrquestadorServicio {
             Campana campana = campanaRepositorio.findById(saga.getCampanaId())
                     .orElseThrow(() -> new RecursoNoEncontradoExcepcion("Campaña no encontrada: " + saga.getCampanaId()));
 
-            Presupuesto presupuesto = presupuestoRepositorio.findFirstByCampanaIdOrderByCreadoEnDesc(campana.getId())
-                    .orElseThrow(() -> new RecursoNoEncontradoExcepcion("Presupuesto no encontrado"));
+            DatosPresupuesto presupuesto = leerPresupuesto(saga);
 
             String claveComandoPaso4 = saga.getId() + ":4:accion";
             SagaPaso paso4 = new SagaPaso(saga.getId(), 4, TipoPasoSaga.accion, "ms-facturacion", "emitir_factura", claveComandoPaso4);
@@ -207,7 +239,7 @@ public class SagaOrquestadorServicio {
             // ms-facturacion recalcula subtotal+impuestos desde "items" y exige que coincida EXACTO
             // con "total" (total_no_coincide); hay que reproducir aqui su misma formula y redondeo
             // (HALF_UP, 2 decimales - ver Dinero.java) en vez de mandar el presupuesto crudo.
-            BigDecimal subtotal = presupuesto.getMontoTotal()
+            BigDecimal subtotal = presupuesto.monto()
                 .divide(BigDecimal.ONE.add(tasaImpuesto), 2, RoundingMode.HALF_UP);
             BigDecimal impuestos = subtotal.multiply(tasaImpuesto).setScale(2, RoundingMode.HALF_UP);
             BigDecimal totalFactura = subtotal.add(impuestos).setScale(2, RoundingMode.HALF_UP);
@@ -223,11 +255,11 @@ public class SagaOrquestadorServicio {
                 "precio_unitario", subtotal.toPlainString()
             )));
             carga.put("total", totalFactura.toPlainString());
-            carga.put("moneda", presupuesto.getMoneda());
-            encolarComandoSaga("ms-facturacion", "EmitirFactura", saga.getId(), carga);
+            carga.put("moneda", presupuesto.moneda());
+            encolarComandoSaga("EmitirFactura", saga.getId(), carga);
         } else {
             paso3.setEstado(EstadoPasoSaga.fallido);
-            paso3.setDetalle(motivo);
+            paso3.setDetalle(serializarMotivo(motivo));
             sagaPasoRepositorio.save(paso3);
 
             ejecutarCompensacion(saga, "Bloqueo de piezas fallido en ms-creatividades: " + motivo);
@@ -236,10 +268,16 @@ public class SagaOrquestadorServicio {
 
     @Transactional
     public void procesarRespuestaFactura(UUID sagaId, boolean exito, String motivo, Map<String, Object> detalle) {
-        SagaTransaccion saga = sagaRepositorio.findById(sagaId)
+        SagaTransaccion saga = sagaRepositorio.buscarParaTransicion(sagaId)
                 .orElseThrow(() -> new RecursoNoEncontradoExcepcion("SAGA no encontrada: " + sagaId));
 
         if (saga.getEstado() != EstadoSaga.facturando) {
+            procesarRespuestaTardia(saga, 4, exito, motivo, detalle);
+            return;
+        }
+        if (saga.getLimiteEn().isBefore(OffsetDateTime.now())) {
+            ejecutarCompensacion(saga, "Tiempo límite excedido");
+            procesarRespuestaTardia(saga, 4, exito, motivo, detalle);
             return;
         }
 
@@ -247,10 +285,13 @@ public class SagaOrquestadorServicio {
                 .orElseThrow(() -> new RecursoNoEncontradoExcepcion("Paso 4 no encontrado para la SAGA: " + sagaId));
 
         if (exito) {
+            validarFacturaId(detalle == null ? null : detalle.get("factura_id"));
             paso4.setEstado(EstadoPasoSaga.exitoso);
             try {
-                if (detalle != null) paso4.setDetalle(objectMapper.writeValueAsString(detalle));
-            } catch (JsonProcessingException ignored) {}
+                paso4.setDetalle(objectMapper.writeValueAsString(detalle));
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException("No se pudo guardar el detalle de la factura", e);
+            }
             sagaPasoRepositorio.save(paso4);
 
             // Paso 5: Completar SAGA y activar campaña localmente
@@ -259,8 +300,7 @@ public class SagaOrquestadorServicio {
             campana.setEstado(EstadoCampana.activa);
             campanaRepositorio.save(campana);
 
-            Presupuesto presupuesto = presupuestoRepositorio.findFirstByCampanaIdOrderByCreadoEnDesc(campana.getId())
-                    .orElseThrow(() -> new RecursoNoEncontradoExcepcion("Presupuesto no encontrado"));
+            Presupuesto presupuesto = obtenerPresupuestoOriginal(saga);
             presupuesto.setEstado(EstadoPresupuesto.consumido);
             presupuestoRepositorio.save(presupuesto);
 
@@ -275,7 +315,7 @@ public class SagaOrquestadorServicio {
             encolarEventoDominio("Campana", campana.getId(), "CampanaContratada", carga);
         } else {
             paso4.setEstado(EstadoPasoSaga.fallido);
-            paso4.setDetalle(motivo);
+            paso4.setDetalle(serializarMotivo(motivo));
             sagaPasoRepositorio.save(paso4);
 
             ejecutarCompensacion(saga, "Facturación fallida en ms-facturacion: " + motivo);
@@ -284,7 +324,7 @@ public class SagaOrquestadorServicio {
 
     @Transactional
     public void procesarConfirmacionCompensacion(UUID sagaId, int orden) {
-        SagaTransaccion saga = sagaRepositorio.findById(sagaId).orElse(null);
+        SagaTransaccion saga = sagaRepositorio.buscarParaTransicion(sagaId).orElse(null);
         if (saga == null) return;
 
         Optional<SagaPaso> compPaso = sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(sagaId, orden, TipoPasoSaga.compensacion);
@@ -294,16 +334,24 @@ public class SagaOrquestadorServicio {
             sagaPasoRepositorio.save(p);
         }
 
-        // Si todos los pasos de compensación están listos, marcar como compensada
-        List<SagaPaso> compensaciones = sagaPasoRepositorio.findBySagaIdOrderByOrdenAsc(sagaId);
-        boolean pendientes = compensaciones.stream()
-                .filter(p -> p.getTipo() == TipoPasoSaga.compensacion)
-                .anyMatch(p -> p.getEstado() != EstadoPasoSaga.exitoso);
+        finalizarCompensacionSiCorresponde(saga);
+    }
 
-        if (!pendientes && saga.getEstado() == EstadoSaga.compensando) {
-            saga.setEstado(EstadoSaga.compensada);
-            sagaRepositorio.save(saga);
+    private void procesarRespuestaTardia(SagaTransaccion saga, int orden, boolean exito, String motivo, Map<String, Object> detalle) {
+        boolean historica = saga.getEstado() == EstadoSaga.rechazada || saga.getEstado() == EstadoSaga.compensada;
+        if (saga.getEstado() != EstadoSaga.compensando && !historica) return;
+        SagaPaso paso = sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(saga.getId(), orden, TipoPasoSaga.accion).orElse(null);
+        if (paso == null || paso.getEstado() != EstadoPasoSaga.enviado) return;
+        if (exito && orden == 4) validarFacturaId(detalle == null ? null : detalle.get("factura_id"));
+        try {
+            paso.setDetalle(exito ? objectMapper.writeValueAsString(detalle) : serializarMotivo(motivo));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo guardar la respuesta tardía", e);
         }
+        paso.setEstado(exito ? EstadoPasoSaga.exitoso : EstadoPasoSaga.fallido);
+        sagaPasoRepositorio.save(paso);
+        encolarCompensaciones(saga);
+        finalizarCompensacionSiCorresponde(saga);
     }
 
     @Transactional
@@ -319,18 +367,34 @@ public class SagaOrquestadorServicio {
             campanaRepositorio.save(campana);
         }
 
-        Presupuesto presupuesto = presupuestoRepositorio.findFirstByCampanaIdOrderByCreadoEnDesc(saga.getCampanaId()).orElse(null);
-        if (presupuesto != null && presupuesto.getEstado() == EstadoPresupuesto.reservado) {
+        Presupuesto presupuesto = obtenerPresupuestoOriginal(saga);
+        if (presupuesto.getEstado() == EstadoPresupuesto.reservado) {
             presupuesto.setEstado(EstadoPresupuesto.borrador);
             presupuestoRepositorio.save(presupuesto);
         }
 
-        // Revisar qué pasos externos se alcanzaron a ejecutar para enviar compensación
-        boolean hayCompensacionesExternas = false;
+        encolarCompensaciones(saga);
+        finalizarCompensacionSiCorresponde(saga);
+
+        Map<String, Object> carga = new HashMap<>();
+        carga.put("campana_id", saga.getCampanaId().toString());
+        carga.put("saga_id", saga.getId().toString());
+        carga.put("motivo", motivo);
+        encolarEventoDominio("Campana", saga.getCampanaId(), "CampanaRechazada", carga);
+    }
+
+    private void encolarCompensaciones(SagaTransaccion saga) {
+        Campana campana = campanaRepositorio.findById(saga.getCampanaId()).orElse(null);
 
         // Compensar paso 4 (Facturación) si fue exitoso
         Optional<SagaPaso> p4 = sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(saga.getId(), 4, TipoPasoSaga.accion);
-        if (p4.isPresent() && p4.get().getEstado() == EstadoPasoSaga.exitoso) {
+        if (p4.isPresent() && p4.get().getEstado() == EstadoPasoSaga.exitoso && sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(saga.getId(), 4, TipoPasoSaga.compensacion).isEmpty()) {
+            String facturaId;
+            try {
+                facturaId = validarFacturaId(objectMapper.readTree(p4.get().getDetalle()).path("factura_id").asText());
+            } catch (Exception e) {
+                throw new IllegalStateException("No se puede compensar la factura: falta factura_id valido en el paso 4", e);
+            }
             String claveComp = saga.getId() + ":4:compensacion";
             SagaPaso comp = new SagaPaso(saga.getId(), 4, TipoPasoSaga.compensacion, "ms-facturacion", "emitir_nota_credito", claveComp);
             comp.setEstado(EstadoPasoSaga.enviado);
@@ -340,13 +404,13 @@ public class SagaOrquestadorServicio {
             carga.put("saga_id", saga.getId().toString());
             carga.put("clave_comando", claveComp);
             carga.put("campana_id", saga.getCampanaId().toString());
-            encolarComandoSaga("ms-facturacion", "EmitirNotaCredito", saga.getId(), carga);
-            hayCompensacionesExternas = true;
+            carga.put("factura_id", facturaId);
+            encolarComandoSaga("EmitirNotaCredito", saga.getId(), carga);
         }
 
         // Compensar paso 3 (Creatividades) si fue exitoso
         Optional<SagaPaso> p3 = sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(saga.getId(), 3, TipoPasoSaga.accion);
-        if (p3.isPresent() && p3.get().getEstado() == EstadoPasoSaga.exitoso) {
+        if (p3.isPresent() && p3.get().getEstado() == EstadoPasoSaga.exitoso && sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(saga.getId(), 3, TipoPasoSaga.compensacion).isEmpty()) {
             String claveComp = saga.getId() + ":3:compensacion";
             SagaPaso comp = new SagaPaso(saga.getId(), 3, TipoPasoSaga.compensacion, "ms-creatividades", "desbloquear_piezas", claveComp);
             comp.setEstado(EstadoPasoSaga.enviado);
@@ -356,13 +420,14 @@ public class SagaOrquestadorServicio {
             carga.put("saga_id", saga.getId().toString());
             carga.put("clave_comando", claveComp);
             carga.put("campana_id", saga.getCampanaId().toString());
-            encolarComandoSaga("ms-creatividades", "DesbloquearPiezas", saga.getId(), carga);
-            hayCompensacionesExternas = true;
+            encolarComandoSaga("DesbloquearPiezas", saga.getId(), carga);
         }
 
         // Compensar paso 2 (Crédito) si fue exitoso
         Optional<SagaPaso> p2 = sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(saga.getId(), 2, TipoPasoSaga.accion);
-        if (p2.isPresent() && p2.get().getEstado() == EstadoPasoSaga.exitoso) {
+        if (p2.isPresent() && p2.get().getEstado() == EstadoPasoSaga.exitoso && sagaPasoRepositorio.findBySagaIdAndOrdenAndTipo(saga.getId(), 2, TipoPasoSaga.compensacion).isEmpty()) {
+            DatosPresupuesto presupuesto = leerPresupuesto(saga);
+            if (campana == null) throw new IllegalStateException("No se puede liberar credito: campaña no encontrada para SAGA " + saga.getId());
             String claveComp = saga.getId() + ":2:compensacion";
             SagaPaso comp = new SagaPaso(saga.getId(), 2, TipoPasoSaga.compensacion, "ms-clientes-crm", "liberar_credito", claveComp);
             comp.setEstado(EstadoPasoSaga.enviado);
@@ -375,26 +440,23 @@ public class SagaOrquestadorServicio {
             if (campana != null) {
                 carga.put("cliente_id", campana.getClienteId().toString());
             }
-            if (presupuesto != null) {
-                carga.put("monto", presupuesto.getMontoTotal().toPlainString());
-                carga.put("moneda", presupuesto.getMoneda());
-            }
-            encolarComandoSaga("ms-clientes-crm", "LiberarCredito", saga.getId(), carga);
-            hayCompensacionesExternas = true;
+            carga.put("monto", presupuesto.monto().toPlainString());
+            carga.put("moneda", presupuesto.moneda());
+            encolarComandoSaga("LiberarCredito", saga.getId(), carga);
         }
 
-        // Si no hubo pasos externos completados, cerramos inmediatamente como rechazada/compensada
-        if (!hayCompensacionesExternas) {
-            saga.setEstado(EstadoSaga.rechazada);
+    }
+
+    private void finalizarCompensacionSiCorresponde(SagaTransaccion saga) {
+        List<SagaPaso> pasos = sagaPasoRepositorio.findBySagaIdOrderByOrdenAsc(saga.getId());
+        boolean pendientes = pasos.stream().anyMatch(p ->
+                (p.getTipo() == TipoPasoSaga.accion && p.getOrden() > 1 && p.getEstado() == EstadoPasoSaga.enviado)
+                || (p.getTipo() == TipoPasoSaga.compensacion && p.getEstado() != EstadoPasoSaga.exitoso));
+        if (!pendientes && saga.getEstado() == EstadoSaga.compensando) {
+            boolean huboCompensacion = pasos.stream().anyMatch(p -> p.getTipo() == TipoPasoSaga.compensacion);
+            saga.setEstado(huboCompensacion ? EstadoSaga.compensada : EstadoSaga.rechazada);
             sagaRepositorio.save(saga);
         }
-
-        // Publicar evento CampanaRechazada
-        Map<String, Object> carga = new HashMap<>();
-        carga.put("campana_id", saga.getCampanaId().toString());
-        carga.put("saga_id", saga.getId().toString());
-        carga.put("motivo", motivo);
-        encolarEventoDominio("Campana", saga.getCampanaId(), "CampanaRechazada", carga);
     }
 
     @Transactional
@@ -403,6 +465,65 @@ public class SagaOrquestadorServicio {
         for (SagaTransaccion saga : vencidas) {
             ejecutarCompensacion(saga, "Tiempo límite excedido (Timeout 10 minutos)");
         }
+    }
+
+    private record DatosPresupuesto(UUID id, BigDecimal monto, String moneda) {}
+
+    private String serializarPresupuesto(Presupuesto presupuesto) {
+        try {
+            return objectMapper.writeValueAsString(Map.of("presupuesto_id", presupuesto.getId().toString(),
+                    "monto", presupuesto.getMontoTotal().toPlainString(), "moneda", presupuesto.getMoneda()));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo guardar el presupuesto original de la SAGA", e);
+        }
+    }
+
+    private DatosPresupuesto leerPresupuesto(SagaTransaccion saga) {
+        try {
+            var carga = objectMapper.readTree(saga.getCarga());
+            if (carga == null || !carga.path("presupuesto_id").isTextual()
+                    || !carga.path("monto").isTextual() || !carga.path("moneda").isTextual()) {
+                throw new IllegalArgumentException("Datos incompletos");
+            }
+            UUID id = UUID.fromString(carga.path("presupuesto_id").asText());
+            BigDecimal monto = new BigDecimal(carga.path("monto").asText());
+            String moneda = carga.path("moneda").asText();
+            if (monto.signum() < 0 || !(moneda.equals("BOB") || moneda.equals("USD"))) {
+                throw new IllegalArgumentException("Datos invalidos");
+            }
+            return new DatosPresupuesto(id, monto, moneda);
+        } catch (Exception e) {
+            throw new IllegalStateException("SAGA " + saga.getId() + " sin presupuesto original valido; requiere revision manual", e);
+        }
+    }
+
+    private Presupuesto obtenerPresupuestoOriginal(SagaTransaccion saga) {
+        DatosPresupuesto datos = leerPresupuesto(saga);
+        Presupuesto presupuesto = presupuestoRepositorio.findById(datos.id())
+                .orElseThrow(() -> new IllegalStateException("Presupuesto original no encontrado para SAGA " + saga.getId()));
+        if (!saga.getCampanaId().equals(presupuesto.getCampanaId())) {
+            throw new IllegalStateException("Presupuesto original no pertenece a la campaña de SAGA " + saga.getId());
+        }
+        return presupuesto;
+    }
+
+    private String serializarMotivo(String motivo) {
+        try {
+            return objectMapper.writeValueAsString(Collections.singletonMap("motivo", motivo));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("No se pudo guardar el motivo del fallo", e);
+        }
+    }
+
+    private String validarFacturaId(Object valor) {
+        if (!(valor instanceof String texto)) {
+            throw new IllegalArgumentException("FacturaEmitida requiere factura_id UUID");
+        }
+        UUID id = UUID.fromString(texto);
+        if (!id.toString().equalsIgnoreCase(texto)) {
+            throw new IllegalArgumentException("FacturaEmitida requiere factura_id UUID");
+        }
+        return id.toString();
     }
 
     private EstadoPasoSaga EstadoPasoPasoSeguro(EstadoPasoSaga e) {
@@ -428,7 +549,7 @@ public class SagaOrquestadorServicio {
         }
     }
 
-    private void encolarComandoSaga(String destino, String comando, UUID sagaId, Map<String, Object> datos) {
+    private void encolarComandoSaga(String comando, UUID sagaId, Map<String, Object> datos) {
         try {
             Map<String, Object> sobre = new HashMap<>();
             sobre.put("id_evento", UUID.randomUUID().toString());
@@ -437,7 +558,6 @@ public class SagaOrquestadorServicio {
             sobre.put("ocurrido_en", OffsetDateTime.now().toString());
             sobre.put("agregado_id", sagaId.toString());
             sobre.put("correlacion_id", sagaId.toString());
-            sobre.put("destino", destino);
             sobre.put("carga", datos);
 
             String json = objectMapper.writeValueAsString(sobre);

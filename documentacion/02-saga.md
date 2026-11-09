@@ -44,3 +44,15 @@ inverso; al terminar ⇒ `compensada` y campaña `rechazada`. Si falla una compe
 3. Falla facturación (paso 4): crédito liberado, piezas desbloqueadas, presupuesto liberado.
 4. Reenvío del mismo comando: no duplica reserva, bloqueo ni factura.
 5. Bloqueo expirado antes del paso 5: la SAGA compensa.
+
+## Verificacion integrada (9 de noviembre de 2026)
+
+Los cinco casos se ejecutaron contra los microservicios reales levantados con Docker Compose, RabbitMQ local y las bases configuradas:
+
+1. Camino feliz: `completada`; credito reservado, pieza bloqueada y factura emitida.
+2. Credito insuficiente: `rechazada` en el paso 2, sin bloqueo ni factura.
+3. Fallo de facturacion (`total_no_coincide` controlado): `compensada`; credito liberado y pieza desbloqueada.
+4. Reenvio con la misma `Idempotency-Key`: devolvio el mismo `saga_id` y no creo participantes duplicados.
+5. Limite vencido despues del bloqueo y antes de completar: `compensada`; se emitio nota de credito, se libero el credito y se desbloqueo la pieza.
+
+El ejecutor reproducible esta en `herramientas/probar-saga.ps1`. El plazo normal sigue siendo 600 segundos; `ADORBIT_CAMPANAS_SAGA_TIEMPO_LIMITE_SEGUNDOS` permite reducirlo de forma controlada para la prueba de expiracion.

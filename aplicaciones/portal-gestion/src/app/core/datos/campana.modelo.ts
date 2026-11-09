@@ -21,6 +21,7 @@ export const ETIQUETAS_ESTADO_CAMPANA: Record<EstadoCampana, string> = {
 
 export interface Campana {
   id: string;
+  clienteId?: string;
   codigoReferencia: string;
   nombre: string;
   cliente: string;
@@ -30,6 +31,8 @@ export interface Campana {
   moneda: 'BOB' | 'USD';
   fechaInicio: string;
   fechaFin: string;
+  version?: number;
+  descripcion?: string;
 }
 
 export interface MedioCalendario {

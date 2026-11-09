@@ -35,111 +35,13 @@ const MAPA_ESTADO_PIEZA_GQL: Record<string, PiezaCreatividad['estado']> = {
 @Injectable({ providedIn: 'root' })
 export class CampanasDatos {
   private readonly auth = inject(AutenticacionService);
+  readonly estadoCarga = signal<'cargando' | 'disponible' | 'error'>('cargando');
 
-  private readonly listaCampanas = signal<Campana[]>([
-    {
-      id: '1',
-      codigoReferencia: 'CMP-2026-001',
-      nombre: 'Lanzamiento Fibra Óptica 500M',
-      cliente: 'Telecom Altiplano',
-      estado: 'activa',
-      presupuestoTotal: 64000,
-      montoGastado: 41600,
-      moneda: 'BOB',
-      fechaInicio: '2026-03-01',
-      fechaFin: '2026-04-30',
-    },
-    {
-      id: '2',
-      codigoReferencia: 'CMP-2026-002',
-      nombre: 'Campaña Institucional Créditos',
-      cliente: 'Tienda Andina',
-      estado: 'pendiente_aprobacion',
-      presupuestoTotal: 52500,
-      montoGastado: 0,
-      moneda: 'BOB',
-      fechaInicio: '2026-04-01',
-      fechaFin: '2026-05-15',
-    },
-    {
-      id: '3',
-      codigoReferencia: 'CMP-2026-003',
-      nombre: 'Promo Carnaval & Verano 2026',
-      cliente: 'Distribuidora Illimani',
-      estado: 'pausada',
-      presupuestoTotal: 50000,
-      montoGastado: 45000,
-      moneda: 'BOB',
-      fechaInicio: '2026-02-20',
-      fechaFin: '2026-03-25',
-    },
-    {
-      id: '4',
-      codigoReferencia: 'CMP-2026-004',
-      nombre: 'Expansión B2B Santa Cruz',
-      cliente: 'Lácteos del Valle',
-      estado: 'borrador',
-      presupuestoTotal: 18000,
-      montoGastado: 0,
-      moneda: 'BOB',
-      fechaInicio: '2026-05-15',
-      fechaFin: '2026-06-10',
-    },
-  ]);
-
-  private readonly calendarioPorCampana: Record<string, MedioCalendario[]> = {
-    '1': [
-      { medio: 'digital', fechaInicio: '2026-03-01', fechaFin: '2026-04-30', costo: 24000, estado: 'ejecutado' },
-      { medio: 'redes', fechaInicio: '2026-03-05', fechaFin: '2026-04-25', costo: 18000, estado: 'ejecutado' },
-      { medio: 'tv', fechaInicio: '2026-03-15', fechaFin: '2026-04-15', costo: 16000, estado: 'confirmado' },
-      { medio: 'vallas', fechaInicio: '2026-04-01', fechaFin: '2026-04-30', costo: 6000, estado: 'planificado' },
-    ],
-    '2': [
-      { medio: 'digital', fechaInicio: '2026-04-01', fechaFin: '2026-05-15', costo: 20000, estado: 'confirmado' },
-      { medio: 'radio', fechaInicio: '2026-04-10', fechaFin: '2026-05-01', costo: 15000, estado: 'confirmado' },
-      { medio: 'prensa', fechaInicio: '2026-04-15', fechaFin: '2026-05-10', costo: 17500, estado: 'planificado' },
-    ],
-  };
-
-  private readonly piezasPorCampana: Record<string, PiezaCreatividad[]> = {
-    '1': [
-      {
-        titulo: 'Spot Video 30s - Fibra Alta Velocidad',
-        nombreArchivo: 'spot-video-30s-fibra.mp4',
-        formato: 'MP4 · 1080p (Full HD)',
-        overlay: '0:30',
-        degradado: 'video',
-        version: 2,
-        estado: 'aprobada',
-        confianzaMarca: 0.98,
-      },
-      {
-        titulo: 'Banner Display - Promo Hogar',
-        nombreArchivo: 'banner-display-promo-hogar.jpg',
-        formato: 'JPG · 300x250',
-        overlay: '300×250',
-        degradado: 'banner',
-        version: 1,
-        estado: 'pendiente',
-        confianzaMarca: 0.92,
-      },
-    ],
-    '2': [
-      {
-        titulo: 'Banner Institucional - Línea de Crédito PYME',
-        nombreArchivo: 'banner-institucional-credito-pyme.jpg',
-        formato: 'JPG · 1080x1080',
-        overlay: '1:1',
-        degradado: 'banner',
-        version: 1,
-        estado: 'aprobada',
-        confianzaMarca: 0.95,
-      },
-    ],
-  };
+  private readonly listaCampanas = signal<Campana[]>([]);
+  private readonly calendarioPorCampana: Record<string, MedioCalendario[]> = {};
+  private readonly piezasPorCampana: Record<string, PiezaCreatividad[]> = {};
 
   constructor() {
-    this.listaCampanas.set([]);
     this.sincronizarConBackend();
   }
 
@@ -155,6 +57,7 @@ export class CampanasDatos {
   }
 
   async sincronizarConBackend(): Promise<void> {
+    this.estadoCarga.set('cargando');
     const consultaGql = {
       query: `
         query ObtenerCampanas {
@@ -189,21 +92,31 @@ export class CampanasDatos {
         body: JSON.stringify(consultaGql),
       });
 
-      if (!respuesta.ok) return;
+      if (!respuesta.ok) throw new Error('No se pudieron consultar las campañas');
 
       const resultado = await respuesta.json();
       if (resultado.errors?.length) throw new Error(resultado.errors[0].message);
       if (Array.isArray(resultado.data?.campanas)) {
         for (const c of resultado.data.campanas) {
           this.piezasPorCampana[c.id] = c.piezas.map((p: any) => ({
-            titulo: p.titulo, nombreArchivo: p.urlArchivo || '', formato: p.tipoMedio,
-            overlay: '', degradado: p.tipoMedio === 'video' ? 'video' : 'banner',
-            version: p.version, estado: p.estado === 'en_revision' ? 'pendiente' :
-              p.estado === 'bloqueada_saga' ? 'bloqueada' : p.estado, confianzaMarca: 0,
+            titulo: p.titulo,
+            nombreArchivo: p.urlArchivo || '',
+            formato: p.tipoMedio,
+            overlay: '',
+            degradado: p.tipoMedio === 'video' ? 'video' : 'banner',
+            version: p.version,
+            estado:
+              p.estado === 'en_revision'
+                ? 'pendiente'
+                : p.estado === 'bloqueada_saga'
+                  ? 'bloqueada'
+                  : p.estado,
+            confianzaMarca: 0,
           }));
         }
         const mapeadas: Campana[] = resultado.data.campanas.map((c: any, index: number) => ({
           id: c.id,
+          clienteId: c.clienteId,
           codigoReferencia: `CMP-2026-${String(index + 1).padStart(3, '0')}`,
           nombre: c.nombre,
           cliente: c.cliente?.razonSocial || `Cliente ${c.clienteId?.substring(0, 8)}`,
@@ -213,12 +126,17 @@ export class CampanasDatos {
           moneda: (c.presupuesto?.moneda as any) || 'BOB',
           fechaInicio: c.fechaInicio,
           fechaFin: c.fechaFin,
+          version: c.version,
+          descripcion: c.descripcion,
         }));
 
         this.listaCampanas.set(mapeadas);
+        this.estadoCarga.set('disponible');
+      } else {
+        throw new Error('Respuesta de campañas inválida');
       }
     } catch {
-      // Si la pasarela está offline, permanece con la lista en memoria
+      this.estadoCarga.set('error');
     }
   }
 
@@ -233,11 +151,14 @@ export class CampanasDatos {
   /** Detalle real de una campana (campana + presupuesto + cliente + calendario +
    * piezas), via el resolver GraphQL Campana.piezas de la pasarela (que ya consulta
    * ms-creatividades real: briefs por campana_id + piezas de cada brief). Null si la
-   * campana no existe o la pasarela no responde -- la pantalla cae a los datos
-   * locales/mock en ese caso. */
+   * campana no existe o la pasarela no responde. */
   async obtenerDetalleReal(
-    id: string
-  ): Promise<{ campana: Campana; calendario: MedioCalendario[]; piezas: PiezaCreatividad[] } | null> {
+    id: string,
+  ): Promise<{
+    campana: Campana;
+    calendario: MedioCalendario[];
+    piezas: PiezaCreatividad[];
+  } | null> {
     const consulta = {
       query: `
         query DetalleCampana($id: ID!) {
@@ -248,6 +169,7 @@ export class CampanasDatos {
             estado
             fechaInicio
             fechaFin
+            version
             presupuesto { montoTotal montoGastado moneda }
             cliente { id razonSocial }
             calendario { medio fechaInicio fechaFin costoEstimado estado }
@@ -271,6 +193,7 @@ export class CampanasDatos {
 
       const campana: Campana = {
         id: c.id,
+        clienteId: c.cliente?.id,
         codigoReferencia: this.buscarPorId(id)?.codigoReferencia || c.id.substring(0, 8),
         nombre: c.nombre,
         cliente: c.cliente?.razonSocial || `Cliente ${c.id.substring(0, 8)}`,
@@ -280,6 +203,8 @@ export class CampanasDatos {
         moneda: c.presupuesto?.moneda || 'BOB',
         fechaInicio: c.fechaInicio,
         fechaFin: c.fechaFin,
+        version: c.version,
+        descripcion: c.descripcion,
       };
 
       const calendario: MedioCalendario[] = (c.calendario || []).map((m: any) => ({
@@ -322,7 +247,9 @@ export class CampanasDatos {
   /** Clientes reales de ms-clientes-crm (via proxy REST de la pasarela) para el selector del formulario. */
   async listarClientesReales(): Promise<{ id: string; razonSocial: string }[]> {
     try {
-      const respuesta = await fetch(`${URL_GATEWAY_REST}/clientes`, { headers: this.cabecerasAuth() });
+      const respuesta = await fetch(`${URL_GATEWAY_REST}/clientes`, {
+        headers: this.cabecerasAuth(),
+      });
       if (!respuesta.ok) return [];
       const cuerpo = await respuesta.json();
       const items = cuerpo.contenido ?? [];
@@ -340,14 +267,9 @@ export class CampanasDatos {
     fechaFin: string;
     presupuestoTotal: number;
     moneda: 'BOB' | 'USD';
-  }): Promise<Campana> {
-    const idLocal = 'cmp-' + Date.now();
-    const clienteIdReal = datos.clienteId;
-
-    // 1. Intento por mutación GraphQL hacia el Gateway
-    try {
-      const mutacion = {
-        query: `
+  }): Promise<string> {
+    const mutacion = {
+      query: `
           mutation CrearCampana($input: CrearCampanaInput!) {
             crearCampana(input: $input) {
               id
@@ -360,77 +282,89 @@ export class CampanasDatos {
             }
           }
         `,
-        variables: {
-          input: {
-            clienteId: clienteIdReal,
-            nombre: datos.nombre,
-            descripcion: datos.descripcion || '',
-            fechaInicio: datos.fechaInicio,
-            fechaFin: datos.fechaFin,
-          },
+      variables: {
+        input: {
+          clienteId: datos.clienteId,
+          nombre: datos.nombre,
+          descripcion: datos.descripcion || '',
+          fechaInicio: datos.fechaInicio,
+          fechaFin: datos.fechaFin,
         },
-      };
-
-      const resGql = await fetch(URL_GATEWAY_GRAPHQL, {
-        method: 'POST',
-        headers: this.cabecerasAuth(),
-        body: JSON.stringify(mutacion),
-      });
-
-      if (resGql.ok) {
-        const cuerpo = await resGql.json();
-        if (cuerpo.data?.crearCampana) {
-          const campanaGql = cuerpo.data.crearCampana;
-
-          // El presupuesto no forma parte de CrearCampanaInput (ver esquema.ts) — se registra
-          // aparte contra ms-campanas, igual que hace el flujo de piezas/briefs.
-          await fetch(`${URL_GATEWAY_REST}/campanas/${campanaGql.id}/presupuesto`, {
-            method: 'POST',
-            headers: {
-              ...this.cabecerasAuth(),
-              'Idempotency-Key': `presupuesto-${campanaGql.id}-${Date.now()}`,
-            },
-            body: JSON.stringify({ monto_total: datos.presupuestoTotal, moneda: datos.moneda }),
-          }).catch(() => {});
-
-          const nuevaCampana: Campana = {
-            id: campanaGql.id,
-            codigoReferencia: `CMP-2026-${String(this.listaCampanas().length + 1).padStart(3, '0')}`,
-            nombre: campanaGql.nombre,
-            cliente: 'Cliente Anunciante',
-            estado: 'borrador',
-            presupuestoTotal: datos.presupuestoTotal,
-            montoGastado: 0,
-            moneda: datos.moneda,
-            fechaInicio: campanaGql.fechaInicio,
-            fechaFin: campanaGql.fechaFin,
-          };
-          this.listaCampanas.update((previas) => [nuevaCampana, ...previas]);
-          return nuevaCampana;
-        }
-      }
-    } catch {
-      // Fallback a almacenamiento local si el backend no responde
-    }
-
-    // Fallback reactivo
-    const campanaFallback: Campana = {
-      id: idLocal,
-      codigoReferencia: `CMP-2026-${String(this.listaCampanas().length + 1).padStart(3, '0')}`,
-      nombre: datos.nombre,
-      cliente: 'Cliente Demo',
-      estado: 'borrador',
-      presupuestoTotal: datos.presupuestoTotal,
-      montoGastado: 0,
-      moneda: datos.moneda,
-      fechaInicio: datos.fechaInicio,
-      fechaFin: datos.fechaFin,
+      },
     };
-    this.listaCampanas.update((previas) => [campanaFallback, ...previas]);
-    return campanaFallback;
+
+    const resGql = await fetch(URL_GATEWAY_GRAPHQL, {
+      method: 'POST',
+      headers: this.cabecerasAuth(),
+      body: JSON.stringify(mutacion),
+    });
+
+    if (!resGql.ok)
+      throw new Error(
+        'No se pudo confirmar la creación. Verifica la lista de campañas antes de volver a intentarlo.',
+      );
+    const cuerpo = await resGql.json();
+    const id = cuerpo.data?.crearCampana?.id;
+    if (!id)
+      throw new Error(
+        'No se pudo confirmar la creación. Verifica la lista de campañas antes de volver a intentarlo.',
+      );
+
+    return id;
   }
 
-  async contratarCampana(idCampana: string): Promise<{ sagaId: string; estado: string; mensaje: string }> {
+  /** Repite solamente la asignación de presupuesto con la misma clave y carga. */
+  async asignarPresupuesto(
+    id: string,
+    monto: number,
+    moneda: 'BOB' | 'USD',
+    clave: string,
+  ): Promise<void> {
+    const respuesta = await fetch(`${URL_GATEWAY_REST}/campanas/${id}/presupuesto`, {
+      method: 'POST',
+      headers: { ...this.cabecerasAuth(), 'Idempotency-Key': clave },
+      body: JSON.stringify({ monto_total: monto, moneda }),
+    });
+    if (!respuesta.ok) {
+      const detalle = await respuesta.json().catch(() => null);
+      throw new Error(detalle?.mensaje || `Error ${respuesta.status}`);
+    }
+  }
+
+  async actualizarCampana(
+    id: string,
+    datos: {
+      nombre: string;
+      descripcion?: string;
+      fechaInicio: string;
+      fechaFin: string;
+      version: number;
+    },
+    claveIdempotencia: string,
+  ): Promise<void> {
+    const respuesta = await fetch(`${URL_GATEWAY_REST}/campanas/${id}`, {
+      method: 'PUT',
+      headers: { ...this.cabecerasAuth(), 'Idempotency-Key': claveIdempotencia },
+      body: JSON.stringify({
+        nombre: datos.nombre,
+        descripcion: datos.descripcion || '',
+        fecha_inicio: datos.fechaInicio,
+        fecha_fin: datos.fechaFin,
+        version: datos.version,
+      }),
+    });
+    if (!respuesta.ok) {
+      const detalle = await respuesta.json().catch(() => null);
+      if (respuesta.status === 409)
+        throw new Error('La campaña cambió en otra sesión. Recarga el detalle antes de guardar.');
+      throw new Error(detalle?.mensaje || 'No se pudo actualizar la campaña.');
+    }
+    await this.sincronizarConBackend();
+  }
+
+  async contratarCampana(
+    idCampana: string,
+  ): Promise<{ sagaId: string; estado: string; mensaje: string }> {
     try {
       const respuesta = await fetch(`${URL_GATEWAY_REST}/campanas/${idCampana}/contratar`, {
         method: 'POST',
@@ -445,7 +379,7 @@ export class CampanasDatos {
         if (!datos.id) throw new Error('La respuesta no contiene el identificador de la SAGA');
         // Actualizamos estado en UI
         this.listaCampanas.update((lista) =>
-          lista.map((c) => (c.id === idCampana ? { ...c, estado: 'pendiente' } : c))
+          lista.map((c) => (c.id === idCampana ? { ...c, estado: 'pendiente' } : c)),
         );
         return {
           sagaId: datos.id,

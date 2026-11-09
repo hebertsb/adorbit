@@ -1,4 +1,5 @@
 import { useDictado } from '../utilidades/usar-dictado';
+import { FiltrosAnalisis } from './filtros-analisis';
 import { Icono } from './iconos';
 
 const EJEMPLOS = [
@@ -32,7 +33,18 @@ export function FormularioPregunta({
 
   return (
     <section className="formulario" aria-labelledby="titulo-pregunta">
-      <h2 id="titulo-pregunta">Haga una pregunta</h2>
+      <header className="formulario__cabecera">
+        <div>
+          <span className="formulario__sobrelinea">
+            <Icono nombre="destello" tamano={14} /> Asistente analítico
+          </span>
+          <h2 id="titulo-pregunta">¿Qué necesita analizar?</h2>
+          <p>Consulte en lenguaje natural o construya un reporte con filtros.</p>
+        </div>
+        <span className="estado-ia">
+          <i /> IA conectada
+        </span>
+      </header>
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -65,9 +77,15 @@ export function FormularioPregunta({
               type="button"
               className={`boton boton--secundario ${dictado.escuchando ? 'boton--activo' : ''}`}
               aria-pressed={dictado.escuchando}
+              disabled={dictado.preparando}
               onClick={dictado.escuchando ? dictado.detener : dictado.iniciar}
             >
-              <Icono nombre="microfono" /> {dictado.escuchando ? 'Escuchando… (detener)' : 'Dictar'}
+              <Icono nombre="microfono" />{' '}
+              {dictado.preparando
+                ? 'Preparando micrófono…'
+                : dictado.escuchando
+                  ? 'Escuchando… (detener)'
+                  : 'Dictar'}
             </button>
           )}
           <span className="formulario__contador" aria-hidden="true">
@@ -93,6 +111,7 @@ export function FormularioPregunta({
           </button>
         ))}
       </div>
+      <FiltrosAnalisis alConsultar={alEnviar} generando={generando} />
     </section>
   );
 }

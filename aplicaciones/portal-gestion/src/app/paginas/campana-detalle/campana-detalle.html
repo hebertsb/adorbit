@@ -1,7 +1,7 @@
 @if (campana(); as c) {
   <div class="encabezado">
-    @if (errorContratacion()) { <p role="alert">{{ errorContratacion() }}</p> }
-    <a href="javascript:void(0)" (click)="volver()" class="volver">← Volver</a>
+    @if (errorContratacion()) { <p role="alert" aria-live="assertive">{{ errorContratacion() }}</p> }
+    <button type="button" (click)="volver()" class="volver">← Volver</button>
     <div class="encabezado__acciones">
       <ao-boton variante="secundario" [routerLink]="['/campanas', c.id, 'editar']">Editar campaña</ao-boton>
       @if (puedeContratar()) {
@@ -50,30 +50,30 @@
   <ao-tarjeta class="seccion">
     <div class="seccion__cabecera">
       <h2>Resumen de ejecución presupuestaria</h2>
-      <span class="moneda">Moneda: {{ c.moneda }} (Bs)</span>
+      <span class="moneda">Moneda: {{ c.moneda }}</span>
     </div>
 
     <div class="rejilla-presupuesto">
       <div class="caja-dato">
         <span class="caja-dato__etiqueta">Presupuesto total</span>
-        <span class="dato-mono caja-dato__valor">{{ c.presupuestoTotal | currency: 'BOB' : 'Bs ' : '1.2-2' }}</span>
-        <span class="caja-dato__pie">Monto asignado matriz</span>
+        <span class="dato-mono caja-dato__valor">{{ c.presupuestoTotal | currency: c.moneda : 'symbol' : '1.2-2' }}</span>
+        <span class="caja-dato__pie">Presupuesto asignado</span>
       </div>
       <div class="caja-dato">
         <div class="caja-dato__fila">
           <span class="caja-dato__etiqueta">Monto gastado</span>
           <span class="caja-dato__porcentaje caja-dato__porcentaje--marca">{{ porcentajeGastado() }}%</span>
         </div>
-        <span class="dato-mono caja-dato__valor">{{ c.montoGastado | currency: 'BOB' : 'Bs ' : '1.2-2' }}</span>
-        <span class="caja-dato__pie caja-dato__pie--ok">En ritmo programado</span>
+        <span class="dato-mono caja-dato__valor">{{ c.montoGastado | currency: c.moneda : 'symbol' : '1.2-2' }}</span>
+        <span class="caja-dato__pie">Del presupuesto total</span>
       </div>
       <div class="caja-dato">
         <div class="caja-dato__fila">
           <span class="caja-dato__etiqueta">Saldo disponible</span>
           <span class="caja-dato__porcentaje">{{ porcentajeDisponible() }}%</span>
         </div>
-        <span class="dato-mono caja-dato__valor">{{ saldoDisponible() | currency: 'BOB' : 'Bs ' : '1.2-2' }}</span>
-        <span class="caja-dato__pie">Para refuerzo final</span>
+        <span class="dato-mono caja-dato__valor">{{ saldoDisponible() | currency: c.moneda : 'symbol' : '1.2-2' }}</span>
+        <span class="caja-dato__pie">Presupuesto restante</span>
       </div>
     </div>
 
@@ -81,7 +81,7 @@
       <div class="progreso__cabecera">
         <span>Progreso acumulado</span>
         <span class="dato-mono">
-          {{ c.montoGastado | currency: 'BOB' : 'Bs ' : '1.2-2' }} de {{ c.presupuestoTotal | currency: 'BOB' : 'Bs ' : '1.2-2' }}
+          {{ c.montoGastado | currency: c.moneda : 'symbol' : '1.2-2' }} de {{ c.presupuestoTotal | currency: c.moneda : 'symbol' : '1.2-2' }}
         </span>
       </div>
       <div class="barra-progreso barra-progreso--grande">
@@ -96,7 +96,7 @@
         <h2>Calendario de medios</h2>
         <span class="contador-chico">{{ calendario().length }} canales</span>
       </div>
-      <ao-boton variante="secundario">
+      <ao-boton variante="secundario" [routerLink]="['/campanas', c.id, 'editar']">
         <svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>
         Agregar medio
       </ao-boton>
@@ -108,7 +108,7 @@
           <th>Medio</th>
           <th>Fecha inicio</th>
           <th>Fecha fin</th>
-          <th class="num">Costo (Bs)</th>
+          <th class="num">Costo ({{ c.moneda }})</th>
           <th>Estado</th>
         </tr>
       </thead>
@@ -123,7 +123,7 @@
             </td>
             <td data-etiqueta="Inicio" class="dato-mono">{{ fechaCorta(medio.fechaInicio) }}</td>
             <td data-etiqueta="Fin" class="dato-mono">{{ fechaCorta(medio.fechaFin) }}</td>
-            <td data-etiqueta="Costo" class="num dato-mono">{{ medio.costo | currency: 'BOB' : 'Bs ' : '1.2-2' }}</td>
+            <td data-etiqueta="Costo" class="num dato-mono">{{ medio.costo | currency: c.moneda : 'symbol' : '1.2-2' }}</td>
             <td data-etiqueta="Estado">
               <ao-etiqueta-estado [texto]="etiquetaEstadoMedio[medio.estado]" [tono]="tonoEstadoMedio(medio.estado)" />
             </td>
@@ -140,7 +140,7 @@
   <section class="seccion">
     <div class="seccion__cabecera">
       <h2>Piezas de creatividad <span class="seccion__contador">({{ piezas().length }} piezas cargadas)</span></h2>
-      <ao-boton variante="secundario">
+      <ao-boton variante="secundario" routerLink="/creatividades">
         <svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M5 20h14" /></svg>
         Subir creatividad
       </ao-boton>
@@ -168,9 +168,13 @@
             <p class="pieza__observacion">{{ pieza.observacion }}</p>
           }
         </ao-tarjeta>
+      } @empty {
+        <p class="vacio">Todavía no hay piezas de creatividad cargadas.</p>
       }
     </div>
   </section>
+} @else if (cargandoDetalleReal()) {
+  <p role="status">Cargando campaña…</p>
 } @else {
-  <p>No se encontró la campaña.</p>
+  <p role="alert" aria-live="polite">No se pudo cargar la campaña desde la pasarela. Verifica la conexión e inténtalo de nuevo.</p>
 }

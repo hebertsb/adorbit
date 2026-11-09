@@ -64,7 +64,7 @@ def columna_numerica_y_texto(columnas: list[str], filas: list[dict[str, Any]]) -
     """Detecta la forma simple (1 columna de texto + 1 numerica) que amerita un grafico."""
     if len(columnas) < 2 or not filas:
         return None
-    col_texto: str | None = None
+    candidatas_texto: list[str] = []
     col_numero: str | None = None
     for clave in columnas:
         valor = filas[0].get(clave)
@@ -73,8 +73,18 @@ def columna_numerica_y_texto(columnas: list[str], filas: list[dict[str, Any]]) -
             continue
         if (isinstance(valor, (int, float)) or dto["tipo"] in _TIPOS_NUMERICOS) and col_numero is None:
             col_numero = clave
-        elif isinstance(valor, str) and col_texto is None:
-            col_texto = clave
+        elif isinstance(valor, str):
+            candidatas_texto.append(clave)
+    # Un UUID es una categoria tecnica y vuelve ilegible cualquier grafico. Se
+    # prefiere el nombre; despues fechas u otra etiqueta de negocio; los IDs son
+    # el ultimo recurso.
+    candidatas_texto.sort(
+        key=lambda clave: (
+            0 if clave == "nombre" else 1 if columna_dto(clave)["tipo"] == "fecha" else 3 if clave.endswith("_id") else 2,
+            columnas.index(clave),
+        )
+    )
+    col_texto = candidatas_texto[0] if candidatas_texto else None
     if col_texto and col_numero:
         return col_texto, col_numero
     return None

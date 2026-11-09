@@ -6,97 +6,179 @@
   <ao-boton variante="primario" routerLink="/campanas/nueva">+ Nueva campaña</ao-boton>
 </div>
 
-<div class="rejilla-kpi">
-  <ao-tarjeta class="kpi">
-    <div class="kpi__fila">
-      <p class="kpi__etiqueta">Campañas activas</p>
-      <span class="kpi__icono kpi__icono--marca">
-        <svg class="ic" viewBox="0 0 24 24"><path d="M3 11l18-5v12L3 14v-3z" /><path d="M11 13v5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4" /></svg>
-      </span>
-    </div>
-    <p class="dato-mono kpi__valor">{{ campanasActivas() }}</p>
-  </ao-tarjeta>
-  <ao-tarjeta class="kpi">
-    <div class="kpi__fila">
-      <p class="kpi__etiqueta">Presupuesto reservado</p>
-      <span class="kpi__icono kpi__icono--info">
-        <svg class="ic" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20" /><circle cx="16" cy="14.5" r="1.3" /></svg>
-      </span>
-    </div>
-    <p class="dato-mono kpi__valor">{{ presupuestoReservado() | currency: 'BOB' : 'Bs ' : '1.2-2' }}</p>
-  </ao-tarjeta>
-  <ao-tarjeta class="kpi">
-    <div class="kpi__fila">
-      <p class="kpi__etiqueta">Facturas a vencer (&lt;5d)</p>
-      <span class="kpi__icono kpi__icono--aviso">
-        <svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /><path d="M12 14v2M12 18h.01" /></svg>
-      </span>
-    </div>
-    <!-- TODO Luis: estos dos vienen de ms-facturacion / ms-creatividades, no de ms-campanas. -->
-    <p class="dato-mono kpi__valor">3</p>
-  </ao-tarjeta>
-  <ao-tarjeta class="kpi">
-    <div class="kpi__fila">
-      <p class="kpi__etiqueta">Piezas por aprobar</p>
-      <span class="kpi__icono kpi__icono--marca">
-        <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6M9 15l2 2 4-4" /></svg>
-      </span>
-    </div>
-    <p class="dato-mono kpi__valor">9</p>
-  </ao-tarjeta>
-</div>
-
-<section class="seccion">
-  <div class="seccion__cabecera">
-    <h2>Alertas recientes <span class="contador-chico">{{ alertas().length }}</span></h2>
-    <span class="nota-prioridad">Prioridad operativa activa</span>
+@if (estadoCarga() === 'cargando') {
+  <p role="status">Cargando datos de campañas…</p>
+} @else if (estadoCarga() === 'error') {
+  <div class="estado-carga" role="alert">
+    <p>No se pudieron actualizar los datos de campañas. Intenta nuevamente.</p>
+    <button type="button" (click)="reintentar()">Reintentar</button>
   </div>
-  <div class="lista-alertas">
-    @for (alerta of alertas(); track alerta.titulo) {
-      <ao-tarjeta [compacta]="true" class="alerta alerta--{{ alerta.severidad }}">
-        <div class="alerta__cuerpo">
-          <span class="alerta__badge">{{ alerta.severidad === 'alta' ? 'Alta' : alerta.severidad === 'aviso' ? 'Aviso' : 'Info' }}</span>
-          <div>
-            <p class="alerta__titulo">{{ alerta.titulo }}</p>
-            <p class="alerta__detalle">{{ alerta.detalle }}</p>
+} @else {
+  <p class="alcance">
+    Datos de hasta 50 campañas consultadas. Los importes se muestran por moneda.
+  </p>
+  <div class="rejilla-kpi">
+    <ao-tarjeta class="kpi">
+      <div class="kpi__fila">
+        <p class="kpi__etiqueta">Campañas activas</p>
+        <span class="kpi__icono kpi__icono--marca">
+          <svg class="ic" viewBox="0 0 24 24">
+            <path d="M3 11l18-5v12L3 14v-3z" />
+            <path d="M11 13v5a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4" />
+          </svg>
+        </span>
+      </div>
+      <p class="dato-mono kpi__valor">{{ campanasActivas() }}</p>
+    </ao-tarjeta>
+    <ao-tarjeta class="kpi">
+      <div class="kpi__fila">
+        <p class="kpi__etiqueta">Gasto registrado (BOB)</p>
+        <span class="kpi__icono kpi__icono--info">
+          <svg class="ic" viewBox="0 0 24 24">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <path d="M2 10h20" />
+            <circle cx="16" cy="14.5" r="1.3" />
+          </svg>
+        </span>
+      </div>
+      <p class="dato-mono kpi__valor">{{ gastoBob() | currency: 'BOB' : 'Bs ' : '1.2-2' }}</p>
+    </ao-tarjeta>
+    <ao-tarjeta class="kpi">
+      <div class="kpi__fila">
+        <p class="kpi__etiqueta">Gasto registrado (USD)</p>
+        <span class="kpi__icono kpi__icono--aviso">
+          <svg class="ic" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+            <path d="M12 14v2M12 18h.01" />
+          </svg>
+        </span>
+      </div>
+      <p class="dato-mono kpi__valor">{{ gastoUsd() | currency: 'USD' : 'US$ ' : '1.2-2' }}</p>
+    </ao-tarjeta>
+    <ao-tarjeta class="kpi">
+      <div class="kpi__fila">
+        <p class="kpi__etiqueta">Piezas por aprobar</p>
+        <span class="kpi__icono kpi__icono--marca">
+          <svg class="ic" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <path d="M14 2v6h6M9 15l2 2 4-4" />
+          </svg>
+        </span>
+      </div>
+      @if (piezasPorAprobar() !== null) {
+        <p class="dato-mono kpi__valor">{{ piezasPorAprobar() }}</p>
+      } @else {
+        <p class="kpi__sin-datos">No disponible</p>
+      }
+    </ao-tarjeta>
+  </div>
+
+  <section class="seccion">
+    <div class="seccion__cabecera">
+      <h2>
+        Alertas recientes <span class="contador-chico">{{ alertas().length }}</span>
+      </h2>
+      <span class="nota-prioridad">Consumo de presupuesto desde 85 %</span>
+    </div>
+    <div class="lista-alertas">
+      @for (alerta of alertas(); track alerta.titulo) {
+        <ao-tarjeta [compacta]="true" class="alerta alerta--{{ alerta.severidad }}">
+          <div class="alerta__cuerpo">
+            <span class="alerta__badge">{{
+              alerta.severidad === 'alta' ? 'Alta' : alerta.severidad === 'aviso' ? 'Aviso' : 'Info'
+            }}</span>
+            <div>
+              <p class="alerta__titulo">{{ alerta.titulo }}</p>
+              <p class="alerta__detalle">{{ alerta.detalle }}</p>
+            </div>
           </div>
-        </div>
-        @if (alerta.rutaCampana && alerta.severidad !== 'info') {
-          <ao-boton variante="secundario" [routerLink]="['/campanas', alerta.rutaCampana]">{{ alerta.accion }}</ao-boton>
-        } @else {
-          <span class="alerta__accion-texto">{{ alerta.accion }}</span>
-        }
-      </ao-tarjeta>
-    }
-  </div>
-</section>
+          @if (alerta.rutaCampana && alerta.severidad !== 'info') {
+            <ao-boton variante="secundario" [routerLink]="['/campanas', alerta.rutaCampana]">{{
+              alerta.accion
+            }}</ao-boton>
+          } @else {
+            <span class="alerta__accion-texto">{{ alerta.accion }}</span>
+          }
+        </ao-tarjeta>
+      } @empty {
+        <p>No hay alertas de presupuesto para las campañas consultadas.</p>
+      }
+    </div>
+  </section>
 
-<section class="seccion">
-  <h2>Últimas campañas actualizadas</h2>
-  <ao-tarjeta [compacta]="true">
-    <table class="tabla">
-      <thead>
-        <tr>
-          <th>Nombre de campaña</th>
-          <th>Cliente</th>
-          <th>Estado</th>
-          <th class="num">Presupuesto (Bs)</th>
-          <th>Fecha fin</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (campana of ultimasCampanas(); track campana.id) {
-          <tr [routerLink]="['/campanas', campana.id]">
-            <td data-etiqueta="Nombre">{{ campana.nombre }}</td>
-            <td data-etiqueta="Cliente">{{ campana.cliente }}</td>
-            <td data-etiqueta="Estado">
-              <ao-etiqueta-estado [texto]="etiquetas[campana.estado]" [tono]="tonoDe(campana.estado)" />
-            </td>
-            <td data-etiqueta="Presupuesto" class="num dato-mono">{{ campana.presupuestoTotal | currency: 'BOB' : 'Bs ' : '1.2-2' }}</td>
-            <td data-etiqueta="Fecha fin" class="dato-mono">{{ campana.fechaFin }}</td>
-          </tr>
+  @if (agentes().length > 0) {
+    <section class="seccion">
+      <div class="seccion__cabecera">
+        <div>
+          <h2>Supervisión autónoma con agentes (IA)</h2>
+          <span class="nota-prioridad">Auditoría proactiva mediante herramientas MCP</span>
+        </div>
+      </div>
+      <div class="rejilla-agentes">
+        @for (agente of agentes(); track agente.id) {
+          <ao-tarjeta [compacta]="true" class="tarjeta-agente">
+            <div class="agente__cabecera">
+              <div>
+                <span class="agente__badge">Agente de IA</span>
+                <h3 class="agente__nombre">{{ agente.nombre === 'monitor_campanas' ? 'Monitor de Campañas' : 'Agente de Cobranza' }}</h3>
+              </div>
+              <ao-boton
+                variante="secundario"
+                [deshabilitado]="ejecutandoAgente() === agente.id"
+                (click)="ejecutarAgente(agente.id)">
+                {{ ejecutandoAgente() === agente.id ? 'Ejecutando…' : 'Ejecutar agente' }}
+              </ao-boton>
+            </div>
+            <p class="agente__mision">{{ agente.mision }}</p>
+            @if (resultadoAgente()[agente.id]; as res) {
+              <div class="agente__resultado" [class.agente__resultado--ok]="res.estado === 'exitosa'">
+                <strong>Estado: {{ res.estado }}</strong>
+                <pre class="agente__salida">{{ formatearSalida(res.salida) }}</pre>
+              </div>
+            }
+          </ao-tarjeta>
         }
-      </tbody>
-    </table>
-  </ao-tarjeta>
-</section>
+      </div>
+    </section>
+  }
+
+  <section class="seccion">
+    <h2>Campañas consultadas</h2>
+    <ao-tarjeta [compacta]="true">
+      <table class="tabla">
+        <thead>
+          <tr>
+            <th>Nombre de campaña</th>
+            <th>Cliente</th>
+            <th>Estado</th>
+            <th class="num">Presupuesto</th>
+            <th>Fecha fin</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (campana of ultimasCampanas(); track campana.id) {
+            <tr [routerLink]="['/campanas', campana.id]">
+              <td data-etiqueta="Nombre">{{ campana.nombre }}</td>
+              <td data-etiqueta="Cliente">{{ campana.cliente }}</td>
+              <td data-etiqueta="Estado">
+                <ao-etiqueta-estado
+                  [texto]="etiquetas[campana.estado]"
+                  [tono]="tonoDe(campana.estado)"
+                />
+              </td>
+              <td data-etiqueta="Presupuesto" class="num dato-mono">
+                {{ campana.presupuestoTotal | currency: campana.moneda : 'code' : '1.2-2' }}
+              </td>
+              <td data-etiqueta="Fecha fin" class="dato-mono">{{ campana.fechaFin }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5">No hay campañas disponibles.</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </ao-tarjeta>
+  </section>
+}

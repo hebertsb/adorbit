@@ -59,7 +59,11 @@ class ContratoApiTest extends PruebaCrm
         $ajeno = $this->contrato($otro)->json('id');
         $h = $this->cabeceras(['cliente'], ['cliente_id' => $mio]);
 
-        $this->getJson('/api/v1/contratos', $h)->assertJsonCount(1, 'contenido');
+        $this->getJson("/api/v1/contratos?cliente=$otro", $h)->assertOk()->assertJsonCount(1, 'contenido')
+            ->assertJsonPath('contenido.0.cliente_id', $mio);
+        $this->getJson('/api/v1/contratos?size=101', $h)->assertStatus(422);
+        $this->getJson('/api/v1/contratos?estado=invalido', $h)->assertStatus(422);
+        $this->getJson('/api/v1/contratos?desconocido=1', $h)->assertStatus(422);
         $this->getJson("/api/v1/contratos/$ajeno", $h)->assertNotFound();
     }
 }

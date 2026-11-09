@@ -6,12 +6,17 @@ import { IdempotenciaRepositorioMongo } from '../../../../adapters/mongo/idempot
 import { OutboxRepositorioMongo } from '../../../../adapters/mongo/outboxRepositorioMongo';
 import { UnidadDeTrabajoMongo } from '../../../../adapters/mongo/unidadDeTrabajoMongo';
 import { obtenerClaveIdempotencia } from '../../../../adapters/http/claveIdempotencia';
-import { exigirRol, verificarJwt } from '../../../../adapters/seguridad/verificarJwt';
+import { ErrorAutenticacion, exigirRol, verificarJwt } from '../../../../adapters/seguridad/verificarJwt';
 import { manejarError } from '../../../../manejadorErrores';
 import { CrearBrief } from '../../../../use-cases/crearBrief';
 import { ListarBriefs } from '../../../../use-cases/listarBriefs';
 
 const esquemaUuid = z.string().uuid();
+const esquemaConsulta = z.object({
+  campana_id: esquemaUuid.optional(),
+  page: z.string().regex(/^[1-9]\d*$/).transform(Number).pipe(z.number().int().safe()).default(1),
+  size: z.string().regex(/^[1-9]\d*$/).transform(Number).pipe(z.number().int().min(1).max(100)).default(20),
+}).strict();
 
 const esquemaCrearBrief = z
   .object({
@@ -33,12 +38,18 @@ export async function GET(req: NextRequest) {
     const identidad = await verificarJwt(req);
     exigirRol(identidad, ['ejecutivo', 'creativo', 'gerente', 'cliente']);
 
-    const url = new URL(req.url);
-    const campanaId = url.searchParams.get('campana_id') ?? undefined;
-    const pagina = Math.max(1, Number(url.searchParams.get('page') ?? '1') || 1);
-    const tamano = Math.min(100, Math.max(1, Number(url.searchParams.get('size') ?? '20') || 20));
+    const parametros = new URL(req.url).searchParams;
+    const consulta: Record<string, string | string[]> = {};
+    for (const [clave, valor] of parametros) {
+      const anterior = consulta[clave];
+      consulta[clave] = anterior === undefined ? valor : [valor];
+    }
+    const { campana_id: campanaId, page: pagina, size: tamano } = esquemaConsulta.parse(consulta);
 
     const clienteId = identidad.roles.includes('cliente') ? identidad.clienteId : undefined;
+    if (identidad.roles.includes('cliente') && !esquemaUuid.safeParse(clienteId).success) {
+      throw new ErrorAutenticacion('El token no tiene un cliente_id valido', 403);
+    }
 
     const resultado = await new ListarBriefs(briefs).ejecutar({ campanaId, clienteId, pagina, tamano });
     return NextResponse.json({

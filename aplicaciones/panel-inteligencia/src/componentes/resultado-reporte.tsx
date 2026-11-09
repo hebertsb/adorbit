@@ -4,10 +4,12 @@ import { ErrorIa } from '../api/cliente-ia';
 import type { FormatoExportacion, Reporte } from '../api/tipos';
 import { datosDeGrafico } from '../utilidades/datos-grafico';
 import { GraficoBarras } from './grafico-barras';
+import { GraficoAnillo } from './grafico-anillo';
 import { GraficoLinea } from './grafico-linea';
 import { Icono } from './iconos';
 import { Indicadores } from './indicadores';
 import { TablaDatos } from './tabla-datos';
+import { ResumenVisual } from './resumen-visual';
 
 const fechaHora = new Intl.DateTimeFormat('es-BO', { dateStyle: 'medium', timeStyle: 'short' });
 
@@ -28,6 +30,7 @@ function describirParametros(parametros: Record<string, unknown>): string {
 export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; cliente: ClienteIa }) {
   const [exportando, setExportando] = useState<FormatoExportacion | null>(null);
   const [falloExportar, setFalloExportar] = useState<string | null>(null);
+  const [vista, setVista] = useState<'grafico' | 'distribucion' | 'tarjetas'>('grafico');
   const grafico = datosDeGrafico(reporte);
 
   const exportar = async (formato: FormatoExportacion) => {
@@ -95,17 +98,57 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
 
       {grafico && (
         <section aria-label="Gráfico" className="resultado__grafico">
-          <h3>{grafico.titulo}</h3>
-          {grafico.tipo === 'barras' ? (
-            <GraficoBarras barras={grafico.barras} titulo={grafico.titulo} />
-          ) : (
-            <GraficoLinea puntos={grafico.puntos} titulo={grafico.titulo} />
-          )}
+          <div className="seccion-cabecera">
+            <div>
+              <span className="seccion-cabecera__sobrelinea">Visualización</span>
+              <h3>{grafico.titulo}</h3>
+            </div>
+            <span className="contador-registros">{reporte.filas.length} registros</span>
+          </div>
+          <div className="selector-vista" role="group" aria-label="Forma de visualizar los datos">
+            <button type="button" aria-pressed={vista === 'grafico'} onClick={() => setVista('grafico')}>
+              {grafico.tipo === 'barras' ? 'Barras' : 'Tendencia'}
+            </button>
+            {grafico.tipo === 'barras' && (
+              <button type="button" aria-pressed={vista === 'distribucion'} onClick={() => setVista('distribucion')}>
+                Distribución
+              </button>
+            )}
+            <button type="button" aria-pressed={vista === 'tarjetas'} onClick={() => setVista('tarjetas')}>
+              Tarjetas
+            </button>
+          </div>
+          <div className="visualizacion-contenido" key={vista}>
+            {vista === 'grafico' &&
+              (grafico.tipo === 'barras' ? (
+                <GraficoBarras barras={grafico.barras} titulo={grafico.titulo} />
+              ) : (
+                <GraficoLinea puntos={grafico.puntos} titulo={grafico.titulo} />
+              ))}
+            {vista === 'distribucion' && grafico.tipo === 'barras' && (
+              <GraficoAnillo barras={grafico.barras} titulo={grafico.titulo} />
+            )}
+            {vista === 'tarjetas' && (
+              <ResumenVisual
+                elementos={
+                  grafico.tipo === 'barras'
+                    ? grafico.barras
+                    : grafico.puntos.map((punto) => ({ etiqueta: punto.etiqueta, valor: punto.valor, texto: punto.texto }))
+                }
+              />
+            )}
+          </div>
         </section>
       )}
 
-      <section aria-label="Datos">
-        <h3>Datos</h3>
+      <section aria-label="Datos" className="resultado__datos">
+        <div className="seccion-cabecera">
+          <div>
+            <span className="seccion-cabecera__sobrelinea">Detalle</span>
+            <h3>Datos del reporte</h3>
+          </div>
+          <span className="contador-registros">{reporte.filas.length} registros</span>
+        </div>
         <TablaDatos columnas={reporte.columnas} filas={reporte.filas} titulo={reporte.titulo} />
       </section>
     </article>

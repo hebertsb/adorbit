@@ -33,6 +33,67 @@
   "defaultRoles": [
     "cliente"
   ],
+  "clientScopes": [
+    {
+      "name": "adorbit-audiencias",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "cliente_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "cliente_id",
+            "claim.name": "cliente_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "aud-ms-campanas",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": { "included.client.audience": "ms-campanas", "id.token.claim": "false", "access.token.claim": "true" }
+        },
+        {
+          "name": "aud-ms-facturacion",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": { "included.client.audience": "ms-facturacion", "id.token.claim": "false", "access.token.claim": "true" }
+        },
+        {
+          "name": "aud-ms-creatividades",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": { "included.client.audience": "ms-creatividades", "id.token.claim": "false", "access.token.claim": "true" }
+        },
+        {
+          "name": "aud-ms-clientes-crm",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": { "included.client.audience": "ms-clientes-crm", "id.token.claim": "false", "access.token.claim": "true" }
+        },
+        {
+          "name": "aud-ms-ia",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": { "included.client.audience": "ms-ia", "id.token.claim": "false", "access.token.claim": "true" }
+        }
+      ]
+    }
+  ],
   "clients": [
     {
       "clientId": "adorbit-frontend",
@@ -49,15 +110,89 @@
         "http://localhost:3000/*",
         "http://localhost:8000/*",
         "http://localhost:8080/*",
-        "http://127.0.0.1:*",
-        "*"
+        "http://127.0.0.1:*"
       ],
       "webOrigins": [
-        "*"
+        "http://localhost:4200",
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://localhost:8080"
       ],
       "attributes": {
         "access.token.lifespan": "7200"
-      }
+      },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email", "adorbit-audiencias"]
+    },
+    {
+      "clientId": "adorbit-movil",
+      "name": "AdOrbit App Movil",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": [
+        "com.grupo23.adorbit:/oauth2redirect",
+        "com.grupo23.adorbit:/logout"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "access.token.lifespan": "1800"
+      },
+      "defaultClientScopes": ["acr", "profile", "roles", "basic", "email", "adorbit-audiencias"]
+    },
+    {
+      "clientId": "portal-cliente",
+      "name": "AdOrbit Portal del Cliente",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": ["http://localhost:4173/*", "http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:4173", "http://localhost:5173"],
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email", "adorbit-audiencias"]
+    },
+    {
+      "clientId": "panel-inteligencia",
+      "name": "AdOrbit Panel de Inteligencia",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": false,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "redirectUris": ["http://localhost:4174/*", "http://localhost:5174/*"],
+      "webOrigins": ["http://localhost:4174", "http://localhost:5174", "http://localhost:4200"],
+      "attributes": { "pkce.code.challenge.method": "S256" },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email", "adorbit-audiencias"]
+    },
+    {
+      "clientId": "n8n",
+      "name": "AdOrbit Automatizaciones n8n",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "__N8N_CLIENT_SECRET__",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": ["roles", "adorbit-audiencias"]
+    },
+    {
+      "clientId": "pasarela-admin",
+      "name": "AdOrbit Administracion de Identidad",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "__KEYCLOAK_ADMIN_CLIENT_SECRET__",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false
     },
     {
       "clientId": "ms-campanas",
@@ -146,6 +281,9 @@
       "lastName": "Anunciante",
       "enabled": true,
       "emailVerified": true,
+      "attributes": {
+        "cliente_id": ["00000000-0000-0000-0000-000000000001"]
+      },
       "credentials": [
         {
           "type": "password",
@@ -192,9 +330,22 @@
       "realmRoles": [
         "ejecutivo",
         "creativo",
-        "cliente",
         "gerente"
       ]
+    },
+    {
+      "username": "service-account-n8n",
+      "enabled": true,
+      "serviceAccountClientId": "n8n",
+      "realmRoles": ["gerente"]
+    },
+    {
+      "username": "service-account-pasarela-admin",
+      "enabled": true,
+      "serviceAccountClientId": "pasarela-admin",
+      "clientRoles": {
+        "realm-management": ["manage-users", "view-users", "query-users", "view-realm"]
+      }
     }
   ]
 }

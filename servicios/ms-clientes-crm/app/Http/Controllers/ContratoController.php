@@ -26,8 +26,19 @@ class ContratoController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        [$page, $size] = $this->paginacion($request);
-        $cliente = $this->cliente_del_token($request) ?? ($request->query('cliente') ? (string) $request->query('cliente') : null);
+        $permitidos = ['cliente', 'estado', 'page', 'size'];
+        if (array_diff(array_keys($request->query()), $permitidos)) {
+            throw new \App\Excepciones\ErrorNegocio('parametro_invalido', 'Parametro de consulta desconocido', 422);
+        }
+        $datos = $request->validate([
+            'cliente' => ['sometimes', 'required', 'uuid'],
+            'estado' => ['sometimes', 'required', 'in:vigente,vencido,rescindido'],
+            'page' => ['sometimes', 'required', 'integer', 'min:0'],
+            'size' => ['sometimes', 'required', 'integer', 'min:1', 'max:100'],
+        ]);
+        $page = (int) ($datos['page'] ?? 0);
+        $size = (int) ($datos['size'] ?? 20);
+        $cliente = $this->cliente_del_token($request) ?? ($datos['cliente'] ?? null);
         [$items, $total] = $this->contratos->listar(
             $cliente,
             $request->query('estado') ? (string) $request->query('estado') : null,

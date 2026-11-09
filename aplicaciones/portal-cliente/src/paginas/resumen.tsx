@@ -36,6 +36,7 @@ export function PaginaResumen() {
   const linea = datosCredito.linea_credito;
   const usoCredito = porcentaje(linea.usado, linea.limite);
   const hayMasFacturas = datosFacturas.total_elementos > datosFacturas.contenido.length;
+  const hayMasContratos = datosContratos.total_elementos > datosContratos.contenido.length;
 
   return (
     <>
@@ -47,8 +48,10 @@ export function PaginaResumen() {
         {resumenes.length === 0 && (
           <article className="tarjeta tarjeta--ok">
             <p className="tarjeta__titulo">Saldo pendiente</p>
-            <p className="tarjeta__valor">Al dia</p>
-            <p className="tarjeta__pie">No tiene facturas abiertas.</p>
+            <p className="tarjeta__valor">{hayMasFacturas ? 'Sin saldo en esta muestra' : 'Al día'}</p>
+            <p className="tarjeta__pie">
+              {hayMasFacturas ? 'Podría haber facturas abiertas en otras páginas.' : 'No tiene facturas abiertas.'}
+            </p>
           </article>
         )}
         {resumenes.map((r) => (
@@ -97,8 +100,14 @@ export function PaginaResumen() {
       </section>
       {hayMasFacturas && (
         <p className="nota">
-          El resumen considera sus ultimas {datosFacturas.contenido.length} facturas.{' '}
+          El resumen considera únicamente las {datosFacturas.contenido.length} facturas de la primera página; los saldos y vencimientos podrían estar incompletos.{' '}
           <Link to="/facturas">Ver todas</Link>
+        </p>
+      )}
+      {hayMasContratos && (
+        <p className="nota">
+          El conteo de contratos vigentes considera únicamente la primera página.{' '}
+          <Link to="/contratos">Ver todos</Link>
         </p>
       )}
     </>

@@ -39,11 +39,15 @@ class ColaSyncRepo {
       carga = const {};
     }
 
-    final titulo = carga['nombre'] as String? ?? item.tipo;
+    final titulo = carga['nombre'] as String? ??
+        (item.tipo == 'validacion_local' ? 'Validación de IA local' : item.tipo);
     final briefId = carga['briefId'] as String?;
+    final piezaId = carga['piezaId'] as String?;
     final subtitulo = briefId != null
         ? 'Brief ${briefId.substring(0, briefId.length.clamp(0, 8))}…'
-        : item.tipo;
+        : piezaId != null
+            ? 'Pieza ${piezaId.substring(0, piezaId.length.clamp(0, 8))}…'
+            : item.tipo;
 
     if (item.estado == 'sincronizado') {
       return ElementoColaSync(

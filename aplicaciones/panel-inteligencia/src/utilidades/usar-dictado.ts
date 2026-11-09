@@ -36,6 +36,7 @@ const MENSAJES: Record<string, string> = {
  */
 export function useDictado(alTexto: (texto: string) => void) {
   const [escuchando, setEscuchando] = useState(false);
+  const [preparando, setPreparando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const reconocimiento = useRef<Reconocimiento | null>(null);
   const alTextoRef = useRef(alTexto);
@@ -46,31 +47,50 @@ export function useDictado(alTexto: (texto: string) => void) {
   });
   useEffect(() => () => reconocimiento.current?.abort(), []);
 
-  const iniciar = useCallback(() => {
+  const iniciar = useCallback(async () => {
     const Constructor = constructorDelNavegador();
     if (!Constructor) return;
     setError(null);
+    setPreparando(true);
+    try {
+      const flujo = await navigator.mediaDevices?.getUserMedia?.({ audio: true });
+      flujo?.getTracks().forEach((pista) => pista.stop());
+    } catch {
+      setPreparando(false);
+      setError('No se pudo acceder al micrófono. Revise el permiso del sitio e intente nuevamente.');
+      return;
+    }
     const r = new Constructor();
     r.lang = 'es-BO';
     r.continuous = false;
     r.interimResults = true;
-    if ('processLocally' in r) r.processLocally = true;
+    // No se fuerza processLocally: Chrome falla si el paquete local es-BO no está
+    // instalado. El navegador elige el motor disponible y la interfaz informa este hecho.
+    if ('processLocally' in r) r.processLocally = false;
     r.onresult = (evento) => {
       const texto = Array.from(evento.results, (resultado) => resultado[0]?.transcript ?? '').join(' ');
       alTextoRef.current(texto.trim());
     };
-    r.onerror = (evento) => setError(MENSAJES[evento.error] ?? 'No se pudo dictar. Escriba la pregunta.');
-    r.onend = () => setEscuchando(false);
+    r.onerror = (evento) => {
+      setEscuchando(false);
+      setError(MENSAJES[evento.error] ?? 'No se pudo dictar. Escriba la pregunta.');
+    };
+    r.onend = () => {
+      setEscuchando(false);
+      setPreparando(false);
+    };
     reconocimiento.current = r;
     try {
       r.start();
       setEscuchando(true);
+      setPreparando(false);
     } catch {
+      setPreparando(false);
       setError('No se pudo iniciar el dictado.');
     }
   }, []);
 
   const detener = useCallback(() => reconocimiento.current?.stop(), []);
 
-  return { soportado, escuchando, error, iniciar, detener };
+  return { soportado, escuchando, preparando, error, iniciar, detener };
 }

@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Boton } from '../../compartido/boton/boton';
@@ -11,7 +11,7 @@ import { AutenticacionService } from '../../core/auth/autenticacion.service';
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
-export class Login {
+export class Login implements OnInit {
   private readonly auth = inject(AutenticacionService);
   private readonly router = inject(Router);
 
@@ -27,6 +27,18 @@ export class Login {
     { email: 'admin@adorbit.com', nombre: 'Admin Global', rol: 'todos' },
   ];
 
+  async ngOnInit(): Promise<void> {
+    if (!new URLSearchParams(window.location.search).has('code')) return;
+    this.cargando.set(true);
+    const ok = await this.auth.completarFlujoKeycloak();
+    this.cargando.set(false);
+    if (ok) {
+      await this.router.navigateByUrl(this.rutaInicial());
+    } else {
+      this.error.set('No se pudo completar el inicio de sesion con Keycloak. Intente nuevamente.');
+    }
+  }
+
   seleccionarDemo(demoEmail: string): void {
     this.email = demoEmail;
     this.contrasena = 'Adorbit2026!';
@@ -41,16 +53,21 @@ export class Login {
     this.cargando.set(false);
 
     if (ok) {
-      // El rol creativo no gestiona campañas/presupuesto: su pantalla de trabajo es
-      // Creatividades, no el dashboard de campañas (pensado para ejecutivo/gerente).
-      const esSoloCreativo = this.auth.tieneRol('creativo') && !this.auth.tieneRol('ejecutivo');
-      this.router.navigateByUrl(esSoloCreativo ? '/creatividades' : '/dashboard');
+      this.router.navigateByUrl(this.rutaInicial());
     } else {
       this.error.set('Credenciales inválidas o servidor de autenticación inaccesible.');
     }
   }
 
   iniciarConKeycloak(): void {
-    this.auth.iniciarFlujoKeycloak();
+    void this.auth.iniciarFlujoKeycloak();
+  }
+
+  private rutaInicial(): string {
+    return this.auth.tieneRol('ejecutivo') || this.auth.tieneRol('gerente')
+      ? '/dashboard'
+      : this.auth.tieneRol('creativo')
+        ? '/creatividades'
+        : '/sin-acceso';
   }
 }

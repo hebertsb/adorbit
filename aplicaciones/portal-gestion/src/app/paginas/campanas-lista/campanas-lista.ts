@@ -32,12 +32,23 @@ export class CampanasLista {
 
   protected readonly textoBusqueda = signal('');
   protected readonly filtroEstado = signal<EstadoCampana | 'todos'>('todos');
+  protected readonly filtroCliente = signal('');
+  protected readonly clientesDisponibles = computed(() =>
+    [...new Set(this.campanasDatos.listar().map((campana) => campana.cliente))].sort((a, b) => a.localeCompare(b)),
+  );
+
+  protected limpiarFiltros(): void {
+    this.textoBusqueda.set('');
+    this.filtroEstado.set('todos');
+    this.filtroCliente.set('');
+  }
 
   protected readonly campanasFiltradas = computed(() => {
     const texto = this.textoBusqueda().toLowerCase().trim();
     const estado = this.filtroEstado();
     return this.campanasDatos
       .listar()
+      .filter((c) => !this.filtroCliente() || c.cliente === this.filtroCliente())
       .filter((c) => (estado === 'todos' ? true : c.estado === estado))
       .filter((c) => (texto ? c.nombre.toLowerCase().includes(texto) : true));
   });

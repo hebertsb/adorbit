@@ -10,7 +10,18 @@ if [ -z "$KEYCLOAK_SEED_PASSWORD" ]; then
   exit 1
 fi
 
-sed "s/__KEYCLOAK_SEED_PASSWORD__/$KEYCLOAK_SEED_PASSWORD/g" \
+if [ -z "$N8N_CLIENT_SECRET" ]; then
+  echo "Falta la variable de entorno N8N_CLIENT_SECRET" >&2
+  exit 1
+fi
+if [ -z "$KEYCLOAK_ADMIN_CLIENT_SECRET" ]; then
+  echo "Falta la variable de entorno KEYCLOAK_ADMIN_CLIENT_SECRET" >&2
+  exit 1
+fi
+
+sed -e "s/__KEYCLOAK_SEED_PASSWORD__/$KEYCLOAK_SEED_PASSWORD/g" \
+  -e "s/__N8N_CLIENT_SECRET__/$N8N_CLIENT_SECRET/g" \
+  -e "s/__KEYCLOAK_ADMIN_CLIENT_SECRET__/$KEYCLOAK_ADMIN_CLIENT_SECRET/g" \
   /opt/keycloak/data/import/dominio.json.template \
   > /opt/keycloak/data/import/dominio.json
 

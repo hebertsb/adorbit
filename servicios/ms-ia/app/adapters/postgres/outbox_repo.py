@@ -9,6 +9,8 @@ import json
 from typing import Any
 from uuid import UUID, uuid4
 
+from .conexion import obtener_pool_principal
+
 
 class OutboxEventosRepositorioPg:
     async def publicar(
@@ -31,3 +33,27 @@ class OutboxEventosRepositorioPg:
             tipo_evento,
             json.dumps(carga, default=str),
         )
+
+    async def listar_alertas(self, limite: int = 50) -> list[dict[str, Any]]:
+        pool = await obtener_pool_principal()
+        filas = await pool.fetch(
+            """
+            SELECT id, tipo_evento, agregado_id, carga, creado_en
+            FROM bandeja_salida_eventos
+            WHERE tipo_evento = 'AlertaCampana'
+            ORDER BY creado_en DESC
+            LIMIT $1
+            """,
+            limite,
+        )
+        alertas = []
+        for fila in filas:
+            carga = json.loads(fila["carga"]) if isinstance(fila["carga"], str) else dict(fila["carga"])
+            alertas.append({
+                "id": str(fila["id"]),
+                "tipo_evento": fila["tipo_evento"],
+                "campana_id": str(fila["agregado_id"]),
+                "creado_en": fila["creado_en"].isoformat() if fila["creado_en"] else None,
+                **carga,
+            })
+        return alertas

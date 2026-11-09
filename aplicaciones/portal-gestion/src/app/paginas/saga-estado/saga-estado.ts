@@ -1,13 +1,11 @@
 import { Component, computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Boton } from '../../compartido/boton/boton';
-import { Tarjeta } from '../../compartido/tarjeta/tarjeta';
 import { SagaDatos } from '../../core/datos/saga.datos';
 import { EstadoPasoSaga, EstadoSaga } from '../../core/datos/saga.modelo';
 
 @Component({
   selector: 'ao-pagina-saga-estado',
-  imports: [RouterLink, Boton, Tarjeta],
+  imports: [RouterLink],
   templateUrl: './saga-estado.html',
   styleUrl: './saga-estado.css',
 })
@@ -18,7 +16,6 @@ export class SagaEstado implements OnInit, OnDestroy {
   private readonly idSaga = this.ruta.snapshot.paramMap.get('id') ?? '';
   private intervaloPolling: any = null;
 
-  protected readonly escenario = signal<'en_progreso' | 'fallo'>('en_progreso');
   protected readonly sagaReal = signal<EstadoSaga | null>(null);
 
   protected readonly error = signal('');
@@ -27,6 +24,11 @@ export class SagaEstado implements OnInit, OnDestroy {
   protected readonly pasosCompletados = computed(
     () => this.saga()?.pasos.filter((p) => p.estado === 'completado').length ?? 0,
   );
+
+  protected readonly porcentajeCompletado = computed(() => {
+    const total = this.saga()?.pasos.length ?? 0;
+    return total ? Math.round((this.pasosCompletados() / total) * 100) : 0;
+  });
 
   async ngOnInit(): Promise<void> {
     await this.cargarEstadoSaga();

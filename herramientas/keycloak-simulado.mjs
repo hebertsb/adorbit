@@ -23,8 +23,20 @@ const PUERTO = Number(process.env.PUERTO ?? 8180);
 const ESCUCHAR = process.env.ESCUCHAR ?? '127.0.0.1';
 const EMISOR = process.env.EMISOR ?? `http://localhost:${PUERTO}/realms/adorbit`;
 const AUDIENCIAS = (process.env.AUDIENCIAS ?? 'ms-facturacion,ms-clientes-crm,ms-ia,ms-creatividades').split(',');
-const CLIENTES = JSON.parse(process.env.CLIENTES ?? '{"n8n":{"secret":"secreto-local","roles":["gerente"]}}');
-const USUARIOS = JSON.parse(process.env.USUARIOS ?? '[]');
+const CLIENTES = JSON.parse(
+  process.env.CLIENTES ??
+    '{"n8n":{"secret":"secreto-local","roles":["gerente"]},"pasarela-admin":{"secret":"secreto-local","roles":["gerente"]}}'
+);
+const CLIENTE_DEMO_ID = process.env.CLIENTE_DEMO_ID ?? '00000000-0000-0000-0000-000000000001';
+const USUARIOS_DEFECTO = [
+  { id: '00000000-0000-0000-0000-000000000001', usuario: 'gerente@adorbit.com', email: 'gerente@adorbit.com', nombre: 'Luis Gerente', roles: ['gerente'], habilitado: true },
+  { id: '00000000-0000-0000-0000-000000000002', usuario: 'ejecutivo@adorbit.com', email: 'ejecutivo@adorbit.com', nombre: 'Roly Ejecutivo', roles: ['ejecutivo'], habilitado: true },
+  { id: '00000000-0000-0000-0000-000000000003', usuario: 'creativo@adorbit.com', email: 'creativo@adorbit.com', nombre: 'Hebert Creativo', roles: ['creativo'], habilitado: true },
+  { id: '00000000-0000-0000-0000-000000000004', usuario: 'cliente@adorbit.com', email: 'cliente@adorbit.com', nombre: 'Banco Mercantil', roles: ['cliente'], cliente_id: CLIENTE_DEMO_ID, habilitado: true },
+  { id: '00000000-0000-0000-0000-000000000005', usuario: 'admin@adorbit.com', email: 'admin@adorbit.com', nombre: 'Admin Global', roles: ['gerente', 'ejecutivo', 'creativo'], habilitado: true },
+];
+const USUARIOS = JSON.parse(process.env.USUARIOS ?? 'null') ?? [...USUARIOS_DEFECTO];
+const usuariosAdmin = [...USUARIOS];
 const CLIENTES_PUBLICOS = (process.env.CLIENTES_PUBLICOS ?? 'portal-cliente,panel-inteligencia').split(',');
 const REDIRECCIONES = (process.env.REDIRECCIONES ?? 'http://localhost:5173,http://localhost:4173,http://localhost:5174,http://localhost:4174').split(',');
 const DURACION_S = Number(process.env.DURACION_S ?? 300); // duracion del access token (corta para probar la renovacion)
@@ -83,9 +95,14 @@ async function leerFormulario(req) {
 function validarPeticionAuth(p) {
   if (p.response_type !== 'code') return 'response_type debe ser code';
   if (!CLIENTES_PUBLICOS.includes(p.client_id)) return `cliente desconocido: ${p.client_id}`;
-  if (!REDIRECCIONES.some((prefijo) => (p.redirect_uri ?? '').startsWith(prefijo + '/'))) return 'redirect_uri no permitido';
+  if (!redireccionPermitida(p.redirect_uri)) return 'redirect_uri no permitido';
   if (!p.code_challenge || p.code_challenge_method !== 'S256') return 'se exige PKCE (S256)';
   return null;
+}
+
+function redireccionPermitida(valor) {
+  return REDIRECCIONES.some((permitida) =>
+    valor === permitida || valor?.startsWith(permitida.endsWith(':') ? permitida : `${permitida}/`));
 }
 
 function pantallaIngreso(res, p, error) {
@@ -97,7 +114,7 @@ function pantallaIngreso(res, p, error) {
 ${error ? `<p class="aviso" role="alert">${esc(error)}</p>` : ''}${atajos}
 <form method="post" action="${BASE}/auth">${ocultos}<strong>Otro usuario</strong>
 <input name="usuario" placeholder="usuario" required><select name="rol"><option>cliente</option><option>ejecutivo</option><option>creativo</option><option>gerente</option></select>
-<input name="cliente_id" placeholder="cliente_id (UUID, solo para el rol cliente)"><button>Entrar</button></form>`);
+<small>La relación con el cliente se obtiene del proveedor de identidad; no se escribe manualmente.</small><button>Entrar</button></form>`);
 }
 
 function emitirTokensDeUsuario(cliente, u, nonce) {
@@ -136,8 +153,24 @@ const servidor = createServer(async (req, res) => {
     if (error) return html(res, 400, `<h1>Peticion invalida</h1><p>${esc(error)}</p>`);
     if (req.method === 'GET') return pantallaIngreso(res, p);
 
-    const usuario = p.elegido !== undefined ? USUARIOS[Number(p.elegido)]
-      : { usuario: p.usuario?.trim(), nombre: p.usuario?.trim(), roles: [p.rol], cliente_id: p.cliente_id?.trim() || undefined };
+    const usuarioEncontrado = usuariosAdmin.find(
+      (u) => u.usuario === p.usuario?.trim() || u.email === p.usuario?.trim()
+    );
+    const usuario = p.elegido !== undefined
+      ? USUARIOS[Number(p.elegido)]
+      : usuarioEncontrado
+      ? {
+          usuario: usuarioEncontrado.usuario,
+          nombre: usuarioEncontrado.nombre || usuarioEncontrado.usuario,
+          roles: usuarioEncontrado.roles?.length ? usuarioEncontrado.roles : [p.rol],
+          cliente_id: usuarioEncontrado.cliente_id ?? (p.rol === 'cliente' ? CLIENTE_DEMO_ID : undefined),
+        }
+      : {
+          usuario: p.usuario?.trim(),
+          nombre: p.usuario?.trim(),
+          roles: [p.rol],
+          cliente_id: p.rol === 'cliente' ? CLIENTE_DEMO_ID : undefined,
+        };
     if (!usuario?.usuario) return pantallaIngreso(res, p, 'Usuario invalido');
     const codigo = randomUUID();
     codigos.set(codigo, { cliente: p.client_id, redirigir: p.redirect_uri, desafio: p.code_challenge, nonce: p.nonce, usuario });
@@ -182,19 +215,105 @@ const servidor = createServer(async (req, res) => {
 
   if (req.method === 'GET' && ruta === `${BASE}/logout`) {
     const destino = url.searchParams.get('post_logout_redirect_uri');
-    if (destino && REDIRECCIONES.some((prefijo) => destino.startsWith(prefijo))) { res.writeHead(302, { Location: destino }); return res.end(); }
+    if (destino && redireccionPermitida(destino)) { res.writeHead(302, { Location: destino }); return res.end(); }
     return html(res, 200, '<h1>Sesion cerrada</h1>');
+  }
+
+  // Keycloak Admin REST API simulada (utilizada por plataforma/pasarela/src/administracion-identidad.ts)
+  if (req.method === 'GET' && ruta === '/admin/realms/adorbit/users') {
+    return json(
+      res,
+      200,
+      usuariosAdmin.map((u) => ({
+        id: u.id,
+        username: u.usuario,
+        email: u.email || u.usuario,
+        firstName: u.nombre?.split(' ')[0] || u.usuario,
+        lastName: u.nombre?.split(' ').slice(1).join(' ') || '',
+        enabled: u.habilitado ?? true,
+        attributes: u.cliente_id ? { cliente_id: [u.cliente_id] } : undefined,
+      }))
+    );
+  }
+
+  if (req.method === 'POST' && ruta === '/admin/realms/adorbit/users') {
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw || '{}');
+    const nuevoId = randomUUID();
+    const clienteId = body.attributes?.cliente_id?.[0];
+    const u = {
+      id: nuevoId,
+      usuario: body.username,
+      email: body.email || body.username,
+      nombre: [body.firstName, body.lastName].filter(Boolean).join(' ') || body.username,
+      habilitado: body.enabled ?? true,
+      roles: [],
+      cliente_id: clienteId,
+      credentials: body.credentials || [],
+    };
+    usuariosAdmin.push(u);
+    USUARIOS.push(u);
+    res.setHeader('Location', `/admin/realms/adorbit/users/${nuevoId}`);
+    return json(res, 201, { id: nuevoId });
+  }
+
+  if (ruta.startsWith('/admin/realms/adorbit/users/') && ruta.endsWith('/role-mappings/realm')) {
+    const partes = ruta.split('/');
+    const id = decodeURIComponent(partes[5]);
+    const u = usuariosAdmin.find((user) => user.id === id);
+    if (!u) return json(res, 404, { error: 'Usuario no encontrado' });
+
+    if (req.method === 'GET') {
+      return json(res, 200, (u.roles || []).map((r) => ({ id: r, name: r })));
+    }
+    if (req.method === 'POST') {
+      let raw = '';
+      for await (const chunk of req) raw += chunk;
+      const rolesParaAsignar = JSON.parse(raw || '[]');
+      const nuevosNombres = rolesParaAsignar.map((r) => r.name);
+      u.roles = [...new Set([...(u.roles || []), ...nuevosNombres])];
+      return json(res, 204, {});
+    }
+  }
+
+  if (ruta.startsWith('/admin/realms/adorbit/roles/')) {
+    const rolName = decodeURIComponent(ruta.split('/')[5]);
+    return json(res, 200, { id: rolName, name: rolName });
+  }
+
+  if (ruta.startsWith('/admin/realms/adorbit/users/') && ruta.endsWith('/reset-password')) {
+    const id = decodeURIComponent(ruta.split('/')[5]);
+    const u = usuariosAdmin.find((user) => user.id === id);
+    if (!u) return json(res, 404, { error: 'Usuario no encontrado' });
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw || '{}');
+    u.credentials = [{ type: 'password', value: body.value, temporary: body.temporary }];
+    return json(res, 204, {});
+  }
+
+  if (req.method === 'PUT' && ruta.startsWith('/admin/realms/adorbit/users/')) {
+    const id = decodeURIComponent(ruta.split('/')[5]);
+    const u = usuariosAdmin.find((user) => user.id === id);
+    if (!u) return json(res, 404, { error: 'Usuario no encontrado' });
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    const body = JSON.parse(raw || '{}');
+    if (typeof body.enabled === 'boolean') u.habilitado = body.enabled;
+    return json(res, 204, {});
   }
 
   // Solo desarrollo: token de un usuario cualquiera. GET /emitir?roles=cliente&cliente_id=<uuid>&email=<email>
   if (req.method === 'GET' && ruta === '/emitir') {
     const roles = (url.searchParams.get('roles') ?? 'ejecutivo').split(',');
     const email = url.searchParams.get('email');
+    const encontrado = USUARIOS_DEFECTO.find((u) => u.email === email || u.usuario === email);
     const extra = {
       ...(url.searchParams.get('cliente_id') ? { cliente_id: url.searchParams.get('cliente_id') } : {}),
-      ...(email ? { email, preferred_username: email } : {}),
+      ...(email ? { email, preferred_username: email, name: encontrado?.nombre ?? email.split('@')[0] } : {}),
     };
-    return json(res, 200, { access_token: tokenAcceso({ sub: 'usuario-simulado', roles, extra }) });
+    return json(res, 200, { access_token: tokenAcceso({ sub: encontrado?.id ?? 'usuario-simulado', roles, extra }) });
   }
 
   if (ruta === '/salud') return json(res, 200, { estado: 'vivo' });
@@ -202,3 +321,12 @@ const servidor = createServer(async (req, res) => {
 });
 
 servidor.listen(PUERTO, ESCUCHAR, () => console.log(`Keycloak simulado en http://${ESCUCHAR}:${PUERTO} (emisor ${EMISOR})`));
+
+if (PUERTO !== 8080) {
+  try {
+    const servidor8080 = createServer((req, res) => servidor.emit('request', req, res));
+    servidor8080.listen(8080, ESCUCHAR, () => console.log(`Keycloak simulado (puerto 8080) en http://${ESCUCHAR}:8080`));
+  } catch (err) {
+    console.warn('No se pudo abrir puerto 8080 secundario:', err.message);
+  }
+}

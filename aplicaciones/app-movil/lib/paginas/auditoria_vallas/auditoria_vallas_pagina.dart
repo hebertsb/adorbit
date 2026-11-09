@@ -1,8 +1,10 @@
 import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../compartido/badge_confianza.dart';
 import '../../compartido/tarjeta_ao.dart';
@@ -10,24 +12,18 @@ import '../../core/auth/sesion_controller.dart';
 import '../../core/i18n/idioma_controller.dart';
 import '../../core/i18n/textos.dart';
 import '../../core/red/api_excepcion.dart';
+import '../../core/ia_local/detector_logo_local.dart';
+import '../../core/datos_locales/bandeja_salida_dao.dart';
+import '../../core/sync/sincronizador_service.dart';
 import '../../core/tema/colores_ao.dart';
 import '../../datos/modelos/brief.dart';
 import '../../datos/modelos/vision_resultado.dart';
 import '../../datos/repos/briefs_repo.dart';
-import '../../datos/repos/vision_repo.dart';
 
 enum _EstadoFisico { bueno, deterioro, danado }
 
-/// Audita una pieza real contra el servidor real de vision de ms-ia (D21/D22 en
-/// documentacion/05-decisiones-y-pendientes.md): se elige un brief/pieza real propios
-/// (ya no una valla de muestra fija), se toma una foto real en el dispositivo y se
-/// manda a POST /api/v1/vision/analizar -- el resultado (detecta_logo, confianza) es
-/// una prediccion real del modelo yolo_logo_adorbit, y la fila queda guardada de
-/// verdad en vision_resultados (Postgres de ms-ia), no solo en la pantalla.
-/// Lo que sigue sin existir en el backend: un endpoint para listar auditorias
-/// anteriores, datos de cliente/campana legibles (ms-creatividades no los guarda,
-/// solo el UUID de campana) y verificacion GPS -- por eso esta pantalla ya no los
-/// inventa.
+/// Audita una pieza real con el modelo ONNX local. La foto nunca sale del dispositivo:
+/// solo el resultado y sus metadatos se encolan y registran en ms-creatividades.
 class AuditoriaVallasPagina extends ConsumerStatefulWidget {
   const AuditoriaVallasPagina({super.key});
 
@@ -116,12 +112,47 @@ class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
       _errorAnalisis = null;
     });
     try {
-      final resultado = await VisionRepo(token: token).analizar(
+      final reloj = Stopwatch()..start();
+      final deteccion = await DetectorLogoLocal.instancia.detectar(bytes);
+      reloj.stop();
+      final ahora = DateTime.now();
+      final resultado = VisionResultado(
+        id: const Uuid().v4(),
         piezaId: pieza.id,
-        bytes: bytes,
         campanaId: pieza.campanaId,
-        origen: 'movil_local',
+        detectaLogo: deteccion.detectaLogo,
+        confianza: deteccion.confianza,
+        manualMarcaOk: _estadoSeleccionado == _EstadoFisico.bueno,
+        duracionMs: reloj.elapsedMilliseconds,
       );
+      await BandejaSalidaDao().encolar(
+        ElementoBandeja(
+          claveIdempotencia: const Uuid().v4(),
+          tipo: 'validacion_local',
+          carga: jsonEncode({
+            'piezaId': pieza.id,
+            'nombre': 'Auditoría local · ${pieza.nombre}',
+            'resultado': deteccion.detectaLogo && _estadoSeleccionado == _EstadoFisico.bueno
+                ? 'ok'
+                : deteccion.detectaLogo
+                    ? 'observada'
+                    : 'rechazada',
+            'detalles': {
+              'modelo': 'yolo_logo_adorbit.onnx',
+              'detecta_logo': deteccion.detectaLogo,
+              'confianza': deteccion.confianza,
+              'estado_fisico': _estadoSeleccionado.name,
+              'duracion_ms': reloj.elapsedMilliseconds,
+              'capturado_en': ahora.toUtc().toIso8601String(),
+              'procesamiento': 'on_device',
+            },
+          }),
+          estado: 'pendiente',
+          intentos: 0,
+          creadoEn: ahora,
+        ),
+      );
+      await SincronizadorService(token: token).drenarPendientes();
       if (!mounted) return;
       setState(() {
         _resultado = resultado;
@@ -371,7 +402,7 @@ class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _t('auditoria.analizado_servidor'),
+                        'Analizado en este dispositivo · resultado encolado para sincronización',
                         style: TextStyle(color: c.textoTenue, fontSize: 11),
                       ),
                     ],

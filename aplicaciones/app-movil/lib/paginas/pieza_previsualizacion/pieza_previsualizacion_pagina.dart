@@ -190,12 +190,6 @@ class _PiezaPrevisualizacionPaginaState
                           ),
                   ),
                 ),
-                Positioned(
-                  left: 10,
-                  top: 10,
-                  child: _chip(_t('previsualizacion.jpg_alta_resolucion')),
-                ),
-                Positioned(right: 10, top: 10, child: _chip('1080 × 1920')),
               ],
             ),
           ),
@@ -208,7 +202,6 @@ class _PiezaPrevisualizacionPaginaState
                   style: TextStyle(color: c.texto, fontWeight: FontWeight.w700),
                 ),
               ),
-              _chip(_t('previsualizacion.pop_totem')),
             ],
           ),
           const SizedBox(height: 14),
@@ -262,20 +255,6 @@ class _PiezaPrevisualizacionPaginaState
             ],
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _chip(String texto) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black54,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        texto,
-        style: const TextStyle(color: Colors.white, fontSize: 10),
       ),
     );
   }

@@ -4,24 +4,27 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: 1.5rem;
-  background: var(--color-fondo-pagina, #f8fafc);
+  box-sizing: border-box;
+  padding: 24px 16px;
+  background: var(--color-fondo-pagina, #f6f7fb);
   font-family: inherit;
 }
 
 .tarjeta-login {
+  box-sizing: border-box;
   width: 100%;
   max-width: 440px;
   background: var(--color-superficie, #ffffff);
-  border: 1px solid var(--color-borde, #e2e8f0);
-  border-radius: 1rem;
-  padding: 2.25rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--color-borde, #e3e6ee);
+  border-radius: 10px;
+  padding: 40px 32px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 6%), 0 4px 14px rgb(15 23 42 / 5%);
 }
 
 .marca {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
@@ -35,14 +38,17 @@
 
 h1 {
   font-size: 1.35rem;
-  font-weight: 600;
+  font-weight: 700;
+  text-align: center;
   margin: 0 0 0.5rem;
   color: var(--color-texto-primario, #0f172a);
 }
 
 .sub {
-  font-size: 0.875rem;
-  color: var(--color-texto-secundario, #64748b);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--color-texto-secundario, #5b6472);
   margin-bottom: 1.5rem;
 }
 
@@ -75,6 +81,9 @@ h1 {
 }
 
 .campo input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 44px;
   padding: 0.65rem 0.85rem;
   border: 1px solid var(--color-borde, #cbd5e1);
   border-radius: 0.5rem;
@@ -116,7 +125,7 @@ h1 {
 
 .botones-demo {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
   margin-bottom: 1.25rem;
 }
@@ -125,6 +134,8 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  min-width: 0;
+  min-height: 44px;
   padding: 0.5rem 0.75rem;
   background: var(--color-fondo-suave, #f8fafc);
   border: 1px solid var(--color-borde, #e2e8f0);

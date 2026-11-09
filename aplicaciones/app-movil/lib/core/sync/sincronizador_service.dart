@@ -7,7 +7,7 @@ import '../red/api_cliente.dart';
 import 'preferencias_sync.dart';
 
 /// Drena bandeja_salida_local contra el backend real de ms-creatividades. Hoy solo
-/// conoce el tipo 'pieza_subida' (ver pieza_previsualizacion_pagina.dart), con el
+/// conoce piezas subidas y validaciones de IA local, con el
 /// mismo flujo de 3 pasos que usa SolicitarSubidaPieza.ts del lado del servidor:
 /// 1) crear la Pieza (sin archivo), 2) pedir una URL firmada de Supabase Storage,
 /// 3) subir los bytes reales directo a esa URL (nunca pasan por ms-creatividades).
@@ -53,13 +53,24 @@ class SincronizadorService {
   }
 
   Future<void> _enviar(ElementoBandeja item) async {
-    if (item.tipo != 'pieza_subida') {
-      throw UnsupportedError(
-        'Tipo de elemento de bandeja desconocido: ${item.tipo}',
+    final carga = jsonDecode(item.carga) as Map<String, dynamic>;
+
+    if (item.tipo == 'validacion_local') {
+      await _api.post(
+        '/api/v1/piezas/${carga['piezaId']}/validaciones',
+        idempotencyKey: item.claveIdempotencia,
+        body: {
+          'resultado': carga['resultado'],
+          'origen': 'ia',
+          'detalles': carga['detalles'],
+        },
       );
+      return;
     }
 
-    final carga = jsonDecode(item.carga) as Map<String, dynamic>;
+    if (item.tipo != 'pieza_subida') {
+      throw UnsupportedError('Tipo de elemento de bandeja desconocido: ${item.tipo}');
+    }
 
     final pieza = await _api.post(
       '/api/v1/briefs/${carga['briefId']}/piezas',

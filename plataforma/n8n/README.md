@@ -11,7 +11,7 @@ servicios reales (ms-facturacion, ms-clientes-crm), RabbitMQ y un Keycloak simul
 | 02 | Cobranza diaria | Cron 8:00 (y manual) | Marca facturas vencidas (`POST /facturas/vencimientos`), recuerda las vencidas y las que vencen en 3 días (una vez por día) y resume a gerencia. **Solo envía recordatorios: no cambia estados de cobro** | Probado |
 | 03 | Reporte semanal | Cron lunes 8:00 (y manual) | Resume facturación por estado y moneda y lo envía a gerencia | Probado |
 | 04 | Programar reunión | `POST /webhook/reunion` | Valida, busca el contacto y envía la invitación con adjunto `.ics` | Probado |
-| 05 | Pedido → cotización → notificar | `POST /webhook/pedido` | Cotiza en ms-facturacion y envía la cotización. Los reintentos del mismo pedido no reenvían el correo | Probado (crear la campaña en ms-campanas queda **desactivado**, ver pendientes) |
+| 05 | Pedido → cotización → notificar | `POST /webhook/pedido` | Cotiza en ms-facturacion y envía la cotización; crea la campaña en ms-campanas con `Idempotency-Key`. Los reintentos del mismo pedido no reenvían el correo | Probado y conectado |
 
 ### Contratos de los webhooks
 Ambos exigen el encabezado `X-Webhook-Token` (variable `ADORBIT_N8N_WEBHOOK_TOKEN`) y rechazan campos desconocidos.
@@ -75,7 +75,7 @@ que volver a importarlo y publicarlo.
 ## Pendiente (depende de otros integrantes)
 | Qué | De quién | Detalle |
 |---|---|---|
-| Crear la campaña desde el pedido | A (ms-campanas) | El nodo «Crear campana en ms-campanas» del flujo 05 está desactivado hasta que exista `POST /campanas` |
+| Crear la campaña desde el pedido | A (ms-campanas) | Conectado: el nodo «Crear campana en ms-campanas» del flujo 05 llama `POST /api/v1/campanas` con idempotencia y vigencia por defecto |
 | Avisar `CampanaContratada` / `CampanaRechazada` | A | Cola `n8n.campana-*` y búsqueda del cliente en ms-campanas |
 | Tarea programada: liberar bloqueos de piezas vencidos | C (ms-creatividades) | Falta el endpoint que la dispare |
 | Tarea programada: compensar SAGAs colgadas | A | Falta el endpoint del orquestador |

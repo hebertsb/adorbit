@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adorbit-gestion-v1';
+const CACHE_NAME = 'adorbit-gestion-v2';
 const RECURSOS_ESTATICOS = [
   '/',
   '/index.html',

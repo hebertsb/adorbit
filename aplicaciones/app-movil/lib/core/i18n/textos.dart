@@ -394,9 +394,18 @@ class Textos {
     },
     'validacion.inferencia_detalle': {
       Idioma.es:
-          'Inferencia on-device con el modelo de logo de AdOrbit (ONNX Runtime), sin subir la imagen a ningún servidor',
+          'El análisis del logo se realiza en este dispositivo. La pieza se sincroniza por separado.',
       Idioma.en:
-          'On-device inference with the AdOrbit logo model (ONNX Runtime), without uploading the image to any server',
+          'Logo analysis runs on this device. The piece is synced separately.',
+    },
+    'validacion.estado_cola': {
+      Idioma.es:
+          'La foto se agregó a la cola. Consulta su estado en Sincronización.',
+      Idioma.en: 'The photo was added to the queue. Check its status in Sync.',
+    },
+    'validacion.volver_brief': {
+      Idioma.es: 'Volver al brief',
+      Idioma.en: 'Back to brief',
     },
     'validacion.analizando': {
       Idioma.es: 'Analizando con IA local...',
@@ -480,13 +489,13 @@ class Textos {
     },
     'validacion.logo_reconocido_banner': {
       Idioma.es:
-          'El modelo local reconoció el logo de AdOrbit en la pieza. Puedes subirla al sistema.',
+          'El modelo local identificó el logo de AdOrbit. El resultado es orientativo.',
       Idioma.en:
-          'The local model recognized the AdOrbit logo in the piece. You can upload it to the system.',
+          'The local model identified the AdOrbit logo. The result is advisory.',
     },
     'validacion.revisa_pieza_titulo': {
-      Idioma.es: 'Revisa la pieza antes de subir — riesgo de auditoría',
-      Idioma.en: 'Review the piece before uploading — audit risk',
+      Idioma.es: 'Logo no reconocido con suficiente confianza',
+      Idioma.en: 'Logo not recognized with sufficient confidence',
     },
     'validacion.revisa_pieza_detalle': {
       Idioma.es:

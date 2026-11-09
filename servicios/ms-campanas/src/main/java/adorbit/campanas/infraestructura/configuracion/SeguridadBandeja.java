@@ -37,12 +37,11 @@ public class SeguridadBandeja {
     }
 
     @Bean
-    @Order(1)
-    SecurityFilterChain seguridadInterna(HttpSecurity http,
+    JwtDecoder decodificadorJwt(
             @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}") String emisor,
             @Value("${ADORBIT_CAMPANAS_AUDIENCIA_JWT:}") String audiencia,
-            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwks) throws Exception {
-        JwtDecoder decodificador = new JwtDecoder() {
+            @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwks) {
+        return new JwtDecoder() {
             private volatile NimbusJwtDecoder delegado;
 
             @Override
@@ -66,6 +65,11 @@ public class SeguridadBandeja {
                 }
             }
         };
+    }
+
+    @Bean
+    @Order(1)
+    SecurityFilterChain seguridadInterna(HttpSecurity http, JwtDecoder decodificador) throws Exception {
         http.securityMatcher("/api/v1/interno/bandeja-salida/**")
             .csrf(csrf -> csrf.disable())
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

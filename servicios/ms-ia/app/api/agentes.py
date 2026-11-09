@@ -28,8 +28,9 @@ router = APIRouter(prefix="/api/v1")
 _ROLES_AGENTES = {"ejecutivo", "gerente"}
 _agentes_repo = AgenteRepositorioPg()
 _ejecuciones_repo = EjecucionAgenteRepositorioPg()
+_outbox_repo = OutboxEventosRepositorioPg()
 _consultas = ConsultasMcp(VistaMcpRepositorioPg(), EjecutorHerramientaMcp(AuditoriaMcpRepositorioPg()))
-_ejecutar_agente = EjecutarAgente(_agentes_repo, _ejecuciones_repo, _consultas, OutboxEventosRepositorioPg())
+_ejecutar_agente = EjecutarAgente(_agentes_repo, _ejecuciones_repo, _consultas, _outbox_repo)
 
 
 def _agente_a_dict(agente: Agente) -> dict[str, Any]:
@@ -87,3 +88,34 @@ async def ejecutar_agente(
             conexion=conexion,
         )
     return _ejecucion_a_dict(ejecucion)
+
+
+@router.get("/agentes/ejecuciones")
+async def listar_ejecuciones(
+    identidad: Annotated[IdentidadAutenticada, Depends(verificar_jwt)],
+    limite: int = 20,
+) -> dict[str, Any]:
+    exigir_rol(identidad, _ROLES_AGENTES)
+    ejecuciones = await _ejecuciones_repo.listar_recientes(limite=limite)
+    return {"items": [_ejecucion_a_dict(e) for e in ejecuciones]}
+
+
+@router.get("/agentes/{id_agente}/ejecuciones")
+async def listar_ejecuciones_por_agente(
+    id_agente: UUID,
+    identidad: Annotated[IdentidadAutenticada, Depends(verificar_jwt)],
+    limite: int = 20,
+) -> dict[str, Any]:
+    exigir_rol(identidad, _ROLES_AGENTES)
+    ejecuciones = await _ejecuciones_repo.listar_recientes(limite=limite, id_agente=id_agente)
+    return {"items": [_ejecucion_a_dict(e) for e in ejecuciones]}
+
+
+@router.get("/alertas")
+async def listar_alertas(
+    identidad: Annotated[IdentidadAutenticada, Depends(verificar_jwt)],
+    limite: int = 50,
+) -> dict[str, Any]:
+    exigir_rol(identidad, _ROLES_AGENTES)
+    alertas = await _outbox_repo.listar_alertas(limite=limite)
+    return {"items": alertas}

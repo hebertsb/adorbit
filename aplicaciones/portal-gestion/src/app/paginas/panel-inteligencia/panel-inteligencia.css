@@ -1,0 +1,11 @@
+:host, .destino-panel {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+button {
+  min-height: 44px;
+  padding: 0 1rem;
+  cursor: pointer;
+}

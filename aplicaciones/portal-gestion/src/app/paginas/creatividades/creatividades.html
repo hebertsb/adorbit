@@ -1,64 +1,364 @@
-<div class="encabezado">
-  <h1>Briefs y piezas de creatividad</h1>
-  <p>Gestión de piezas publicitarias y control de aprobación.</p>
-</div>
+<header class="encabezado">
+  <div>
+    <span class="sobrelinea">FLUJO CREATIVO</span>
+    <h1>Briefs y piezas</h1>
+    <p>Registro, carga y aprobación de materiales publicitarios.</p>
+  </div>
+  <button
+    type="button"
+    class="boton-primario"
+    (click)="mostrarNuevoBrief.set(!mostrarNuevoBrief())"
+  >
+    + Nuevo brief
+  </button>
+</header>
+
+@if (error()) {
+  <div class="mensaje mensaje--error" role="alert">{{ error() }}</div>
+}
+@if (exito()) {
+  <div class="mensaje mensaje--exito" role="status">{{ exito() }}</div>
+}
+
+@if (mostrarNuevoBrief()) {
+  <form
+    class="formulario-operacion"
+    (submit)="$event.preventDefault(); crearBrief(titulo.value, descripcion.value)"
+  >
+    <div class="formulario-operacion__titulo">
+      <div>
+        <span class="sobrelinea">NUEVO REGISTRO</span>
+        <h2>Crear brief creativo</h2>
+      </div>
+      <button type="button" class="boton-texto" (click)="mostrarNuevoBrief.set(false)">
+        Cerrar
+      </button>
+    </div>
+
+    <!-- SECCIÓN ADORBIT COPILOT CON IA -->
+    <section class="copilot-card campo-ancho" aria-label="Asistente de Creatividad con IA">
+      <div class="copilot-card__cabecera">
+        <div class="copilot-card__identidad">
+          <span class="copilot-badge">✨ AdOrbit Copilot</span>
+          <h3>Asistente Creativo con IA</h3>
+          <p>Formula o perfecciona tu brief en segundos a partir de una idea clave o necesidad comercial.</p>
+        </div>
+        <button
+          type="button"
+          class="boton-secundario boton-copilot-toggle"
+          (click)="alternarAsistente()"
+        >
+          {{ asistenteAbierto() ? 'Ocultar asistente' : 'Desplegar asistente' }}
+        </button>
+      </div>
+
+      @if (asistenteAbierto()) {
+        <div class="copilot-card__cuerpo">
+          <div class="copilot-fila">
+            <label class="copilot-campo">
+              <span>¿Cuál es el concepto, producto o mensaje que deseas comunicar?</span>
+              <textarea
+                #conceptoInput
+                rows="2"
+                placeholder="Ej. Bebida energizante natural sin azúcar para jóvenes que estudian y entrenan de noche"
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="copilot-fila copilot-fila--doble">
+            <label class="copilot-campo">
+              <span>Público objetivo (opcional)</span>
+              <input
+                #publicoInput
+                placeholder="Ej. Jóvenes de 18 a 30 años, universitarios y atletas"
+              />
+            </label>
+
+            <div class="copilot-campo">
+              <span>Tono de comunicación</span>
+              <div class="pildoras-tono">
+                @for (t of tonosDisponibles; track t) {
+                  <button
+                    type="button"
+                    class="pildora-tono"
+                    [class.pildora-tono--activa]="tonoIa() === t"
+                    (click)="seleccionarTono(t)"
+                  >
+                    {{ t }}
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="copilot-acciones">
+            <button
+              type="button"
+              class="boton-copilot-generar"
+              [disabled]="generandoIa() || !conceptoInput.value"
+              (click)="generarConIa(conceptoInput.value, publicoInput.value)"
+            >
+              @if (generandoIa()) {
+                <span class="icono-giratorio">⚙️</span> Formulando con IA…
+              } @else {
+                ✨ Generar propuesta con IA
+              }
+            </button>
+          </div>
+
+          @if (propuestaIa(); as propuesta) {
+            <div class="copilot-resultado">
+              <div class="copilot-resultado__cabecera">
+                <div>
+                  <span class="insignia-origen">{{ propuesta.origen === 'groq_llm' ? 'Motor: Groq LLM' : 'Motor: Síntesis Inteligente AdOrbit' }}</span>
+                  <h4 class="copilot-resultado__titulo">{{ propuesta.titulo }}</h4>
+                </div>
+                <button
+                  type="button"
+                  class="boton-primario boton-aplicar-ia"
+                  (click)="aplicarPropuestaIa(titulo, descripcion)"
+                >
+                  🪄 Aplicar al formulario
+                </button>
+              </div>
+
+              <div class="copilot-resultado__cta">
+                <strong>Llamada a la acción / CTA:</strong> «{{ propuesta.llamada_a_la_accion }}»
+              </div>
+
+              @if (propuesta.piezas_sugeridas.length > 0) {
+                <div class="copilot-sugerencias">
+                  <span class="copilot-sugerencias__etiqueta">Piezas clave recomendadas:</span>
+                  <div class="copilot-piezas-tags">
+                    @for (pz of propuesta.piezas_sugeridas; track pz.nombre) {
+                      <span class="tag-pieza">
+                        <strong class="tag-pieza__tipo">{{ pz.formato }}</strong>
+                        {{ pz.nombre }}
+                        @if (pz.dimensiones) {
+                          <small>({{ pz.dimensiones }})</small>
+                        }
+                      </span>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+    </section>
+    <label
+      >Campaña
+      <select
+        #campana
+        (change)="seleccionarCampana(campana.value)"
+        [value]="campanaSeleccionada()?.id"
+        required
+      >
+        @for (item of campanasDatos.listar(); track item.id) {
+          <option [value]="item.id">{{ item.codigoReferencia }} · {{ item.nombre }}</option>
+        }
+      </select>
+    </label>
+    <label
+      >Título<input
+        #titulo
+        maxlength="200"
+        placeholder="Ej. Piezas para lanzamiento digital"
+        required
+    /></label>
+    <label class="campo-ancho"
+      >Descripción<textarea
+        #descripcion
+        maxlength="2000"
+        rows="3"
+        placeholder="Objetivo, público, formatos y lineamientos de marca"
+      ></textarea>
+    </label>
+    <div class="acciones campo-ancho">
+      <button class="boton-primario" [disabled]="guardando()">
+        {{ guardando() ? 'Guardando…' : 'Crear brief' }}
+      </button>
+    </div>
+  </form>
+}
 
 <div class="rejilla">
-  <ao-tarjeta [compacta]="true" class="lista-briefs">
-    <h2>Briefs activos ({{ briefs().length }})</h2>
+  <aside class="lista-briefs" aria-labelledby="titulo-campanas">
+    <div class="lista-briefs__cabecera">
+      <h2 id="titulo-campanas">Campañas</h2>
+      <p>Elige el contexto de trabajo</p>
+    </div>
     <ul>
-      @for (brief of briefs(); track brief.idCampana) {
+      @for (campana of campanasDatos.listar(); track campana.id) {
         <li>
           <button
             type="button"
             class="item-brief"
-            [class.item-brief--activo]="brief.idCampana === idBriefSeleccionado()"
-            (click)="idBriefSeleccionado.set(brief.idCampana)"
+            [class.item-brief--activo]="campana.id === campanaSeleccionada()?.id"
+            (click)="seleccionarCampana(campana.id)"
           >
-            <strong>{{ brief.titulo }}</strong>
-            <span>{{ brief.cliente }} · {{ brief.piezas.length }} piezas</span>
+            <span class="codigo">{{ campana.codigoReferencia }}</span
+            ><strong>{{ campana.nombre }}</strong
+            ><span class="item-brief__cliente">{{ campana.cliente }}</span>
           </button>
         </li>
+      } @empty {
+        <li class="vacio">No hay campañas disponibles.</li>
       }
     </ul>
-  </ao-tarjeta>
+  </aside>
 
-  @if (briefSeleccionado(); as brief) {
-    <div class="panel-piezas">
-      <h2>{{ brief.titulo }}</h2>
-      <p class="subtitulo">Cliente: {{ brief.cliente }}</p>
+  <main class="panel-piezas">
+    @if (campanaSeleccionada(); as campana) {
+      <section class="resumen">
+        <div>
+          <span class="resumen__etiqueta">Campaña seleccionada</span>
+          <h2>{{ campana.nombre }}</h2>
+          <p>{{ campana.codigoReferencia }} · {{ campana.cliente }}</p>
+        </div>
+        <div class="resumen__estados">
+          <span><i class="punto punto--ok"></i>{{ contar('aprobada') }} aprobadas</span
+          ><span><i class="punto punto--aviso"></i>{{ contar('en_revision') }} en revisión</span
+          ><span><i class="punto punto--peligro"></i>{{ contar('rechazada') }} rechazadas</span>
+        </div>
+      </section>
 
-      <div class="rejilla-piezas">
-        @for (pieza of brief.piezas; track pieza.nombreArchivo) {
-          <ao-tarjeta [compacta]="true" class="pieza">
-            <div class="pieza__vista" [style.background]="degradadoPieza[pieza.degradado]">
-              <span class="pieza__overlay">{{ pieza.overlay }}</span>
+      <section class="selector-brief">
+        <div>
+          <span class="sobrelinea">BRIEFS REGISTRADOS</span>
+          <h2>{{ briefs().length }} disponibles</h2>
+        </div>
+        <div class="pildoras">
+          @for (brief of briefs(); track brief.id) {
+            <button
+              type="button"
+              [class.activa]="brief.id === briefSeleccionado()?.id"
+              (click)="seleccionarBrief(brief.id)"
+            >
+              {{ brief.titulo }}
+            </button>
+          } @empty {
+            <span class="vacio-inline">Crea el primer brief de esta campaña.</span>
+          }
+        </div>
+      </section>
+
+      @if (briefSeleccionado(); as brief) {
+        <div class="seccion-titulo">
+          <div>
+            <span class="sobrelinea">{{ brief.estado.replace('_', ' ') }}</span>
+            <h2>{{ brief.titulo }}</h2>
+            <p>{{ brief.descripcion || 'Sin descripción adicional.' }}</p>
+          </div>
+          <button
+            type="button"
+            class="boton-primario"
+            (click)="mostrarNuevaPieza.set(!mostrarNuevaPieza())"
+          >
+            + Nueva pieza
+          </button>
+        </div>
+
+        @if (mostrarNuevaPieza()) {
+          <form
+            class="formulario-operacion formulario-operacion--pieza"
+            (submit)="
+              $event.preventDefault(); crearPieza(nombre.value, tipo.value, archivo.files?.[0])
+            "
+          >
+            <label
+              >Nombre<input #nombre maxlength="200" placeholder="Ej. Banner principal" required
+            /></label>
+            <label
+              >Tipo<select #tipo>
+                <option value="imagen">Imagen</option>
+                <option value="video">Video</option>
+                <option value="copy">Copy</option>
+                <option value="audio">Audio</option>
+              </select></label
+            >
+            <label
+              >Archivo opcional<input
+                #archivo
+                type="file"
+                accept="image/jpeg,image/png,video/mp4,application/pdf"
+            /></label>
+            <div class="acciones">
+              <button class="boton-primario" [disabled]="guardando()">Registrar pieza</button
+              ><button
+                type="button"
+                class="boton-secundario"
+                (click)="mostrarNuevaPieza.set(false)"
+              >
+                Cancelar
+              </button>
             </div>
-            <ao-etiqueta-estado [texto]="pieza.estado" [tono]="tonoDe(pieza.estado)" />
-            <p class="pieza__nombre">{{ pieza.titulo }}</p>
-            <p class="dato-mono pieza__meta">
-              {{ pieza.nombreArchivo }} · v{{ pieza.version }} · {{ (pieza.confianzaMarca * 100).toFixed(0) }}% confianza
-            </p>
+          </form>
+        }
 
-            @if (pieza.estado === 'bloqueada') {
-              <p class="pieza__nota">
-                Bloqueada por contratación — no se puede editar ni re-aprobar en esta etapa.
+        @if (cargando()) {
+          <p class="vacio">Cargando información creativa…</p>
+        }
+        <div class="rejilla-piezas">
+          @for (pieza of piezas(); track pieza.id) {
+            <article class="pieza" [class.pieza--bloqueada]="pieza.estado === 'bloqueada_saga'">
+              <div class="pieza__vista pieza__vista--{{ pieza.tipo }}">
+                <span class="pieza__tipo">{{ pieza.tipo }}</span
+                ><strong>{{ codigo(pieza.id) }}</strong
+                ><span class="pieza__version">Versión {{ pieza.versionNumero }}</span>
+              </div>
+              <div class="pieza__cuerpo">
+                <div class="pieza__titulo">
+                  <div>
+                    <span class="codigo">{{ codigo(pieza.id) }}</span>
+                    <h3>{{ pieza.nombre }}</h3>
+                  </div>
+                  <ao-etiqueta-estado
+                    [texto]="pieza.estado.replace('_', ' ')"
+                    [tono]="tonoDe(pieza.estado)"
+                  />
+                </div>
+                @if (pieza.archivo; as adjunto) {
+                  <p class="pieza__archivo">
+                    {{ adjunto.mime }} · {{ (adjunto.tamano / 1024).toFixed(1) }} KB
+                  </p>
+                }
+                @if (pieza.estado === 'bloqueada_saga') {
+                  <p class="pieza__nota">Bloqueada por una contratación en curso.</p>
+                }
+                @if (pieza.estado !== 'bloqueada_saga') {
+                  <div class="acciones-pieza">
+                    <button
+                      type="button"
+                      class="boton-aprobar"
+                      [disabled]="guardando()"
+                      (click)="decidir(pieza, 'aprobar')"
+                    >
+                      Aprobar</button
+                    ><button
+                      type="button"
+                      class="boton-rechazar"
+                      [disabled]="guardando()"
+                      (click)="decidir(pieza, 'rechazar')"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                }
+              </div>
+            </article>
+          } @empty {
+            @if (!cargando()) {
+              <p class="vacio vacio--piezas">
+                Este brief todavía no tiene piezas. Registra la primera para comenzar la revisión.
               </p>
             }
-
-            @if (pieza.estado === 'rechazada' && pieza.observacion) {
-              <p class="pieza__observacion">{{ pieza.observacion }}</p>
-            }
-
-            @if (pieza.estado === 'pendiente') {
-              <div class="pieza__acciones">
-                <ao-boton variante="peligro">Rechazar</ao-boton>
-                <ao-boton variante="primario">Aprobar</ao-boton>
-              </div>
-            }
-          </ao-tarjeta>
-        }
-      </div>
-    </div>
-  }
+          }
+        </div>
+      }
+    } @else {
+      <section class="vacio vacio--panel">No hay campañas disponibles.</section>
+    }
+  </main>
 </div>

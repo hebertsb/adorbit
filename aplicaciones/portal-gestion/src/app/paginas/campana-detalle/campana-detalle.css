@@ -8,13 +8,22 @@
 }
 
 .volver {
-  color: var(--ao-texto);
-  text-decoration: none;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ao-texto-suave);
+  font: inherit;
   font-weight: 600;
+  cursor: pointer;
 }
+
+.volver:hover { color: var(--ao-marca); }
+.volver:focus-visible { outline: 2px solid var(--ao-marca); outline-offset: 3px; }
 
 .encabezado__acciones {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--ao-espacio-2);
 }
 
@@ -327,6 +336,24 @@
   color: var(--ao-texto-suave);
   border-radius: var(--ao-radio-chico);
   font-size: 0.76rem;
+}
+
+.vacio {
+  grid-column: 1 / -1;
+  padding: var(--ao-espacio-4);
+  color: var(--ao-texto-suave);
+  background: var(--ao-plano);
+  border-radius: var(--ao-radio);
+}
+
+@media (max-width: 767px) {
+  .encabezado { align-items: flex-start; flex-direction: column; }
+  .ficha__identidad, .ficha__periodo { min-width: 0; width: 100%; }
+  .ficha__titulo h1, .ficha__subtitulo { overflow-wrap: anywhere; }
+  .ficha__periodo { gap: var(--ao-espacio-3); }
+  .ficha__periodo > div { text-align: left; white-space: normal; }
+  .progreso__cabecera { flex-wrap: wrap; gap: var(--ao-espacio-2); }
+  .rejilla-presupuesto, .rejilla-piezas { grid-template-columns: minmax(0, 1fr); }
 }
 
 .pieza__observacion {

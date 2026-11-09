@@ -34,8 +34,6 @@ class _ValidacionIaPaginaState extends ConsumerState<ValidacionIaPagina> {
   bool _analizando = true;
   DeteccionLogo? _resultado;
   String? _errorAnalisis;
-  bool _enviando = false;
-  String? _estadoEnvio;
 
   String _t(String clave) =>
       Textos.t(ref.read(idiomaControllerProvider), clave);
@@ -58,6 +56,7 @@ class _ValidacionIaPaginaState extends ConsumerState<ValidacionIaPagina> {
     setState(() {
       _analizando = true;
       _errorAnalisis = null;
+      _resultado = null;
     });
     try {
       final resultado = await DetectorLogoLocal.instancia.detectar(bytes);
@@ -75,31 +74,11 @@ class _ValidacionIaPaginaState extends ConsumerState<ValidacionIaPagina> {
     }
   }
 
-  Future<void> _subir(String mensajeFinal) async {
-    setState(() {
-      _enviando = true;
-      _estadoEnvio = _t('validacion.encolando');
-    });
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (!mounted) return;
-    setState(() {
-      _enviando = false;
-      _estadoEnvio = mensajeFinal;
-    });
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (!mounted) return;
-    context.go('/briefs/${widget.briefId}');
-  }
-
   /// A donde volver si no hay nada que hacer pop (ver _salir). Evita que el usuario quede
   /// atascado en esta pantalla si el stack de navegacion no tiene una ruta anterior --
   /// visto en real: ni la flecha ni el gesto/boton del sistema sacaban de aqui.
   void _salir() {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go('/briefs/${widget.briefId}');
-    }
+    context.go('/briefs/${widget.briefId}');
   }
 
   @override
@@ -187,59 +166,21 @@ class _ValidacionIaPaginaState extends ConsumerState<ValidacionIaPagina> {
               detecta ? _bannerExito(context) : _bannerAdvertencia(context),
             ],
             const SizedBox(height: 18),
-            if (_analizando)
-              const SizedBox.shrink()
-            else if (detecta)
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _salir,
-                      child: Text(_t('previsualizacion.volver_tomar')),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _enviando
-                          ? null
-                          : () => _subir(_t('validacion.subida_correcta')),
-                      child: Text(
-                        _enviando
-                            ? (_estadoEnvio ?? '...')
-                            : _t('validacion.subir_pieza'),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            else ...[
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _salir,
-                  child: Text(_t('previsualizacion.volver_tomar')),
+            if (!_analizando) ...[
+              if (widget.bytesImagen != null) ...[
+                Text(
+                  _t('validacion.estado_cola'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: c.textoSuave, fontSize: 12),
                 ),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _enviando
-                      ? null
-                      : () => _subir(_t('validacion.enviado_revision_manual')),
-                  child: Text(
-                    _enviando
-                        ? (_estadoEnvio ?? '...')
-                        : _t('validacion.subir_de_todas_formas'),
-                  ),
+                  onPressed: () => context.go('/briefs/${widget.briefId}'),
+                  child: Text(_t('validacion.volver_brief')),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _t('validacion.sync_automatica'),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: c.textoTenue, fontSize: 11),
               ),
             ],
           ],
@@ -294,20 +235,21 @@ class _ValidacionIaPaginaState extends ConsumerState<ValidacionIaPagina> {
                   );
                 },
               ),
-            Positioned(
-              left: 10,
-              top: 10,
-              child: _etiquetaFlotante(
-                _analizando
-                    ? _t('validacion.analizando_badge')
-                    : (_resultado?.detectaLogo ?? false)
-                    ? _t('validacion.logo_detectado_badge')
-                    : _t('validacion.logo_no_detectado_badge'),
-                _analizando
-                    ? c.neutro
-                    : ((_resultado?.detectaLogo ?? false) ? c.ok : c.aviso),
+            if (_analizando || _resultado != null)
+              Positioned(
+                left: 10,
+                top: 10,
+                child: _etiquetaFlotante(
+                  _analizando
+                      ? _t('validacion.analizando_badge')
+                      : (_resultado?.detectaLogo ?? false)
+                      ? _t('validacion.logo_detectado_badge')
+                      : _t('validacion.logo_no_detectado_badge'),
+                  _analizando
+                      ? c.neutro
+                      : ((_resultado?.detectaLogo ?? false) ? c.ok : c.aviso),
+                ),
               ),
-            ),
             if (_resultado != null)
               Positioned(
                 right: 10,
