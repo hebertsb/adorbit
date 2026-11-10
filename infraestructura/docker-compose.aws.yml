@@ -23,8 +23,8 @@ services:
       ADORBIT_FACTURACION_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
       ADORBIT_FACTURACION_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
       ADORBIT_FACTURACION_RABBITMQ_SSL: "true"
-      ADORBIT_FACTURACION_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
-      ADORBIT_FACTURACION_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_FACTURACION_JWKS_URI: ${JWKS_URI:-http://4.151.177.116/realms/adorbit/protocol/openid-connect/certs}
+      ADORBIT_FACTURACION_JWT_EMISOR: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
       ADORBIT_FACTURACION_JWT_AUDIENCIA: ms-facturacion
     networks:
       - adorbit-aws-red
@@ -35,14 +35,16 @@ services:
     container_name: adorbit-ms-clientes-crm
     restart: unless-stopped
     ports:
-      - "8081:8000"
+      - "8081:8084"
     environment:
       APP_NAME: AdOrbit-CRM
       APP_ENV: production
       APP_KEY: ${CRM_APP_KEY:-base64:R/xZMJ9vCdTFuXjzZQfXldsy+9y18cIiwOWh+0YU97Q=}
       APP_DEBUG: "false"
-      APP_URL: http://localhost:8000
+      APP_URL: http://localhost:8084
       DB_CONNECTION: mongodb
+      ADORBIT_CRM_MONGO_DSN: ${CRM_MONGO_DSN}
+      ADORBIT_CRM_MONGO_BD: ${CRM_MONGO_BD:-adorbit_crm}
       MONGODB_URI: ${CRM_MONGO_DSN}
       MONGODB_DATABASE: ${CRM_MONGO_BD:-adorbit_crm}
       ADORBIT_CRM_RABBITMQ_HOST: ${RABBITMQ_HOST:-jaragua.lmq.cloudamqp.com}
@@ -51,8 +53,8 @@ services:
       ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
       ADORBIT_CRM_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
       ADORBIT_CRM_RABBITMQ_SSL: "true"
-      ADORBIT_CRM_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
-      ADORBIT_CRM_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_CRM_JWKS_URI: ${JWKS_URI:-http://4.151.177.116/realms/adorbit/protocol/openid-connect/certs}
+      ADORBIT_CRM_JWT_EMISOR: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
       ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
     networks:
       - adorbit-aws-red
@@ -68,6 +70,8 @@ services:
       APP_ENV: production
       APP_KEY: ${CRM_APP_KEY:-base64:R/xZMJ9vCdTFuXjzZQfXldsy+9y18cIiwOWh+0YU97Q=}
       DB_CONNECTION: mongodb
+      ADORBIT_CRM_MONGO_DSN: ${CRM_MONGO_DSN}
+      ADORBIT_CRM_MONGO_BD: ${CRM_MONGO_BD:-adorbit_crm}
       MONGODB_URI: ${CRM_MONGO_DSN}
       MONGODB_DATABASE: ${CRM_MONGO_BD:-adorbit_crm}
       ADORBIT_CRM_RABBITMQ_HOST: ${RABBITMQ_HOST:-jaragua.lmq.cloudamqp.com}
@@ -76,8 +80,8 @@ services:
       ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
       ADORBIT_CRM_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
       ADORBIT_CRM_RABBITMQ_SSL: "true"
-      ADORBIT_CRM_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
-      ADORBIT_CRM_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_CRM_JWKS_URI: ${JWKS_URI:-http://4.151.177.116/realms/adorbit/protocol/openid-connect/certs}
+      ADORBIT_CRM_JWT_EMISOR: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
       ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
     depends_on:
       - ms-clientes-crm
@@ -89,12 +93,14 @@ services:
       context: ../servicios/ms-clientes-crm
     container_name: adorbit-crm-relevo
     restart: unless-stopped
-    command: ["php", "artisan", "crm:relevar-bandeja"]
+    command: ["php", "artisan", "crm:publicar-bandeja"]
     environment:
       APP_NAME: AdOrbit-CRM
       APP_ENV: production
       APP_KEY: ${CRM_APP_KEY:-base64:R/xZMJ9vCdTFuXjzZQfXldsy+9y18cIiwOWh+0YU97Q=}
       DB_CONNECTION: mongodb
+      ADORBIT_CRM_MONGO_DSN: ${CRM_MONGO_DSN}
+      ADORBIT_CRM_MONGO_BD: ${CRM_MONGO_BD:-adorbit_crm}
       MONGODB_URI: ${CRM_MONGO_DSN}
       MONGODB_DATABASE: ${CRM_MONGO_BD:-adorbit_crm}
       ADORBIT_CRM_RABBITMQ_HOST: ${RABBITMQ_HOST:-jaragua.lmq.cloudamqp.com}
@@ -103,8 +109,8 @@ services:
       ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
       ADORBIT_CRM_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
       ADORBIT_CRM_RABBITMQ_SSL: "true"
-      ADORBIT_CRM_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
-      ADORBIT_CRM_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_CRM_JWKS_URI: ${JWKS_URI:-http://4.151.177.116/realms/adorbit/protocol/openid-connect/certs}
+      ADORBIT_CRM_JWT_EMISOR: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
       ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
     depends_on:
       - ms-clientes-crm

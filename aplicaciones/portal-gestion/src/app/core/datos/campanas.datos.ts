@@ -11,10 +11,13 @@ const URL_GATEWAY_REST = ES_DEV_LOCAL ? 'http://localhost:8000/api/v1' : '/api/v
 // "redes" no tiene equivalente real todavia (el enum GraphQL no lo contempla).
 const MAPA_MEDIO_GQL: Record<string, MedioCalendario['medio']> = {
   television: 'tv',
+  tv: 'tv',
   radio: 'radio',
   prensa: 'prensa',
   digital: 'digital',
   valla_exterior: 'vallas',
+  vallas: 'vallas',
+  redes: 'redes',
 };
 
 // tipoMedio real de ms-creatividades (imagen/video/copy/audio) -> degradado visual.

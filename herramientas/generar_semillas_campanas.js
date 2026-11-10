@@ -195,6 +195,125 @@ const campaigns = [
       { m: 'vallas', ini: '2026-01-15', fin: '2026-02-28', c: 40000.00, est: 'cancelado' },
       { m: 'redes', ini: '2026-01-10', fin: '2026-02-20', c: 30000.00, est: 'cancelado' }
     ]
+  },
+  {
+    n: 16, cli: 11,
+    nombre: 'Entel 5G Nacional 2026: Conectando Cada Rincón de Bolivia',
+    desc: 'Despliegue masivo de red móvil 5G en las 9 capitales departamentales con paquetes ilimitados de datos para streaming y gaming.',
+    estado: 'activa', ini: '2026-02-15', fin: '2026-08-15',
+    total: 420000.00, gastado: 394800.00, pEst: 'consumido',
+    medios: [
+      { m: 'tv', ini: '2026-02-15', fin: '2026-08-15', c: 180000.00, est: 'ejecutado' },
+      { m: 'vallas', ini: '2026-02-20', fin: '2026-08-10', c: 110000.00, est: 'ejecutado' },
+      { m: 'redes', ini: '2026-02-15', fin: '2026-08-15', c: 80000.00, est: 'ejecutado' },
+      { m: 'digital', ini: '2026-03-01', fin: '2026-08-01', c: 50000.00, est: 'ejecutado' }
+    ]
+  },
+  {
+    n: 17, cli: 12,
+    nombre: 'BNB Banca Digital Plus: Créditos Vehiculares en 24 Horas',
+    desc: 'Campaña financiera de preaprobación inmediata desde la app móvil BNB con tasas preferenciales para vehículos nuevos.',
+    estado: 'activa', ini: '2026-03-10', fin: '2026-07-31',
+    total: 250000.00, gastado: 232500.00, pEst: 'consumido',
+    medios: [
+      { m: 'digital', ini: '2026-03-10', fin: '2026-07-31', c: 110000.00, est: 'ejecutado' },
+      { m: 'redes', ini: '2026-03-12', fin: '2026-07-25', c: 85000.00, est: 'ejecutado' },
+      { m: 'prensa', ini: '2026-03-15', fin: '2026-07-15', c: 55000.00, est: 'ejecutado' }
+    ]
+  },
+  {
+    n: 18, cli: 13,
+    nombre: 'PIL Desayuno Campeón 2026: Energía Láctea para Crecer',
+    desc: 'Posicionamiento de línea de leches deslactosadas, yogures probióticos y avenas lácteas en temporada escolar.',
+    estado: 'activa', ini: '2026-02-01', fin: '2026-06-30',
+    total: 195000.00, gastado: 181350.00, pEst: 'consumido',
+    medios: [
+      { m: 'tv', ini: '2026-02-01', fin: '2026-06-30', c: 95000.00, est: 'ejecutado' },
+      { m: 'radio', ini: '2026-02-05', fin: '2026-06-20', c: 45000.00, est: 'ejecutado' },
+      { m: 'redes', ini: '2026-02-01', fin: '2026-06-30', c: 55000.00, est: 'ejecutado' }
+    ]
+  },
+  {
+    n: 19, cli: 14,
+    nombre: 'Banco Bisa PyME Impulsa: Capital de Trabajo sin Fronteras',
+    desc: 'Financiamiento ágil para pequeñas y medianas empresas productivas y exportadoras del eje central.',
+    estado: 'activa', ini: '2026-04-01', fin: '2026-09-30',
+    total: 210000.00, gastado: 115000.00, pEst: 'consumido',
+    medios: [
+      { m: 'prensa', ini: '2026-04-01', fin: '2026-09-30', c: 80000.00, est: 'ejecutado' },
+      { m: 'digital', ini: '2026-04-05', fin: '2026-09-25', c: 75000.00, est: 'ejecutado' },
+      { m: 'radio', ini: '2026-04-10', fin: '2026-09-15', c: 55000.00, est: 'confirmado' }
+    ]
+  },
+  {
+    n: 20, cli: 15,
+    nombre: 'Lubricantes YPFB Extravida XV500: Máxima Protección Motor',
+    desc: 'Campaña nacional dirigida al transporte pesado, agroindustria y talleres mecánicos autorizados.',
+    estado: 'activa', ini: '2026-01-20', fin: '2026-08-20',
+    total: 310000.00, gastado: 288300.00, pEst: 'consumido',
+    medios: [
+      { m: 'vallas', ini: '2026-01-20', fin: '2026-08-20', c: 130000.00, est: 'ejecutado' },
+      { m: 'radio', ini: '2026-01-25', fin: '2026-08-15', c: 100000.00, est: 'ejecutado' },
+      { m: 'tv', ini: '2026-02-01', fin: '2026-08-10', c: 80000.00, est: 'ejecutado' }
+    ]
+  },
+  {
+    n: 21, cli: 16,
+    nombre: 'Viva Bolsas Ilimitadas TikTok & Gaming Nocturno',
+    desc: 'Promoción prepago para público joven con bolsas de datos por hora y pases libres para torneos móviles.',
+    estado: 'pausada', ini: '2026-02-10', fin: '2026-05-30',
+    total: 150000.00, gastado: 138000.00, pEst: 'consumido',
+    medios: [
+      { m: 'redes', ini: '2026-02-10', fin: '2026-05-30', c: 90000.00, est: 'ejecutado' },
+      { m: 'digital', ini: '2026-02-15', fin: '2026-05-25', c: 60000.00, est: 'ejecutado' }
+    ]
+  },
+  {
+    n: 22, cli: 17,
+    nombre: 'Toyosa Hilux 2026: Indestructible en Todo Terreno',
+    desc: 'Exhibición y test drive en Fexpocruz y ferias agropecuarias con condiciones especiales para el sector productivo.',
+    estado: 'pendiente_aprobacion', ini: '2026-05-01', fin: '2026-09-30',
+    total: 360000.00, gastado: 0.00, pEst: 'reservado',
+    medios: [
+      { m: 'tv', ini: '2026-05-01', fin: '2026-09-30', c: 150000.00, est: 'planificado' },
+      { m: 'vallas', ini: '2026-05-05', fin: '2026-09-25', c: 120000.00, est: 'planificado' },
+      { m: 'digital', ini: '2026-05-01', fin: '2026-09-30', c: 90000.00, est: 'planificado' }
+    ]
+  },
+  {
+    n: 23, cli: 18,
+    nombre: 'Aceite FINO Sabores de Casa: Tradición Familiar Boliviana',
+    desc: 'Recetarios digitales con chefs nacionales, activaciones en mercados y patrocinio de programas matutinos.',
+    estado: 'activa', ini: '2026-03-01', fin: '2026-08-31',
+    total: 165000.00, gastado: 88000.00, pEst: 'consumido',
+    medios: [
+      { m: 'tv', ini: '2026-03-01', fin: '2026-08-31', c: 85000.00, est: 'ejecutado' },
+      { m: 'redes', ini: '2026-03-05', fin: '2026-08-25', c: 50000.00, est: 'ejecutado' },
+      { m: 'radio', ini: '2026-03-10', fin: '2026-08-20', c: 30000.00, est: 'confirmado' }
+    ]
+  },
+  {
+    n: 24, cli: 19,
+    nombre: 'Bagó Línea Respira Libre: Prevención Invernal en Altitud',
+    desc: 'Campaña educativa y comercial en La Paz, El Alto, Oruro y Potosí para el cuidado broncopulmonar.',
+    estado: 'borrador', ini: '2026-05-20', fin: '2026-08-30',
+    total: 125000.00, gastado: 0.00, pEst: 'borrador',
+    medios: [
+      { m: 'radio', ini: '2026-05-20', fin: '2026-08-30', c: 50000.00, est: 'planificado' },
+      { m: 'prensa', ini: '2026-05-25', fin: '2026-08-25', c: 40000.00, est: 'planificado' },
+      { m: 'digital', ini: '2026-05-20', fin: '2026-08-30', c: 35000.00, est: 'planificado' }
+    ]
+  },
+  {
+    n: 25, cli: 20,
+    nombre: 'Cine Center Temporada Blockbuster VIP & 4DX 2026',
+    desc: 'Preventa de estrenos mundiales, combos coleccionables y miércoles 2x1 en complejos de Santa Cruz, Cochabamba y La Paz.',
+    estado: 'rechazada', ini: '2026-02-01', fin: '2026-04-30',
+    total: 140000.00, gastado: 0.00, pEst: 'liberado',
+    medios: [
+      { m: 'redes', ini: '2026-02-01', fin: '2026-04-30', c: 70000.00, est: 'cancelado' },
+      { m: 'vallas', ini: '2026-02-05', fin: '2026-04-25', c: 70000.00, est: 'cancelado' }
+    ]
   }
 ];
 

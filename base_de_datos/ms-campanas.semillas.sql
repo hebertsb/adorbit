@@ -29,7 +29,17 @@ VALUES
   ('00000000-0000-0000-0000-00000000c012', '00000000-0000-0000-0000-000000000007', 'Miércoles de Frescura Hipermaxi: Calidad de la Granja a tu Mesa', 'Publicidad periódica semanal comunicando ofertas especiales de hasta 30% en frutas seleccionadas, hortalizas y carnes de primera.', 'activa', '2026-01-01', '2026-12-31', 1),
   ('00000000-0000-0000-0000-00000000c013', '00000000-0000-0000-0000-000000000008', 'Conoce Tu País con BoA: Vuelos Directos Salar de Uyuni', 'Promoción turística invernal con tarifas promocionales hacia Uyuni, Rurrenabaque y Tarija para incentivar el turismo interno.', 'activa', '2026-03-01', '2026-06-30', 1),
   ('00000000-0000-0000-0000-00000000c014', '00000000-0000-0000-0000-000000000009', 'Mentisan 85 Años: El Alivio de Generaciones', 'Campaña conmemorativa de aniversario celebrando el ungüento ícono de las familias bolivianas con spots testimoniales y piezas emotivas.', 'pendiente_aprobacion', '2026-05-10', '2026-08-31', 1),
-  ('00000000-0000-0000-0000-00000000c015', '00000000-0000-0000-0000-000000000010', 'Suzuki New Swift Hybrid 2026: Rendimiento Inteligente', 'Lanzamiento del compacto híbrido autorecargable con pruebas de manejo en showroom y planes de financiamiento con 0% de cuota inicial.', 'cancelada', '2026-01-10', '2026-03-31', 1);
+  ('00000000-0000-0000-0000-00000000c015', '00000000-0000-0000-0000-000000000010', 'Suzuki New Swift Hybrid 2026: Rendimiento Inteligente', 'Lanzamiento del compacto híbrido autorecargable con pruebas de manejo en showroom y planes de financiamiento con 0% de cuota inicial.', 'cancelada', '2026-01-10', '2026-03-31', 1),
+  ('00000000-0000-0000-0000-00000000c016', '00000000-0000-0000-0000-000000000011', 'Entel 5G Nacional 2026: Conectando Cada Rincón de Bolivia', 'Despliegue masivo de red móvil 5G en las 9 capitales departamentales con paquetes ilimitados de datos para streaming y gaming.', 'activa', '2026-02-15', '2026-08-15', 1),
+  ('00000000-0000-0000-0000-00000000c017', '00000000-0000-0000-0000-000000000012', 'BNB Banca Digital Plus: Créditos Vehiculares en 24 Horas', 'Campaña financiera de preaprobación inmediata desde la app móvil BNB con tasas preferenciales para vehículos nuevos.', 'activa', '2026-03-10', '2026-07-31', 1),
+  ('00000000-0000-0000-0000-00000000c018', '00000000-0000-0000-0000-000000000013', 'PIL Desayuno Campeón 2026: Energía Láctea para Crecer', 'Posicionamiento de línea de leches deslactosadas, yogures probióticos y avenas lácteas en temporada escolar.', 'activa', '2026-02-01', '2026-06-30', 1),
+  ('00000000-0000-0000-0000-00000000c019', '00000000-0000-0000-0000-000000000014', 'Banco Bisa PyME Impulsa: Capital de Trabajo sin Fronteras', 'Financiamiento ágil para pequeñas y medianas empresas productivas y exportadoras del eje central.', 'activa', '2026-04-01', '2026-09-30', 1),
+  ('00000000-0000-0000-0000-00000000c020', '00000000-0000-0000-0000-000000000015', 'Lubricantes YPFB Extravida XV500: Máxima Protección Motor', 'Campaña nacional dirigida al transporte pesado, agroindustria y talleres mecánicos autorizados.', 'activa', '2026-01-20', '2026-08-20', 1),
+  ('00000000-0000-0000-0000-00000000c021', '00000000-0000-0000-0000-000000000016', 'Viva Bolsas Ilimitadas TikTok & Gaming Nocturno', 'Promoción prepago para público joven con bolsas de datos por hora y pases libres para torneos móviles.', 'pausada', '2026-02-10', '2026-05-30', 1),
+  ('00000000-0000-0000-0000-00000000c022', '00000000-0000-0000-0000-000000000017', 'Toyosa Hilux 2026: Indestructible en Todo Terreno', 'Exhibición y test drive en Fexpocruz y ferias agropecuarias con condiciones especiales para el sector productivo.', 'pendiente_aprobacion', '2026-05-01', '2026-09-30', 1),
+  ('00000000-0000-0000-0000-00000000c023', '00000000-0000-0000-0000-000000000018', 'Aceite FINO Sabores de Casa: Tradición Familiar Boliviana', 'Recetarios digitales con chefs nacionales, activaciones en mercados y patrocinio de programas matutinos.', 'activa', '2026-03-01', '2026-08-31', 1),
+  ('00000000-0000-0000-0000-00000000c024', '00000000-0000-0000-0000-000000000019', 'Bagó Línea Respira Libre: Prevención Invernal en Altitud', 'Campaña educativa y comercial en La Paz, El Alto, Oruro y Potosí para el cuidado broncopulmonar.', 'borrador', '2026-05-20', '2026-08-30', 1),
+  ('00000000-0000-0000-0000-00000000c025', '00000000-0000-0000-0000-000000000020', 'Cine Center Temporada Blockbuster VIP & 4DX 2026', 'Preventa de estrenos mundiales, combos coleccionables y miércoles 2x1 en complejos de Santa Cruz, Cochabamba y La Paz.', 'rechazada', '2026-02-01', '2026-04-30', 1);
 
 -- 2. INSERCION DE 15 PRESUPUESTOS (IDs: b001 a b015)
 INSERT INTO presupuestos (id, campana_id, monto_total, monto_gastado, moneda, estado, version)
@@ -48,7 +58,17 @@ VALUES
   ('00000000-0000-0000-0000-00000000b012', '00000000-0000-0000-0000-00000000c012', 160000.00, 53300.00, 'BOB', 'consumido', 1),
   ('00000000-0000-0000-0000-00000000b013', '00000000-0000-0000-0000-00000000c013', 145000.00, 60000.00, 'BOB', 'consumido', 1),
   ('00000000-0000-0000-0000-00000000b014', '00000000-0000-0000-0000-00000000c014', 175000.00, 0.00, 'BOB', 'reservado', 1),
-  ('00000000-0000-0000-0000-00000000b015', '00000000-0000-0000-0000-00000000c015', 120000.00, 15000.00, 'BOB', 'liberado', 1);
+  ('00000000-0000-0000-0000-00000000b015', '00000000-0000-0000-0000-00000000c015', 120000.00, 15000.00, 'BOB', 'liberado', 1),
+  ('00000000-0000-0000-0000-00000000b016', '00000000-0000-0000-0000-00000000c016', 420000.00, 394800.00, 'BOB', 'consumido', 1),
+  ('00000000-0000-0000-0000-00000000b017', '00000000-0000-0000-0000-00000000c017', 250000.00, 232500.00, 'BOB', 'consumido', 1),
+  ('00000000-0000-0000-0000-00000000b018', '00000000-0000-0000-0000-00000000c018', 195000.00, 181350.00, 'BOB', 'consumido', 1),
+  ('00000000-0000-0000-0000-00000000b019', '00000000-0000-0000-0000-00000000c019', 210000.00, 115000.00, 'BOB', 'consumido', 1),
+  ('00000000-0000-0000-0000-00000000b020', '00000000-0000-0000-0000-00000000c020', 310000.00, 288300.00, 'BOB', 'consumido', 1),
+  ('00000000-0000-0000-0000-00000000b021', '00000000-0000-0000-0000-00000000c021', 150000.00, 138000.00, 'BOB', 'consumido', 1),
+  ('00000000-0000-0000-0000-00000000b022', '00000000-0000-0000-0000-00000000c022', 360000.00, 0.00, 'BOB', 'reservado', 1),
+  ('00000000-0000-0000-0000-00000000b023', '00000000-0000-0000-0000-00000000c023', 165000.00, 88000.00, 'BOB', 'consumido', 1),
+  ('00000000-0000-0000-0000-00000000b024', '00000000-0000-0000-0000-00000000c024', 125000.00, 0.00, 'BOB', 'borrador', 1),
+  ('00000000-0000-0000-0000-00000000b025', '00000000-0000-0000-0000-00000000c025', 140000.00, 0.00, 'BOB', 'liberado', 1);
 
 -- 3. INSERCION DE 52 MEDIOS CALENDARIO (IDs: d001 a d052)
 INSERT INTO calendario_medios (id, campana_id, medio, fecha_inicio, fecha_fin, costo, estado, version)
@@ -104,7 +124,36 @@ VALUES
   ('00000000-0000-0000-0000-00000000d049', '00000000-0000-0000-0000-00000000c014', 'radio', '2026-05-15', '2026-08-15', 20000.00, 'planificado', 1),
   ('00000000-0000-0000-0000-00000000d050', '00000000-0000-0000-0000-00000000c015', 'digital', '2026-01-10', '2026-02-15', 50000.00, 'cancelado', 1),
   ('00000000-0000-0000-0000-00000000d051', '00000000-0000-0000-0000-00000000c015', 'vallas', '2026-01-15', '2026-02-28', 40000.00, 'cancelado', 1),
-  ('00000000-0000-0000-0000-00000000d052', '00000000-0000-0000-0000-00000000c015', 'redes', '2026-01-10', '2026-02-20', 30000.00, 'cancelado', 1);
+  ('00000000-0000-0000-0000-00000000d052', '00000000-0000-0000-0000-00000000c015', 'redes', '2026-01-10', '2026-02-20', 30000.00, 'cancelado', 1),
+  ('00000000-0000-0000-0000-00000000d053', '00000000-0000-0000-0000-00000000c016', 'tv', '2026-02-15', '2026-08-15', 180000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d054', '00000000-0000-0000-0000-00000000c016', 'vallas', '2026-02-20', '2026-08-10', 110000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d055', '00000000-0000-0000-0000-00000000c016', 'redes', '2026-02-15', '2026-08-15', 80000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d056', '00000000-0000-0000-0000-00000000c016', 'digital', '2026-03-01', '2026-08-01', 50000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d057', '00000000-0000-0000-0000-00000000c017', 'digital', '2026-03-10', '2026-07-31', 110000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d058', '00000000-0000-0000-0000-00000000c017', 'redes', '2026-03-12', '2026-07-25', 85000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d059', '00000000-0000-0000-0000-00000000c017', 'prensa', '2026-03-15', '2026-07-15', 55000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d060', '00000000-0000-0000-0000-00000000c018', 'tv', '2026-02-01', '2026-06-30', 95000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d061', '00000000-0000-0000-0000-00000000c018', 'radio', '2026-02-05', '2026-06-20', 45000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d062', '00000000-0000-0000-0000-00000000c018', 'redes', '2026-02-01', '2026-06-30', 55000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d063', '00000000-0000-0000-0000-00000000c019', 'prensa', '2026-04-01', '2026-09-30', 80000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d064', '00000000-0000-0000-0000-00000000c019', 'digital', '2026-04-05', '2026-09-25', 75000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d065', '00000000-0000-0000-0000-00000000c019', 'radio', '2026-04-10', '2026-09-15', 55000.00, 'confirmado', 1),
+  ('00000000-0000-0000-0000-00000000d066', '00000000-0000-0000-0000-00000000c020', 'vallas', '2026-01-20', '2026-08-20', 130000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d067', '00000000-0000-0000-0000-00000000c020', 'radio', '2026-01-25', '2026-08-15', 100000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d068', '00000000-0000-0000-0000-00000000c020', 'tv', '2026-02-01', '2026-08-10', 80000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d069', '00000000-0000-0000-0000-00000000c021', 'redes', '2026-02-10', '2026-05-30', 90000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d070', '00000000-0000-0000-0000-00000000c021', 'digital', '2026-02-15', '2026-05-25', 60000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d071', '00000000-0000-0000-0000-00000000c022', 'tv', '2026-05-01', '2026-09-30', 150000.00, 'planificado', 1),
+  ('00000000-0000-0000-0000-00000000d072', '00000000-0000-0000-0000-00000000c022', 'vallas', '2026-05-05', '2026-09-25', 120000.00, 'planificado', 1),
+  ('00000000-0000-0000-0000-00000000d073', '00000000-0000-0000-0000-00000000c022', 'digital', '2026-05-01', '2026-09-30', 90000.00, 'planificado', 1),
+  ('00000000-0000-0000-0000-00000000d074', '00000000-0000-0000-0000-00000000c023', 'tv', '2026-03-01', '2026-08-31', 85000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d075', '00000000-0000-0000-0000-00000000c023', 'redes', '2026-03-05', '2026-08-25', 50000.00, 'ejecutado', 1),
+  ('00000000-0000-0000-0000-00000000d076', '00000000-0000-0000-0000-00000000c023', 'radio', '2026-03-10', '2026-08-20', 30000.00, 'confirmado', 1),
+  ('00000000-0000-0000-0000-00000000d077', '00000000-0000-0000-0000-00000000c024', 'radio', '2026-05-20', '2026-08-30', 50000.00, 'planificado', 1),
+  ('00000000-0000-0000-0000-00000000d078', '00000000-0000-0000-0000-00000000c024', 'prensa', '2026-05-25', '2026-08-25', 40000.00, 'planificado', 1),
+  ('00000000-0000-0000-0000-00000000d079', '00000000-0000-0000-0000-00000000c024', 'digital', '2026-05-20', '2026-08-30', 35000.00, 'planificado', 1),
+  ('00000000-0000-0000-0000-00000000d080', '00000000-0000-0000-0000-00000000c025', 'redes', '2026-02-01', '2026-04-30', 70000.00, 'cancelado', 1),
+  ('00000000-0000-0000-0000-00000000d081', '00000000-0000-0000-0000-00000000c025', 'vallas', '2026-02-05', '2026-04-25', 70000.00, 'cancelado', 1);
 
 -- 4. INSERCION DE SAGAS DE CONTRATACION (IDs: 5a01 a 5a03)
 INSERT INTO saga_transacciones (id, campana_id, clave_idempotencia, estado, paso_actual, motivo_fallo, version)

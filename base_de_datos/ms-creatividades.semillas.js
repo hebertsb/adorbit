@@ -316,6 +316,72 @@ dbc.briefs.insertMany([
     version: 1,
     creado_en: new Date("2026-01-15T09:00:00Z"),
     actualizado_en: new Date("2026-01-20T14:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-00000000bf21",
+    campana_id: "00000000-0000-0000-0000-00000000c016",
+    cliente_id: "00000000-0000-0000-0000-000000000011",
+    titulo: "Spot TV y Vallas Entel 5G Nacional",
+    descripcion: "Campaña audiovisual de cobertura 5G en los 9 departamentos con identidad azul/naranja Entel.",
+    estado: "aprobado",
+    version: 1,
+    creado_en: new Date("2026-01-15T09:00:00Z"),
+    actualizado_en: new Date("2026-01-20T14:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-00000000bf22",
+    campana_id: "00000000-0000-0000-0000-00000000c017",
+    cliente_id: "00000000-0000-0000-0000-000000000012",
+    titulo: "Kit Digital BNB Créditos Vehiculares 24h",
+    descripcion: "Banners animados y reels para aprobación vehicular inmediata desde BNB Móvil.",
+    estado: "aprobado",
+    version: 1,
+    creado_en: new Date("2026-01-15T09:00:00Z"),
+    actualizado_en: new Date("2026-01-20T14:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-00000000bf23",
+    campana_id: "00000000-0000-0000-0000-00000000c018",
+    cliente_id: "00000000-0000-0000-0000-000000000013",
+    titulo: "Comercial PIL Desayuno Campeón Escolar",
+    descripcion: "Spot familiar de 30s y afiches para puntos de venta destacando línea láctea fortificada.",
+    estado: "aprobado",
+    version: 1,
+    creado_en: new Date("2026-01-15T09:00:00Z"),
+    actualizado_en: new Date("2026-01-20T14:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-00000000bf24",
+    campana_id: "00000000-0000-0000-0000-00000000c019",
+    cliente_id: "00000000-0000-0000-0000-000000000014",
+    titulo: "Gráfica Corporativa Banco Bisa PyME Impulsa",
+    descripcion: "Artes para suplementos financieros y LinkedIn dirigidos al sector productivo.",
+    estado: "aprobado",
+    version: 1,
+    creado_en: new Date("2026-01-15T09:00:00Z"),
+    actualizado_en: new Date("2026-01-20T14:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-00000000bf25",
+    campana_id: "00000000-0000-0000-0000-00000000c020",
+    cliente_id: "00000000-0000-0000-0000-000000000015",
+    titulo: "Campaña Vía Pública Lubricantes YPFB Extravida",
+    descripcion: "Vallas camineras y cuñas radiales para rutas troncales del país.",
+    estado: "aprobado",
+    version: 1,
+    creado_en: new Date("2026-01-15T09:00:00Z"),
+    actualizado_en: new Date("2026-01-20T14:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-00000000bf26",
+    campana_id: "00000000-0000-0000-0000-00000000c023",
+    cliente_id: "00000000-0000-0000-0000-000000000018",
+    titulo: "Cápsulas Recetario Aceite FINO Sabores de Casa",
+    descripcion: "Videos cortos verticales con recetas tradicionales bolivianas.",
+    estado: "en_revision",
+    version: 1,
+    creado_en: new Date("2026-01-15T09:00:00Z"),
+    actualizado_en: new Date("2026-01-20T14:00:00Z")
   }
 ]);
 
@@ -1107,6 +1173,174 @@ dbc.piezas.insertMany([
     validaciones_marca: {
       manual_marca_ok: false,
       detalles: { paleta_colores: "inconsistente", logo_zona_segura: "violada", tipografia: "no autorizada" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001034",
+    brief_id: "00000000-0000-0000-0000-00000000bf21",
+    campana_id: "00000000-0000-0000-0000-00000000c016",
+    nombre: "Spot Master Entel 5G Bolivia Conectada 45s",
+    tipo: "video",
+    version_numero: 1,
+    archivo: {
+      ruta: "piezas-creatividades/entel/spot-5g-nacional.mp4",
+      mime: "video/mp4",
+      tamano: 54000000
+    },
+    estado: "aprobada",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001035",
+    brief_id: "00000000-0000-0000-0000-00000000bf21",
+    campana_id: "00000000-0000-0000-0000-00000000c016",
+    nombre: "Valla Autopista La Paz - El Alto Entel 5G",
+    tipo: "imagen",
+    version_numero: 2,
+    archivo: {
+      ruta: "piezas-creatividades/entel/valla-autopista-5g.png",
+      mime: "image/png",
+      tamano: 16400000
+    },
+    estado: "aprobada",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001036",
+    brief_id: "00000000-0000-0000-0000-00000000bf22",
+    campana_id: "00000000-0000-0000-0000-00000000c017",
+    nombre: "Reel Instagram BNB Crédito Vehicular 24h",
+    tipo: "video",
+    version_numero: 1,
+    archivo: {
+      ruta: "piezas-creatividades/bnb/reel-vehicular-24h.mp4",
+      mime: "video/mp4",
+      tamano: 21000000
+    },
+    estado: "aprobada",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001037",
+    brief_id: "00000000-0000-0000-0000-00000000bf23",
+    campana_id: "00000000-0000-0000-0000-00000000c018",
+    nombre: "Spot TV PIL Desayuno Campeón 30s",
+    tipo: "video",
+    version_numero: 1,
+    archivo: {
+      ruta: "piezas-creatividades/pil/spot-desayuno-campeon.mp4",
+      mime: "video/mp4",
+      tamano: 39000000
+    },
+    estado: "aprobada",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001038",
+    brief_id: "00000000-0000-0000-0000-00000000bf24",
+    campana_id: "00000000-0000-0000-0000-00000000c019",
+    nombre: "Arte Prensa Financiera Banco Bisa PyME",
+    tipo: "imagen",
+    version_numero: 1,
+    archivo: {
+      ruta: "piezas-creatividades/bisa/prensa-pyme-impulsa.pdf",
+      mime: "application/pdf",
+      tamano: 9800000
+    },
+    estado: "aprobada",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001039",
+    brief_id: "00000000-0000-0000-0000-00000000bf25",
+    campana_id: "00000000-0000-0000-0000-00000000c020",
+    nombre: "Valla Caminera YPFB Extravida XV500",
+    tipo: "imagen",
+    version_numero: 1,
+    archivo: {
+      ruta: "piezas-creatividades/ypfb/valla-extravida-xv500.jpg",
+      mime: "image/jpeg",
+      tamano: 18200000
+    },
+    estado: "aprobada",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001040",
+    brief_id: "00000000-0000-0000-0000-00000000bf26",
+    campana_id: "00000000-0000-0000-0000-00000000c023",
+    nombre: "Cápsula Receta Salteñas con Aceite FINO",
+    tipo: "video",
+    version_numero: 1,
+    archivo: {
+      ruta: "piezas-creatividades/fino/capsula-receta-1.mp4",
+      mime: "video/mp4",
+      tamano: 27500000
+    },
+    estado: "en_revision",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
       validado_at: new Date("2026-01-25T11:00:00Z")
     },
     version: 1,

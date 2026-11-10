@@ -28,7 +28,13 @@ const briefs = [
   { n: 17, c: 14, cli: 9, tit: 'Spot Bicentenario Mentisan 85 Años', des: 'Pieza emotiva e histórica con testimonios de familias de distintas regiones que confían en el ungüento verde.', est: 'en_revision' },
   { n: 18, c: 14, cli: 9, tit: 'Diseño Lata Conmemorativa Mentisan Vintage', des: 'Ilustración y empaque de edición limitada homenajeando el diseño clásico de 1941.', est: 'en_revision' },
   { n: 19, c: 15, cli: 10, tit: 'Lanzamiento Suzuki Swift Hybrid: Video Test Drive', des: 'Video demostrativo de eficiencia energética, consumo en ciudad y diseño del nuevo híbrido.', est: 'aprobado' },
-  { n: 20, c: 15, cli: 10, tit: 'Valla Panorámica Suzuki Swift Hybrid', des: 'Artes gigantografías con especificaciones técnicas, precio base y financiamiento bancario.', est: 'rechazado' }
+  { n: 20, c: 15, cli: 10, tit: 'Valla Panorámica Suzuki Swift Hybrid', des: 'Artes gigantografías con especificaciones técnicas, precio base y financiamiento bancario.', est: 'rechazado' },
+  { n: 21, c: 16, cli: 11, tit: 'Spot TV y Vallas Entel 5G Nacional', des: 'Campaña audiovisual de cobertura 5G en los 9 departamentos con identidad azul/naranja Entel.', est: 'aprobado' },
+  { n: 22, c: 17, cli: 12, tit: 'Kit Digital BNB Créditos Vehiculares 24h', des: 'Banners animados y reels para aprobación vehicular inmediata desde BNB Móvil.', est: 'aprobado' },
+  { n: 23, c: 18, cli: 13, tit: 'Comercial PIL Desayuno Campeón Escolar', des: 'Spot familiar de 30s y afiches para puntos de venta destacando línea láctea fortificada.', est: 'aprobado' },
+  { n: 24, c: 19, cli: 14, tit: 'Gráfica Corporativa Banco Bisa PyME Impulsa', des: 'Artes para suplementos financieros y LinkedIn dirigidos al sector productivo.', est: 'aprobado' },
+  { n: 25, c: 20, cli: 15, tit: 'Campaña Vía Pública Lubricantes YPFB Extravida', des: 'Vallas camineras y cuñas radiales para rutas troncales del país.', est: 'aprobado' },
+  { n: 26, c: 23, cli: 18, tit: 'Cápsulas Recetario Aceite FINO Sabores de Casa', des: 'Videos cortos verticales con recetas tradicionales bolivianas.', est: 'en_revision' }
 ];
 
 const piezas = [
@@ -169,7 +175,28 @@ const piezas = [
     valOk: false, bloq: null },
   { n: 33, bf: 20, c: 15, nom: 'Valla Principal Cristo Redentor (Reintento Borrador)', tipo: 'imagen', v: 2, est: 'en_revision', prev: null,
     arch: { ruta: 'piezas-creatividades/suzuki/valla-cristo-v2-draft.jpg', mime: 'image/jpeg', tamano: 23500000 },
-    valOk: false, bloq: null }
+    valOk: false, bloq: null },
+  { n: 34, bf: 21, c: 16, nom: 'Spot Master Entel 5G Bolivia Conectada 45s', tipo: 'video', v: 1, est: 'aprobada', prev: null,
+    arch: { ruta: 'piezas-creatividades/entel/spot-5g-nacional.mp4', mime: 'video/mp4', tamano: 54000000 },
+    valOk: true, bloq: null },
+  { n: 35, bf: 21, c: 16, nom: 'Valla Autopista La Paz - El Alto Entel 5G', tipo: 'imagen', v: 2, est: 'aprobada', prev: null,
+    arch: { ruta: 'piezas-creatividades/entel/valla-autopista-5g.png', mime: 'image/png', tamano: 16400000 },
+    valOk: true, bloq: null },
+  { n: 36, bf: 22, c: 17, nom: 'Reel Instagram BNB Crédito Vehicular 24h', tipo: 'video', v: 1, est: 'aprobada', prev: null,
+    arch: { ruta: 'piezas-creatividades/bnb/reel-vehicular-24h.mp4', mime: 'video/mp4', tamano: 21000000 },
+    valOk: true, bloq: null },
+  { n: 37, bf: 23, c: 18, nom: 'Spot TV PIL Desayuno Campeón 30s', tipo: 'video', v: 1, est: 'aprobada', prev: null,
+    arch: { ruta: 'piezas-creatividades/pil/spot-desayuno-campeon.mp4', mime: 'video/mp4', tamano: 39000000 },
+    valOk: true, bloq: null },
+  { n: 38, bf: 24, c: 19, nom: 'Arte Prensa Financiera Banco Bisa PyME', tipo: 'imagen', v: 1, est: 'aprobada', prev: null,
+    arch: { ruta: 'piezas-creatividades/bisa/prensa-pyme-impulsa.pdf', mime: 'application/pdf', tamano: 9800000 },
+    valOk: true, bloq: null },
+  { n: 39, bf: 25, c: 20, nom: 'Valla Caminera YPFB Extravida XV500', tipo: 'imagen', v: 1, est: 'aprobada', prev: null,
+    arch: { ruta: 'piezas-creatividades/ypfb/valla-extravida-xv500.jpg', mime: 'image/jpeg', tamano: 18200000 },
+    valOk: true, bloq: null },
+  { n: 40, bf: 26, c: 23, nom: 'Cápsula Receta Salteñas con Aceite FINO', tipo: 'video', v: 1, est: 'en_revision', prev: null,
+    arch: { ruta: 'piezas-creatividades/fino/capsula-receta-1.mp4', mime: 'video/mp4', tamano: 27500000 },
+    valOk: true, bloq: null }
 ];
 
 let js = `// ============================================================================

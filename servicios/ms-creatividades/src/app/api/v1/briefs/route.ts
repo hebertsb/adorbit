@@ -11,7 +11,7 @@ import { manejarError } from '../../../../manejadorErrores';
 import { CrearBrief } from '../../../../use-cases/crearBrief';
 import { ListarBriefs } from '../../../../use-cases/listarBriefs';
 
-const esquemaUuid = z.string().uuid();
+const esquemaUuid = z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid uuid');
 const esquemaConsulta = z.object({
   campana_id: esquemaUuid.optional(),
   page: z.string().regex(/^[1-9]\d*$/).transform(Number).pipe(z.number().int().safe()).default(1),

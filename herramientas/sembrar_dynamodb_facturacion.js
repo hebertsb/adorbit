@@ -140,6 +140,101 @@ const facturas = [
     cobros: [
       { n: 11, m: 60000.00, met: 'TRANSFERENCIA', f: '2026-03-12', ref: 'TR-BOA-UYUNI-01' }
     ]
+  },
+  {
+    n: 11, cli: 9, c: 14, total: 110000.00, est: 'EMITIDA',
+    fEmi: '2026-11-01', fVenc: '2026-11-15',
+    items: [
+      { d: 'Pauta Digital admisión semestral UPB Executive MBA', c: 1, p: 65000.00 },
+      { d: 'Prensa Ejecutiva & Revistas de Negocios', c: 1, p: 45000.00 }
+    ],
+    cobros: []
+  },
+  {
+    n: 12, cli: 10, c: 15, total: 120000.00, est: 'VENCIDA',
+    fEmi: '2026-09-01', fVenc: '2026-10-01',
+    items: [
+      { d: 'Lanzamiento Digital Suzuki Swift Hybrid 2026', c: 1, p: 70000.00 },
+      { d: 'Circuito Vallas Showroom Imcruz', c: 1, p: 50000.00 }
+    ],
+    cobros: []
+  },
+  {
+    n: 13, cli: 11, c: 16, total: 175000.00, est: 'EMITIDA',
+    fEmi: '2026-11-02', fVenc: '2026-11-18',
+    items: [
+      { d: 'Pauta Televisiva PIL Andina Desayuno Escolar', c: 1, p: 105000.00 },
+      { d: 'Redes Sociales & Influencers Familiares', c: 1, p: 70000.00 }
+    ],
+    cobros: []
+  },
+  {
+    n: 14, cli: 12, c: 17, total: 320000.00, est: 'PAGADA',
+    fEmi: '2026-09-10', fVenc: '2026-10-10',
+    items: [
+      { d: 'Campaña Nacional Entel 5G Cobertura Total TV', c: 1, p: 180000.00 },
+      { d: 'Vallas Espectaculares Eje Troncal', c: 1, p: 80000.00 },
+      { d: 'Pauta Digital Programática', c: 1, p: 60000.00 }
+    ],
+    cobros: [
+      { n: 12, m: 320000.00, met: 'TRANSFERENCIA', f: '2026-10-02', ref: 'ACH-ENTEL-5G-009' }
+    ]
+  },
+  {
+    n: 15, cli: 13, c: 18, total: 195000.00, est: 'EMITIDA',
+    fEmi: '2026-11-03', fVenc: '2026-11-22',
+    items: [
+      { d: 'Campaña Digital BNB Banca Joven & App Móvil', c: 1, p: 115000.00 },
+      { d: 'Vallas Digitales LED Santa Cruz & La Paz', c: 1, p: 80000.00 }
+    ],
+    cobros: []
+  },
+  {
+    n: 16, cli: 14, c: 19, total: 140000.00, est: 'VENCIDA',
+    fEmi: '2026-08-20', fVenc: '2026-09-20',
+    items: [
+      { d: 'Feria de la Construcción Soboce Viacha & Warnes', c: 1, p: 85000.00 },
+      { d: 'Cuñas Radiales Sindicatos Constructores', c: 1, p: 55000.00 }
+    ],
+    cobros: []
+  },
+  {
+    n: 17, cli: 15, c: 20, total: 165000.00, est: 'PAGADA',
+    fEmi: '2026-09-15', fVenc: '2026-10-15',
+    items: [
+      { d: 'Campaña Digital Fino Tradición Familiar', c: 1, p: 95000.00 },
+      { d: 'Menciones en Programas de Cocina TV', c: 1, p: 70000.00 }
+    ],
+    cobros: [
+      { n: 13, m: 165000.00, met: 'TRANSFERENCIA', f: '2026-10-10', ref: 'ACH-FINO-2026-10' }
+    ]
+  },
+  {
+    n: 18, cli: 16, c: 21, total: 88000.00, est: 'EMITIDA',
+    fEmi: '2026-11-04', fVenc: '2026-11-25',
+    items: [
+      { d: 'Pauta Redes Sociales Laboratorios Bagó Línea Pediátrica', c: 1, p: 52000.00 },
+      { d: 'Revistas Médicas & Portales Salud', c: 1, p: 36000.00 }
+    ],
+    cobros: []
+  },
+  {
+    n: 19, cli: 17, c: 22, total: 210000.00, est: 'VENCIDA',
+    fEmi: '2026-09-05', fVenc: '2026-10-05',
+    items: [
+      { d: 'Lanzamiento Toyota Hilux 2026 Toyosa TV & Vallas', c: 1, p: 130000.00 },
+      { d: 'Pauta Digital Test Drive Nacional', c: 1, p: 80000.00 }
+    ],
+    cobros: []
+  },
+  {
+    n: 20, cli: 18, c: 23, total: 150000.00, est: 'EMITIDA',
+    fEmi: '2026-11-05', fVenc: '2026-12-05',
+    items: [
+      { d: 'Campaña Nacional Banco BISA e-BISA Empresarial', c: 1, p: 90000.00 },
+      { d: 'Prensa Financiera & LinkedIn Ads', c: 1, p: 60000.00 }
+    ],
+    cobros: []
   }
 ];
 
@@ -147,29 +242,41 @@ const items = [];
 
 // 1. Facturas (META)
 facturas.forEach(f => {
+  const cobrado = f.cobros.reduce((acc, cb) => acc + cb.m, 0);
+  const estLower = f.est.toLowerCase();
+  const saldo = estLower === 'pagada' ? 0 : Math.max(0, f.total - cobrado);
+  const subtotal = Number((f.total / 1.13).toFixed(2));
+  const impuestos = Number((f.total - subtotal).toFixed(2));
+  const estadoReal = (estLower === 'emitida' && cobrado > 0 && saldo > 0) ? 'pagada_parcial' : estLower;
+
   items.push({
     PK: { S: `FACT#${fId(f.n)}` },
     SK: { S: 'META' },
+    tipo: { S: 'FACTURA' },
     id: { S: fId(f.n) },
     cliente_id: { S: cliId(f.cli) },
     campana_id: { S: cId(f.c) },
+    subtotal: { N: subtotal.toFixed(2) },
+    impuestos: { N: impuestos.toFixed(2) },
     total: { N: f.total.toFixed(2) },
+    saldo: { N: saldo.toFixed(2) },
     moneda: { S: 'BOB' },
-    estado: { S: f.est },
+    estado: { S: estadoReal },
     fecha_emision: { S: f.fEmi },
     fecha_vencimiento: { S: f.fVenc },
     version: { N: '1' },
     GSI1PK: { S: `CLI#${cliId(f.cli)}` },
-    GSI1SK: { S: f.fEmi },
-    GSI2PK: { S: `ESTADO#${f.est}` },
-    GSI2SK: { S: f.fVenc }
+    GSI1SK: { S: `${f.fEmi}#${fId(f.n)}` },
+    GSI2PK: { S: `ESTADO#${estadoReal}` },
+    GSI2SK: { S: `${f.fVenc}#${fId(f.n)}` }
   });
 
   // Items de factura
   f.items.forEach((it, idx) => {
     items.push({
       PK: { S: `FACT#${fId(f.n)}` },
-      SK: { S: `ITEM#${pad(idx + 1)}` },
+      SK: { S: `ITEM#${String(idx + 1).padStart(3, '0')}` },
+      numero: { N: String(idx + 1) },
       descripcion: { S: it.d },
       cantidad: { N: String(it.c) },
       precio_unitario: { N: it.p.toFixed(2) },
@@ -184,10 +291,12 @@ facturas.forEach(f => {
       PK: { S: `FACT#${fId(f.n)}` },
       SK: { S: `COBRO#${cbId(cb.n)}` },
       id: { S: cbId(cb.n) },
+      cobro_id: { S: cbId(cb.n) },
       factura_id: { S: fId(f.n) },
       monto: { N: cb.m.toFixed(2) },
       moneda: { S: 'BOB' },
       metodo: { S: cb.met },
+      fecha: { S: cb.f },
       fecha_pago: { S: cb.f },
       referencia: { S: cb.ref }
     });

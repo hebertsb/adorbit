@@ -69,7 +69,7 @@ class VistaMcpRepositorioPg:
             """
             SELECT cliente_id, nombre, estado, linea_credito_limite, linea_credito_usado
             FROM vista_mcp_clientes
-            WHERE linea_credito_usado > linea_credito_limite
+            WHERE estado = 'moroso' OR linea_credito_usado > linea_credito_limite
             ORDER BY (linea_credito_usado - linea_credito_limite) DESC
             LIMIT $1
             """,

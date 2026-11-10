@@ -117,7 +117,107 @@ const clients = [
       { nombre: 'Lic. Pablo Daniel Kuncar', email: 'pkuncar@imcruz.com.bo', telefono: '+591 3 3156000', rol: 'Gerente Automotriz Suzuki' },
       { nombre: 'Lic. Laura Velasco Taborga', email: 'lvelasco@imcruz.com.bo', telefono: '+591 77622334', rol: 'Jefa de Campañas y PR' }
     ],
-    linea_credito: { limite: 450000.00, usado: 0.00, moneda: 'BOB' }
+    linea_credito: { limite: 450000.00, usado: 515000.00, moneda: 'BOB' }
+  },
+  {
+    n: 11,
+    razon_social: 'Entel S.A.',
+    nit: '1020703023',
+    estado: 'activo',
+    contactos: [
+      { nombre: 'Ing. Ramiro Paz Cerruto', email: 'rpaz@entel.bo', telefono: '+591 2 2141000', rol: 'Gerente Nacional de Imagen Corporativa' }
+    ],
+    linea_credito: { limite: 1000000.00, usado: 420000.00, moneda: 'BOB' }
+  },
+  {
+    n: 12,
+    razon_social: 'Banco Nacional de Bolivia S.A. (BNB)',
+    nit: '1020215024',
+    estado: 'activo',
+    contactos: [
+      { nombre: 'Lic. Valeria Urquidi Rojas', email: 'vurquidi@bnb.com.bo', telefono: '+591 2 2621000', rol: 'Subgerente de Marketing Digital' }
+    ],
+    linea_credito: { limite: 750000.00, usado: 250000.00, moneda: 'BOB' }
+  },
+  {
+    n: 13,
+    razon_social: 'PIL Andina S.A.',
+    nit: '1020755027',
+    estado: 'activo',
+    contactos: [
+      { nombre: 'Lic. Javier Gutiérrez Lozano', email: 'jgutierrez@pilandina.com.bo', telefono: '+591 4 4260164', rol: 'Gerente de Categoría Lácteos' }
+    ],
+    linea_credito: { limite: 650000.00, usado: 195000.00, moneda: 'BOB' }
+  },
+  {
+    n: 14,
+    razon_social: 'Banco Bisa S.A.',
+    nit: '1020149021',
+    estado: 'activo',
+    contactos: [
+      { nombre: 'Lic. Natalia Arana Céspedes', email: 'narana@bisa.com', telefono: '+591 2 2317272', rol: 'Jefa de Comunicación Institucional' }
+    ],
+    linea_credito: { limite: 600000.00, usado: 210000.00, moneda: 'BOB' }
+  },
+  {
+    n: 15,
+    razon_social: 'YPFB Refinación S.A.',
+    nit: '1028355025',
+    estado: 'activo',
+    contactos: [
+      { nombre: 'Ing. Marco Antonio Soliz', email: 'msoliz@ypfbrefinacion.com.bo', telefono: '+591 3 3560000', rol: 'Director Comercial Lubricantes' }
+    ],
+    linea_credito: { limite: 950000.00, usado: 310000.00, moneda: 'BOB' }
+  },
+  {
+    n: 16,
+    razon_social: 'Nuevatel PCS de Bolivia S.A. (Viva)',
+    nit: '1020612028',
+    estado: 'moroso',
+    contactos: [
+      { nombre: 'Lic. Diego Quintanilla', email: 'dquintanilla@viva.com.bo', telefono: '+591 70711223', rol: 'Jefe de Pauta Publicitaria' }
+    ],
+    linea_credito: { limite: 400000.00, usado: 448000.00, moneda: 'BOB' }
+  },
+  {
+    n: 17,
+    razon_social: 'Toyosa S.A.',
+    nit: '1020411022',
+    estado: 'moroso',
+    contactos: [
+      { nombre: 'Lic. Sebastián Saavedra', email: 'ssaavedra@toyosa.com', telefono: '+591 3 3425000', rol: 'Gerente de Marketing Nacional' }
+    ],
+    linea_credito: { limite: 550000.00, usado: 620000.00, moneda: 'BOB' }
+  },
+  {
+    n: 18,
+    razon_social: 'Industrias de Aceite S.A. (FINO)',
+    nit: '1020388029',
+    estado: 'activo',
+    contactos: [
+      { nombre: 'Lic. Paola Méndez Vaca', email: 'pmendez@fino.com.bo', telefono: '+591 3 3462000', rol: 'Brand Manager Consumo Masivo' }
+    ],
+    linea_credito: { limite: 500000.00, usado: 165000.00, moneda: 'BOB' }
+  },
+  {
+    n: 19,
+    razon_social: 'Laboratorios Bagó de Bolivia S.A.',
+    nit: '1020599021',
+    estado: 'activo',
+    contactos: [
+      { nombre: 'Dra. Claudia Terán', email: 'cteran@bago.com.bo', telefono: '+591 2 2770303', rol: 'Gerente de Línea OTC' }
+    ],
+    linea_credito: { limite: 380000.00, usado: 125000.00, moneda: 'BOB' }
+  },
+  {
+    n: 20,
+    razon_social: 'Cine Center Bolivia S.A.',
+    nit: '1028914026',
+    estado: 'moroso',
+    contactos: [
+      { nombre: 'Lic. Hernán Monasterio', email: 'hmonasterio@cinecenter.com.bo', telefono: '+591 3 3355555', rol: 'Jefe de Promociones y Cartelera' }
+    ],
+    linea_credito: { limite: 250000.00, usado: 295000.00, moneda: 'BOB' }
   }
 ];
 

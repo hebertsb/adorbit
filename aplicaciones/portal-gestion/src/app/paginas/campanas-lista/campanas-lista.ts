@@ -37,6 +37,10 @@ export class CampanasLista {
     [...new Set(this.campanasDatos.listar().map((campana) => campana.cliente))].sort((a, b) => a.localeCompare(b)),
   );
 
+  constructor() {
+    void this.campanasDatos.sincronizarConBackend();
+  }
+
   protected limpiarFiltros(): void {
     this.textoBusqueda.set('');
     this.filtroEstado.set('todos');

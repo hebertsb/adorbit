@@ -367,7 +367,227 @@ dbc.clientes.insertMany([
     ],
     linea_credito: {
       limite: NumberDecimal("450000.00"),
-      usado: NumberDecimal("0.00"),
+      usado: NumberDecimal("515000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000011",
+    razon_social: "Entel S.A.",
+    nit: "1020703023",
+    estado: "activo",
+    contactos: [
+        {
+            "nombre": "Ing. Ramiro Paz Cerruto",
+            "email": "rpaz@entel.bo",
+            "telefono": "+591 2 2141000",
+            "rol": "Gerente Nacional de Imagen Corporativa"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("1000000.00"),
+      usado: NumberDecimal("420000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000012",
+    razon_social: "Banco Nacional de Bolivia S.A. (BNB)",
+    nit: "1020215024",
+    estado: "activo",
+    contactos: [
+        {
+            "nombre": "Lic. Valeria Urquidi Rojas",
+            "email": "vurquidi@bnb.com.bo",
+            "telefono": "+591 2 2621000",
+            "rol": "Subgerente de Marketing Digital"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("750000.00"),
+      usado: NumberDecimal("250000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000013",
+    razon_social: "PIL Andina S.A.",
+    nit: "1020755027",
+    estado: "activo",
+    contactos: [
+        {
+            "nombre": "Lic. Javier Gutiérrez Lozano",
+            "email": "jgutierrez@pilandina.com.bo",
+            "telefono": "+591 4 4260164",
+            "rol": "Gerente de Categoría Lácteos"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("650000.00"),
+      usado: NumberDecimal("195000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000014",
+    razon_social: "Banco Bisa S.A.",
+    nit: "1020149021",
+    estado: "activo",
+    contactos: [
+        {
+            "nombre": "Lic. Natalia Arana Céspedes",
+            "email": "narana@bisa.com",
+            "telefono": "+591 2 2317272",
+            "rol": "Jefa de Comunicación Institucional"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("600000.00"),
+      usado: NumberDecimal("210000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000015",
+    razon_social: "YPFB Refinación S.A.",
+    nit: "1028355025",
+    estado: "activo",
+    contactos: [
+        {
+            "nombre": "Ing. Marco Antonio Soliz",
+            "email": "msoliz@ypfbrefinacion.com.bo",
+            "telefono": "+591 3 3560000",
+            "rol": "Director Comercial Lubricantes"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("950000.00"),
+      usado: NumberDecimal("310000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000016",
+    razon_social: "Nuevatel PCS de Bolivia S.A. (Viva)",
+    nit: "1020612028",
+    estado: "moroso",
+    contactos: [
+        {
+            "nombre": "Lic. Diego Quintanilla",
+            "email": "dquintanilla@viva.com.bo",
+            "telefono": "+591 70711223",
+            "rol": "Jefe de Pauta Publicitaria"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("400000.00"),
+      usado: NumberDecimal("448000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000017",
+    razon_social: "Toyosa S.A.",
+    nit: "1020411022",
+    estado: "moroso",
+    contactos: [
+        {
+            "nombre": "Lic. Sebastián Saavedra",
+            "email": "ssaavedra@toyosa.com",
+            "telefono": "+591 3 3425000",
+            "rol": "Gerente de Marketing Nacional"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("550000.00"),
+      usado: NumberDecimal("620000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000018",
+    razon_social: "Industrias de Aceite S.A. (FINO)",
+    nit: "1020388029",
+    estado: "activo",
+    contactos: [
+        {
+            "nombre": "Lic. Paola Méndez Vaca",
+            "email": "pmendez@fino.com.bo",
+            "telefono": "+591 3 3462000",
+            "rol": "Brand Manager Consumo Masivo"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("500000.00"),
+      usado: NumberDecimal("165000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000019",
+    razon_social: "Laboratorios Bagó de Bolivia S.A.",
+    nit: "1020599021",
+    estado: "activo",
+    contactos: [
+        {
+            "nombre": "Dra. Claudia Terán",
+            "email": "cteran@bago.com.bo",
+            "telefono": "+591 2 2770303",
+            "rol": "Gerente de Línea OTC"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("380000.00"),
+      usado: NumberDecimal("125000.00"),
+      moneda: "BOB"
+    },
+    version: 1,
+    creado_en: new Date("2025-10-01T08:00:00Z"),
+    actualizado_en: new Date("2026-02-01T10:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000000020",
+    razon_social: "Cine Center Bolivia S.A.",
+    nit: "1028914026",
+    estado: "moroso",
+    contactos: [
+        {
+            "nombre": "Lic. Hernán Monasterio",
+            "email": "hmonasterio@cinecenter.com.bo",
+            "telefono": "+591 3 3355555",
+            "rol": "Jefe de Promociones y Cartelera"
+        }
+    ],
+    linea_credito: {
+      limite: NumberDecimal("250000.00"),
+      usado: NumberDecimal("295000.00"),
       moneda: "BOB"
     },
     version: 1,

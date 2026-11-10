@@ -34,7 +34,7 @@ DELETE FROM reporte_clientes;
 DELETE FROM claves_idempotencia;
 DELETE FROM bandeja_salida_eventos;
 
--- 1. READ MODEL: REPORTE_CLIENTES (10 Grandes Empresas de Bolivia)
+-- 1. READ MODEL: REPORTE_CLIENTES (20 Grandes Empresas de Bolivia)
 INSERT INTO reporte_clientes (cliente_id, nombre, nit, estado, linea_credito_limite, linea_credito_usado, actualizado_en)
 VALUES
   ('${cliId(1)}', 'Banco Mercantil Santa Cruz S.A.', '1020304028', 'activo', 500000.00, 185000.00, now()),
@@ -45,10 +45,20 @@ VALUES
   ('${cliId(6)}', 'Embotelladoras Bolivianas Unidas S.A. (EMBOL)', '1020224023', 'activo', 800000.00, 210000.00, now()),
   ('${cliId(7)}', 'Hipermaxi S.A.', '1017325026', 'activo', 500000.00, 160000.00, now()),
   ('${cliId(8)}', 'Boliviana de Aviación (BoA)', '154362025', 'activo', 600000.00, 145000.00, now()),
-  ('${cliId(9)}', 'Droguería INTI S.A.', '1020339027', 'activo', 350000.00, 0.00, now()),
-  ('${cliId(10)}', 'Imcruz Comercial S.A. (Suzuki)', '1020548022', 'moroso', 450000.00, 0.00, now());
+  ('${cliId(9)}', 'Droguería INTI S.A.', '1020339027', 'activo', 350000.00, 175000.00, now()),
+  ('${cliId(10)}', 'Imcruz Comercial S.A. (Suzuki)', '1020548022', 'moroso', 450000.00, 515000.00, now()),
+  ('${cliId(11)}', 'Entel S.A.', '1020703023', 'activo', 1000000.00, 420000.00, now()),
+  ('${cliId(12)}', 'Banco Nacional de Bolivia S.A. (BNB)', '1020215024', 'activo', 750000.00, 250000.00, now()),
+  ('${cliId(13)}', 'PIL Andina S.A.', '1020755027', 'activo', 650000.00, 195000.00, now()),
+  ('${cliId(14)}', 'Banco Bisa S.A.', '1020149021', 'activo', 600000.00, 210000.00, now()),
+  ('${cliId(15)}', 'YPFB Refinación S.A.', '1028355025', 'activo', 950000.00, 310000.00, now()),
+  ('${cliId(16)}', 'Nuevatel PCS de Bolivia S.A. (Viva)', '1020612028', 'moroso', 400000.00, 448000.00, now()),
+  ('${cliId(17)}', 'Toyosa S.A.', '1020411022', 'moroso', 550000.00, 620000.00, now()),
+  ('${cliId(18)}', 'Industrias de Aceite S.A. (FINO)', '1020388029', 'activo', 500000.00, 165000.00, now()),
+  ('${cliId(19)}', 'Laboratorios Bagó de Bolivia S.A.', '1020599021', 'activo', 380000.00, 125000.00, now()),
+  ('${cliId(20)}', 'Cine Center Bolivia S.A.', '1028914026', 'moroso', 250000.00, 295000.00, now());
 
--- 2. READ MODEL: REPORTE_CAMPANAS (15 Campañas sincronizadas)
+-- 2. READ MODEL: REPORTE_CAMPANAS (25 Campañas sincronizadas)
 INSERT INTO reporte_campanas (campana_id, cliente_id, nombre, estado, presupuesto_total, gasto_actual, fecha_inicio, fecha_fin, ultima_version, actualizado_en)
 VALUES
   ('${cId(1)}', '${cliId(1)}', 'Lanzamiento Cuenta Joven 2026: Tu Plata, Tu Ritmo', 'activa', 185000.00, 92400.00, '2026-02-01', '2026-05-31', 1, now()),
@@ -65,21 +75,41 @@ VALUES
   ('${cId(12)}', '${cliId(7)}', 'Miércoles de Frescura Hipermaxi: Calidad de la Granja a tu Mesa', 'activa', 160000.00, 53300.00, '2026-01-01', '2026-12-31', 1, now()),
   ('${cId(13)}', '${cliId(8)}', 'Conoce Tu País con BoA: Vuelos Directos Salar de Uyuni', 'activa', 145000.00, 60000.00, '2026-03-01', '2026-06-30', 1, now()),
   ('${cId(14)}', '${cliId(9)}', 'Mentisan 85 Años: El Alivio de Generaciones', 'pendiente_aprobacion', 175000.00, 0.00, '2026-05-10', '2026-08-31', 1, now()),
-  ('${cId(15)}', '${cliId(10)}', 'Suzuki New Swift Hybrid 2026: Rendimiento Inteligente', 'cancelada', 120000.00, 15000.00, '2026-01-10', '2026-03-31', 1, now());
+  ('${cId(15)}', '${cliId(10)}', 'Suzuki New Swift Hybrid 2026: Rendimiento Inteligente', 'cancelada', 120000.00, 15000.00, '2026-01-10', '2026-03-31', 1, now()),
+  ('${cId(16)}', '${cliId(11)}', 'Entel 5G Nacional 2026: Conectando Cada Rincón de Bolivia', 'activa', 420000.00, 394800.00, '2026-02-15', '2026-08-15', 1, now()),
+  ('${cId(17)}', '${cliId(12)}', 'BNB Banca Digital Plus: Créditos Vehiculares en 24 Horas', 'activa', 250000.00, 232500.00, '2026-03-10', '2026-07-31', 1, now()),
+  ('${cId(18)}', '${cliId(13)}', 'PIL Desayuno Campeón 2026: Energía Láctea para Crecer', 'activa', 195000.00, 181350.00, '2026-02-01', '2026-06-30', 1, now()),
+  ('${cId(19)}', '${cliId(14)}', 'Banco Bisa PyME Impulsa: Capital de Trabajo sin Fronteras', 'activa', 210000.00, 115000.00, '2026-04-01', '2026-09-30', 1, now()),
+  ('${cId(20)}', '${cliId(15)}', 'Lubricantes YPFB Extravida XV500: Máxima Protección Motor', 'activa', 310000.00, 288300.00, '2026-01-20', '2026-08-20', 1, now()),
+  ('${cId(21)}', '${cliId(16)}', 'Viva Bolsas Ilimitadas TikTok & Gaming Nocturno', 'pausada', 150000.00, 138000.00, '2026-02-10', '2026-05-30', 1, now()),
+  ('${cId(22)}', '${cliId(17)}', 'Toyosa Hilux 2026: Indestructible en Todo Terreno', 'pendiente_aprobacion', 360000.00, 0.00, '2026-05-01', '2026-09-30', 1, now()),
+  ('${cId(23)}', '${cliId(18)}', 'Aceite FINO Sabores de Casa: Tradición Familiar Boliviana', 'activa', 165000.00, 88000.00, '2026-03-01', '2026-08-31', 1, now()),
+  ('${cId(24)}', '${cliId(19)}', 'Bagó Línea Respira Libre: Prevención Invernal en Altitud', 'borrador', 125000.00, 0.00, '2026-05-20', '2026-08-30', 1, now()),
+  ('${cId(25)}', '${cliId(20)}', 'Cine Center Temporada Blockbuster VIP & 4DX 2026', 'rechazada', 140000.00, 0.00, '2026-02-01', '2026-04-30', 1, now());
 
--- 3. READ MODEL: REPORTE_FACTURACION (10 Facturas emitidas/cobradas)
+-- 3. READ MODEL: REPORTE_FACTURACION (22 Facturas: pagadas, vencidas y próximas a vencer)
 INSERT INTO reporte_facturacion (factura_id, cliente_id, campana_id, estado, total, moneda, fecha_emision, fecha_vencimiento, actualizado_en)
 VALUES
-  ('${fId(1)}', '${cliId(1)}', '${cId(1)}', 'EMITIDA', 185000.00, 'BOB', '2026-02-01', '2026-03-03', now()),
+  ('${fId(1)}', '${cliId(1)}', '${cId(1)}', 'EMITIDA', 185000.00, 'BOB', CURRENT_DATE - 25, CURRENT_DATE + 5, now()),
   ('${fId(2)}', '${cliId(1)}', '${cId(2)}', 'PAGADA', 220000.00, 'BOB', '2025-10-01', '2025-11-01', now()),
-  ('${fId(3)}', '${cliId(2)}', '${cId(4)}', 'EMITIDA', 130000.00, 'BOB', '2026-03-01', '2026-04-01', now()),
+  ('${fId(3)}', '${cliId(2)}', '${cId(4)}', 'EMITIDA', 130000.00, 'BOB', CURRENT_DATE - 20, CURRENT_DATE + 10, now()),
   ('${fId(4)}', '${cliId(3)}', '${cId(5)}', 'PAGADA', 95000.00, 'BOB', '2026-01-20', '2026-02-20', now()),
-  ('${fId(5)}', '${cliId(4)}', '${cId(7)}', 'EMITIDA', 80000.00, 'BOB', '2026-04-15', '2026-05-15', now()),
+  ('${fId(5)}', '${cliId(4)}', '${cId(7)}', 'EMITIDA', 80000.00, 'BOB', CURRENT_DATE - 16, CURRENT_DATE + 14, now()),
   ('${fId(6)}', '${cliId(5)}', '${cId(9)}', 'PAGADA', 280000.00, 'BOB', '2026-01-15', '2026-02-15', now()),
-  ('${fId(7)}', '${cliId(5)}', '${cId(10)}', 'EMITIDA', 90000.00, 'BOB', '2026-02-01', '2026-03-01', now()),
+  ('${fId(7)}', '${cliId(5)}', '${cId(10)}', 'EMITIDA', 90000.00, 'BOB', CURRENT_DATE - 45, CURRENT_DATE - 15, now()),
   ('${fId(8)}', '${cliId(6)}', '${cId(11)}', 'PAGADA', 210000.00, 'BOB', '2025-12-01', '2026-01-05', now()),
-  ('${fId(9)}', '${cliId(7)}', '${cId(12)}', 'EMITIDA', 160000.00, 'BOB', '2026-01-01', '2026-02-01', now()),
-  ('${fId(10)}', '${cliId(8)}', '${cId(13)}', 'EMITIDA', 145000.00, 'BOB', '2026-03-01', '2026-04-01', now());
+  ('${fId(9)}', '${cliId(7)}', '${cId(12)}', 'EMITIDA', 160000.00, 'BOB', CURRENT_DATE - 27, CURRENT_DATE + 3, now()),
+  ('${fId(10)}', '${cliId(8)}', '${cId(13)}', 'EMITIDA', 145000.00, 'BOB', CURRENT_DATE - 23, CURRENT_DATE + 7, now()),
+  ('${fId(11)}', '${cliId(10)}', '${cId(15)}', 'EMITIDA', 120000.00, 'BOB', CURRENT_DATE - 60, CURRENT_DATE - 30, now()),
+  ('${fId(12)}', '${cliId(11)}', '${cId(16)}', 'EMITIDA', 420000.00, 'BOB', CURRENT_DATE - 18, CURRENT_DATE + 12, now()),
+  ('${fId(13)}', '${cliId(12)}', '${cId(17)}', 'PAGADA', 250000.00, 'BOB', CURRENT_DATE - 40, CURRENT_DATE - 10, now()),
+  ('${fId(14)}', '${cliId(13)}', '${cId(18)}', 'EMITIDA', 195000.00, 'BOB', CURRENT_DATE - 10, CURRENT_DATE + 20, now()),
+  ('${fId(15)}', '${cliId(14)}', '${cId(19)}', 'EMITIDA', 210000.00, 'BOB', CURRENT_DATE - 5, CURRENT_DATE + 25, now()),
+  ('${fId(16)}', '${cliId(15)}', '${cId(20)}', 'PAGADA', 310000.00, 'BOB', CURRENT_DATE - 50, CURRENT_DATE - 20, now()),
+  ('${fId(17)}', '${cliId(16)}', '${cId(21)}', 'EMITIDA', 150000.00, 'BOB', CURRENT_DATE - 55, CURRENT_DATE - 25, now()),
+  ('${fId(18)}', '${cliId(17)}', '${cId(22)}', 'EMITIDA', 360000.00, 'BOB', CURRENT_DATE - 48, CURRENT_DATE - 18, now()),
+  ('${fId(19)}', '${cliId(18)}', '${cId(23)}', 'EMITIDA', 165000.00, 'BOB', CURRENT_DATE - 2, CURRENT_DATE + 28, now()),
+  ('${fId(20)}', '${cliId(20)}', '${cId(25)}', 'EMITIDA', 140000.00, 'BOB', CURRENT_DATE - 70, CURRENT_DATE - 40, now());
 
 -- 4. EVENTOS PROCESADOS (Deduplicación histórica de RabbitMQ)
 INSERT INTO eventos_procesados (id_evento, tipo_evento, procesado_at)
@@ -170,7 +200,27 @@ VALUES
    'c5d6e7f8a9b0123456789abcdef0123456789abcdef0123456789abcdef01234',
    'servidor', true, true, false, 0.912,
    '{"clases": ["logo_suzuki", "auto_swift"], "violacion": "Logo Suzuki con relación de aspecto alterada (+14% horizontal)"}',
-   '{"inference_time_ms": 24, "device": "cuda:0"}', 195, now() - interval '10 days');
+   '{"inference_time_ms": 24, "device": "cuda:0"}', 195, now() - interval '10 days'),
+  ('${visId(5)}', '${pzId(18)}', '${cId(9)}', '${modId(1)}',
+   'b6e7f8a9c0d123456789abcdef0123456789abcdef0123456789abcdef012345',
+   'servidor', true, true, true, 0.978,
+   '{"clases": ["logo_tigo", "router_fibra", "familia_conectada"], "cajas_delimitadoras": [[80,40,260,190]]}',
+   '{"inference_time_ms": 21, "device": "cuda:0"}', 172, now() - interval '3 days'),
+  ('${visId(6)}', '${pzId(22)}', '${cId(12)}', '${modId(1)}',
+   'd7f8a9b0c1e23456789abcdef0123456789abcdef0123456789abcdef0123456',
+   'web_local', true, true, true, 0.964,
+   '{"clases": ["logo_hipermaxi", "canasta_frutas", "sello_oferta"], "cajas_delimitadoras": [[45,25,210,165]]}',
+   '{"inference_time_ms": 54, "device": "webgpu"}', 290, now() - interval '1 day'),
+  ('${visId(7)}', '${pzId(25)}', '${cId(13)}', '${modId(1)}',
+   'e8a9b0c1d2f3456789abcdef0123456789abcdef0123456789abcdef01234567',
+   'servidor', true, true, true, 0.989,
+   '{"clases": ["logo_boa", "avion_boeing", "salar_uyuni"], "cajas_delimitadoras": [[110,60,340,240]]}',
+   '{"inference_time_ms": 23, "device": "cuda:0"}', 180, now() - interval '12 hours'),
+  ('${visId(8)}', '${pzId(28)}', '${cId(16)}', '${modId(1)}',
+   'f9b0c1d2e3a456789abcdef0123456789abcdef0123456789abcdef012345678',
+   'web_local', true, true, true, 0.993,
+   '{"clases": ["logo_entel", "antena_5g", "smartphone"], "cajas_delimitadoras": [[60,30,240,180]]}',
+   '{"inference_time_ms": 49, "device": "webgpu"}', 260, now() - interval '6 hours');
 
 -- 9. AUDITORIA MCP (Cumplimiento innegociable de seguridad: prohibido SQL libre)
 INSERT INTO auditoria_mcp (id, agente_id, usuario_id, herramienta, parametros, resultado_resumen, exito, bloqueado, motivo_bloqueo, error, duracion_ms, creado_en)
