@@ -84,7 +84,7 @@ class SesionController extends Notifier<SesionEstado> {
           Entorno.clienteOidc,
           Entorno.redireccionOidc,
           issuer: Entorno.emisorOidc,
-          scopes: const ['openid', 'profile', 'offline_access'],
+          scopes: const ['openid'],
           allowInsecureConnections: Entorno.permitirHttpOidc,
         ),
       );
@@ -114,7 +114,7 @@ class SesionController extends Notifier<SesionEstado> {
         Entorno.redireccionOidc,
         issuer: Entorno.emisorOidc,
         refreshToken: refreshToken,
-        scopes: const ['openid', 'profile', 'offline_access'],
+        scopes: const ['openid'],
         allowInsecureConnections: Entorno.permitirHttpOidc,
       ),
     );

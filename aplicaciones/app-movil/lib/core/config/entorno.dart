@@ -16,7 +16,7 @@ class Entorno {
         defaultValue: '',
       ).isNotEmpty
       ? const String.fromEnvironment('ADORBIT_CREATIVIDADES_BASE_URL')
-      : 'http://$_hostLocal:8083';
+      : 'http://4.151.177.116';
 
   /// Simulador de Keycloak compartido de todo el proyecto
   /// (herramientas/keycloak-simulado.mjs, de Luis) mientras Roly no tenga el Keycloak
@@ -28,12 +28,12 @@ class Entorno {
         defaultValue: '',
       ).isNotEmpty
       ? const String.fromEnvironment('ADORBIT_EMISOR_PRUEBA_BASE_URL')
-      : 'http://$_hostLocal:8180';
+      : 'http://4.151.177.116';
 
   static String get emisorOidc =>
       const String.fromEnvironment('ADORBIT_OIDC_EMISOR', defaultValue: '').isNotEmpty
       ? const String.fromEnvironment('ADORBIT_OIDC_EMISOR')
-      : 'http://localhost:8180/realms/adorbit';
+      : 'http://4.151.177.116/realms/adorbit';
 
   static const clienteOidc = String.fromEnvironment(
     'ADORBIT_OIDC_CLIENTE_ID',
