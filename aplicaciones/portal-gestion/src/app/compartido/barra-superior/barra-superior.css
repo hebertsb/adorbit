@@ -35,14 +35,16 @@
 
 .icono-boton {
   position: relative;
-  display: grid;
+  display: inline-grid;
   place-items: center;
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   border: none;
   border-radius: 50%;
   background: transparent;
   color: var(--ao-texto-suave);
+  text-decoration: none;
   cursor: pointer;
 }
 
@@ -69,6 +71,8 @@
 
 .notificaciones {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 .contador {
   position: absolute;
