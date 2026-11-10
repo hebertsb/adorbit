@@ -284,7 +284,58 @@
                 #archivo
                 type="file"
                 accept="image/jpeg,image/png,video/mp4,application/pdf"
+                (change)="alSeleccionarArchivoPieza(archivo.files?.[0])"
             /></label>
+
+            @if (iaLocal.analizando()) {
+              <div class="ia-local-card campo-ancho">
+                <span class="icono-giratorio">⚙️</span> Analizando pieza en el navegador con IA local (On-Device)…
+              </div>
+            }
+
+            @if (analisisImagenLocal(); as ia) {
+              <section class="ia-local-card campo-ancho" aria-label="Auditoría de IA Local en el Navegador">
+                <div class="ia-local-card__cabecera">
+                  <div>
+                    <span class="copilot-badge">🧠 IA Local (En el Dispositivo · Sin Red)</span>
+                    <h4>Auditoría instantánea del Manual de Marca</h4>
+                    <small class="ia-local-card__motor">Motor: {{ ia.motor }}</small>
+                  </div>
+                  <ao-etiqueta-estado
+                    [texto]="ia.manualMarcaOk ? 'Conforme Manual (' + ia.confianza + '%)' : 'Con observaciones (' + ia.confianza + '%)'"
+                    [tono]="ia.manualMarcaOk ? 'ok' : 'aviso'"
+                  />
+                </div>
+                <div class="ia-local-card__metricas">
+                  <div class="ia-metrica">
+                    <span>Detección de marca</span>
+                    <strong>{{ ia.detectaLogo ? 'Detectada' : 'No detectada' }}</strong>
+                  </div>
+                  <div class="ia-metrica">
+                    <span>Confianza On-Device</span>
+                    <strong>{{ ia.confianza }}%</strong>
+                  </div>
+                  <div class="ia-metrica">
+                    <span>Resolución / Aspecto</span>
+                    <strong>{{ ia.resolucion }} ({{ ia.relacionAspecto }})</strong>
+                  </div>
+                  <div class="ia-metrica">
+                    <span>Paleta dominante</span>
+                    <div class="ia-paleta">
+                      @for (hex of ia.paletaDominante; track hex) {
+                        <span class="ia-muestra-color" [style.background]="hex" [title]="hex"></span>
+                      }
+                    </div>
+                  </div>
+                </div>
+                <ul class="ia-local-card__lista">
+                  @for (obs of ia.observaciones; track obs) {
+                    <li>{{ obs }}</li>
+                  }
+                </ul>
+              </section>
+            }
+
             <div class="acciones">
               <button class="boton-primario" [disabled]="guardando()">Registrar pieza</button
               ><button

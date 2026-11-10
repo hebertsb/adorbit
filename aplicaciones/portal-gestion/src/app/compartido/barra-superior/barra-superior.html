@@ -32,6 +32,52 @@
     }
   </div>
   <div class="acciones">
+    <div class="notificaciones">
+      <button
+        type="button"
+        class="pildora-sync"
+        [class.pildora-sync--offline]="!offline.enLinea()"
+        [class.pildora-sync--pendiente]="offline.pendientesCount() > 0"
+        (click)="colaOfflineAbierta.set(!colaOfflineAbierta()); notificacionesAbiertas.set(false)"
+        [attr.aria-expanded]="colaOfflineAbierta()"
+        title="Estado de red y bandeja de sincronización idempotente"
+      >
+        <span class="punto-sync" [class.punto-sync--offline]="!offline.enLinea()"></span>
+        @if (!offline.enLinea()) {
+          <span>Modo Offline</span>
+        } @else if (offline.sincronizando()) {
+          <span>Sincronizando…</span>
+        } @else {
+          <span>Online</span>
+        }
+        @if (offline.pendientesCount() > 0) {
+          <strong class="badge-cola">{{ offline.pendientesCount() }}</strong>
+        }
+      </button>
+
+      @if (colaOfflineAbierta()) {
+        <div class="desplegable desplegable--notificaciones">
+          <span class="desplegable__titulo">
+            Bandeja Offline · Idempotencia ({{ offline.bandeja().length }})
+          </span>
+          @if (offline.pendientesCount() > 0 && offline.enLinea()) {
+            <button type="button" (click)="offline.sincronizarPendientes()">
+              <strong>🔄 Sincronizar ahora ({{ offline.pendientesCount() }} pendientes)</strong>
+              <small>Reenvía cada operación con su Idempotency-Key</small>
+            </button>
+          }
+          @for (op of offline.bandeja().slice(0, 6); track op.id) {
+            <button type="button" (click)="offline.descartarOperacion(op.id)">
+              <strong>{{ op.etiqueta }} · [{{ op.estado }}]</strong>
+              <small>Key: {{ op.claveIdempotencia.slice(0, 14) }}… (clic para limpiar)</small>
+            </button>
+          } @empty {
+            <p>Sin operaciones pendientes en la cola local.</p>
+          }
+        </div>
+      }
+    </div>
+
     <button
       type="button"
       class="icono-boton"

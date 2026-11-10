@@ -819,3 +819,82 @@ button:disabled {
     text-align: center;
   }
 }
+
+.ia-local-card {
+  border: 1px solid rgba(79, 70, 229, 0.32);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, rgba(16, 185, 129, 0.05) 100%);
+  margin-top: 6px;
+}
+
+.ia-local-card__cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ia-local-card__cabecera h4 {
+  margin: 6px 0 2px;
+  font-size: 0.92rem;
+  color: var(--ao-texto);
+}
+
+.ia-local-card__motor {
+  color: var(--ao-texto-suave);
+  font-size: 0.72rem;
+}
+
+.ia-local-card__metricas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.ia-metrica {
+  background: var(--ao-superficie);
+  border: 1px solid var(--ao-borde);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ia-metrica span {
+  font-size: 0.68rem;
+  color: var(--ao-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ia-metrica strong {
+  font-size: 0.84rem;
+  color: var(--ao-texto);
+}
+
+.ia-paleta {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ia-muestra-color {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--ao-borde);
+  display: inline-block;
+}
+
+.ia-local-card__lista {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  color: var(--ao-texto-suave);
+  display: grid;
+  gap: 4px;
+}

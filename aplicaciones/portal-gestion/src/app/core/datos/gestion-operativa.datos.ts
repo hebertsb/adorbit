@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { AutenticacionService } from '../auth/autenticacion.service';
+import { OfflineSyncService } from '../offline/offline-sync.service';
 
 const ES_DEV_LOCAL = typeof window !== 'undefined' && window.location.port === '4200';
 const URL_API = ES_DEV_LOCAL ? 'http://localhost:8000/api/v1' : '/api/v1';
@@ -141,34 +142,52 @@ export interface EjecucionAgenteItem {
 @Injectable({ providedIn: 'root' })
 export class GestionOperativaDatos {
   private readonly auth = inject(AutenticacionService);
+  private readonly offline = inject(OfflineSyncService);
 
-  private cabeceras(escritura = false): Record<string, string> {
+  private cabeceras(escritura = false, claveIdempotencia?: string): Record<string, string> {
     const token = this.auth.token();
     return {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(escritura
-        ? { 'Content-Type': 'application/json', 'Idempotency-Key': crypto.randomUUID() }
+        ? {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': claveIdempotencia ?? crypto.randomUUID(),
+          }
         : {}),
     };
   }
 
   private async solicitar<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
-    const respuesta = await fetch(`${URL_API}${ruta}`, opciones);
-    if (respuesta.status === 401) {
-      this.auth.cerrarSesion();
-      throw new Error('La sesión expiró. Vuelva a iniciar sesión.');
-    }
-    if (!respuesta.ok) {
-      let mensaje = `No se pudo completar la operación (${respuesta.status}).`;
-      try {
-        mensaje = (await respuesta.json()).mensaje ?? mensaje;
-      } catch {
-        /* respuesta sin JSON */
+    const esGet = !opciones.method || opciones.method.toUpperCase() === 'GET';
+    const claveCache = `api:${ruta}`;
+    try {
+      const respuesta = await fetch(`${URL_API}${ruta}`, opciones);
+      if (respuesta.status === 401) {
+        this.auth.cerrarSesion();
+        throw new Error('La sesión expiró. Vuelva a iniciar sesión.');
       }
-      throw new Error(mensaje);
+      if (!respuesta.ok) {
+        let mensaje = `No se pudo completar la operación (${respuesta.status}).`;
+        try {
+          mensaje = (await respuesta.json()).mensaje ?? mensaje;
+        } catch {
+          /* respuesta sin JSON */
+        }
+        throw new Error(mensaje);
+      }
+      if (respuesta.status === 204) return undefined as T;
+      const datos = (await respuesta.json()) as T;
+      if (esGet) {
+        this.offline.guardarCacheLectura(claveCache, datos);
+      }
+      return datos;
+    } catch (err) {
+      if (esGet) {
+        const cacheado = this.offline.leerCacheLectura<T>(claveCache);
+        if (cacheado !== null) return cacheado;
+      }
+      throw err;
     }
-    if (respuesta.status === 204) return undefined as T;
-    return respuesta.json() as Promise<T>;
   }
 
   listarClientes(filtros: { q?: string; estado?: string } = {}): Promise<Pagina<ClienteCrm>> {

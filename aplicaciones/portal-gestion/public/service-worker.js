@@ -1,16 +1,19 @@
-const CACHE_NAME = 'adorbit-gestion-v2';
+const CACHE_STATIC = 'adorbit-gestion-estatico-v3';
+const CACHE_DATOS = 'adorbit-gestion-datos-v3';
 const RECURSOS_ESTATICOS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/favicon.svg'
+  '/favicon.svg',
+  '/configuracion-panel.js',
+  '/modelos/yolo_logo_adorbit.onnx',
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(RECURSOS_ESTATICOS);
-    })
+    caches.open(CACHE_STATIC).then((cache) => {
+      return Promise.allSettled(RECURSOS_ESTATICOS.map((url) => cache.add(url)));
+    }),
   );
   self.skipWaiting();
 });
@@ -20,28 +23,64 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((claves) => {
       return Promise.all(
         claves.map((clave) => {
-          if (clave !== CACHE_NAME) {
+          if (clave !== CACHE_STATIC && clave !== CACHE_DATOS) {
             return caches.delete(clave);
           }
-        })
+        }),
       );
-    })
+    }),
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignorar llamadas a API REST y GraphQL para mantener datos frescos
-  if (event.request.url.includes('/api/') || event.request.url.includes('/graphql') || event.request.method !== 'GET') {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // Nunca interceptar flujos de login OIDC ni mutaciones POST/PUT/DELETE REST
+  if (url.pathname.startsWith('/realms/') || url.pathname.startsWith('/resources/')) {
     return;
   }
 
+  // Consultas GET a /api/v1/* -> Network-First con fallback a CACHE_DATOS para soporte offline
+  if (req.method === 'GET' && url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(req)
+        .then((respuesta) => {
+          if (respuesta && respuesta.status === 200) {
+            const copia = respuesta.clone();
+            caches.open(CACHE_DATOS).then((cache) => cache.put(req, copia));
+          }
+          return respuesta;
+        })
+        .catch(() => caches.match(req)),
+    );
+    return;
+  }
+
+  // Solo interceptar GET para archivos estáticos y navegación SPA
+  if (req.method !== 'GET') {
+    return;
+  }
+
+  // Assets estáticos (.js, .css, .onnx, iconos, fuentes) y rutas de la SPA -> Network-First con caché dinámica
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request).then((coincidencia) => {
-        return coincidencia || caches.match('/');
-      });
-    })
+    fetch(req)
+      .then((respuesta) => {
+        if (respuesta && respuesta.status === 200 && url.origin === self.location.origin) {
+          const copia = respuesta.clone();
+          caches.open(CACHE_STATIC).then((cache) => cache.put(req, copia));
+        }
+        return respuesta;
+      })
+      .catch(() => {
+        return caches.match(req).then((coincidencia) => {
+          if (coincidencia) return coincidencia;
+          if (req.mode === 'navigate') {
+            return caches.match('/index.html') || caches.match('/');
+          }
+          return Response.error();
+        });
+      }),
   );
 });
-

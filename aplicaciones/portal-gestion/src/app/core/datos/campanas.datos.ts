@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Campana, DegradadoPieza, MedioCalendario, PiezaCreatividad } from './campana.modelo';
 import { AutenticacionService } from '../auth/autenticacion.service';
+import { OfflineSyncService } from '../offline/offline-sync.service';
 
 const ES_DEV_LOCAL = typeof window !== 'undefined' && window.location.port === '4200';
 const URL_GATEWAY_GRAPHQL = ES_DEV_LOCAL ? 'http://localhost:8000/graphql' : '/graphql';
@@ -36,6 +37,7 @@ const MAPA_ESTADO_PIEZA_GQL: Record<string, PiezaCreatividad['estado']> = {
 @Injectable({ providedIn: 'root' })
 export class CampanasDatos {
   private readonly auth = inject(AutenticacionService);
+  private readonly offline = inject(OfflineSyncService);
   readonly estadoCarga = signal<'cargando' | 'disponible' | 'error'>('cargando');
 
   private readonly listaCampanas = signal<Campana[]>([]);
@@ -132,12 +134,19 @@ export class CampanasDatos {
         }));
 
         this.listaCampanas.set(mapeadas);
+        this.offline.guardarCacheLectura('campanas:lista', mapeadas);
         this.estadoCarga.set('disponible');
       } else {
         throw new Error('Respuesta de campañas inválida');
       }
     } catch {
-      this.estadoCarga.set('error');
+      const cacheadas = this.offline.leerCacheLectura<Campana[]>('campanas:lista');
+      if (cacheadas && cacheadas.length > 0) {
+        this.listaCampanas.set(cacheadas);
+        this.estadoCarga.set('disponible');
+      } else {
+        this.estadoCarga.set('error');
+      }
     }
   }
 

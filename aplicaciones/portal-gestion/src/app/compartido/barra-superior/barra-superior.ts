@@ -4,6 +4,7 @@ import { TemaService } from '../../core/tema.service';
 import { AutenticacionService } from '../../core/auth/autenticacion.service';
 import { CampanasDatos } from '../../core/datos/campanas.datos';
 import { ClienteCrm, GestionOperativaDatos } from '../../core/datos/gestion-operativa.datos';
+import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 
 @Component({
   selector: 'ao-barra-superior',
@@ -12,6 +13,7 @@ import { ClienteCrm, GestionOperativaDatos } from '../../core/datos/gestion-oper
 })
 export class BarraSuperior {
   protected readonly tema = inject(TemaService);
+  protected readonly offline = inject(OfflineSyncService);
   private readonly auth = inject(AutenticacionService);
   private readonly router = inject(Router);
   private readonly campanas = inject(CampanasDatos);
@@ -20,6 +22,7 @@ export class BarraSuperior {
   protected readonly consulta = signal('');
   protected readonly buscadorAbierto = signal(false);
   protected readonly notificacionesAbiertas = signal(false);
+  protected readonly colaOfflineAbierta = signal(false);
   protected readonly clientes = signal<ClienteCrm[]>([]);
 
   protected readonly usuario = computed(() => this.auth.usuario());

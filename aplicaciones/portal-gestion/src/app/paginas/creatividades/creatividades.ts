@@ -9,6 +9,11 @@ import {
   PropuestaBriefIa,
   TipoPieza,
 } from '../../core/datos/creatividades.datos';
+import {
+  IaLocalWebService,
+  ResultadoVisionLocalWeb,
+} from '../../core/ia-local/ia-local-web.service';
+import { OfflineSyncService } from '../../core/offline/offline-sync.service';
 
 const TONO_ESTADO: Record<string, TonoEtiqueta> = {
   aprobada: 'ok',
@@ -30,6 +35,8 @@ export class Creatividades {
   protected readonly campanasDatos = inject(CampanasDatos);
   private readonly datos = inject(CreatividadesDatos);
   private readonly ruta = inject(ActivatedRoute);
+  protected readonly iaLocal = inject(IaLocalWebService);
+  protected readonly offline = inject(OfflineSyncService);
   protected readonly idCampana = signal('');
   protected readonly conceptoIa = signal('');
   protected readonly idBrief = signal('');
@@ -41,6 +48,8 @@ export class Creatividades {
   protected readonly exito = signal('');
   protected readonly mostrarNuevoBrief = signal(false);
   protected readonly mostrarNuevaPieza = signal(false);
+  protected readonly analisisImagenLocal = signal<ResultadoVisionLocalWeb | null>(null);
+  protected readonly vistaPreviaImagenUrl = signal<string | null>(null);
 
   // Asistente IA Creativo (AdOrbit Copilot)
   protected readonly asistenteAbierto = signal(true);
@@ -164,6 +173,22 @@ export class Creatividades {
     });
   }
 
+  protected async alSeleccionarArchivoPieza(archivo?: File): Promise<void> {
+    this.analisisImagenLocal.set(null);
+    const urlAnterior = this.vistaPreviaImagenUrl();
+    if (urlAnterior) URL.revokeObjectURL(urlAnterior);
+    this.vistaPreviaImagenUrl.set(null);
+
+    if (!archivo || !archivo.type.startsWith('image/')) return;
+    this.vistaPreviaImagenUrl.set(URL.createObjectURL(archivo));
+    try {
+      const resultado = await this.iaLocal.analizarImagenEnNavegador(archivo);
+      this.analisisImagenLocal.set(resultado);
+    } catch {
+      this.analisisImagenLocal.set(null);
+    }
+  }
+
   protected async crearPieza(nombre: string, tipo: string, archivo?: File): Promise<void> {
     const brief = this.briefSeleccionado();
     if (!brief || !nombre.trim()) return;
@@ -173,9 +198,33 @@ export class Creatividades {
         tipo: tipo as TipoPieza,
       });
       if (archivo) await this.datos.subirArchivo(nueva.id, archivo);
-      await this.seleccionarBrief(brief.id);
+      const analisis = this.analisisImagenLocal();
+      if (analisis) {
+        await this.datos.registrarValidacionIaLocal(
+          nueva.id,
+          analisis.manualMarcaOk ? 'aprobada' : 'rechazada',
+          {
+            detecta_logo: analisis.detectaLogo,
+            confianza: analisis.confianza / 100,
+            manual_marca_ok: analisis.manualMarcaOk,
+            resolucion: analisis.resolucion,
+            paleta_dominante: analisis.paletaDominante,
+            motor: analisis.motor,
+          },
+        );
+      }
+      if (this.offline.enLinea()) {
+        await this.seleccionarBrief(brief.id);
+      } else {
+        this.piezas.update((actuales) => [nueva, ...actuales]);
+      }
       this.mostrarNuevaPieza.set(false);
-      this.exito.set('Pieza registrada correctamente.');
+      this.analisisImagenLocal.set(null);
+      this.exito.set(
+        this.offline.enLinea()
+          ? 'Pieza registrada y auditada con IA local correctamente.'
+          : '📦 Sin red: pieza y validación de IA local guardadas en la bandeja de salida para sincronizar.',
+      );
     });
   }
 

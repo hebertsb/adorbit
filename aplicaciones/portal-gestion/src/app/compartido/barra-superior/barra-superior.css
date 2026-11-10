@@ -192,6 +192,55 @@
   font-size: 0.76rem;
 }
 
+.pildora-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ao-borde);
+  border-radius: 999px;
+  background: var(--ao-plano);
+  color: var(--ao-texto);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pildora-sync--offline {
+  border-color: #d89012;
+  background: rgba(216, 144, 18, 0.12);
+  color: #d89012;
+}
+
+.pildora-sync--pendiente {
+  border-color: var(--ao-marca);
+}
+
+.punto-sync {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #16a46b;
+}
+
+.punto-sync--offline {
+  background: #d89012;
+}
+
+.badge-cola {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ao-marca);
+  color: #fff;
+  font-size: 0.65rem;
+}
+
 @media (max-width: 720px) {
   .barra-superior {
     padding: 0 10px;
