@@ -100,6 +100,12 @@ services:
       N8N_PERSONALIZATION_ENABLED: "false"
       GENERIC_TIMEZONE: America/La_Paz
       TZ: America/La_Paz
+      ADORBIT_KEYCLOAK_TOKEN_URL: ${ADORBIT_KEYCLOAK_TOKEN_URL:-http://keycloak:8080/realms/adorbit/protocol/openid-connect/token}
+      ADORBIT_N8N_CLIENT_ID: ${ADORBIT_N8N_CLIENT_ID:-n8n}
+      ADORBIT_N8N_CLIENT_SECRET: ${N8N_CLIENT_SECRET:-secreto-local}
+      ADORBIT_FACTURACION_URL: ${ADORBIT_FACTURACION_URL:-http://4.151.177.116}
+      ADORBIT_CRM_URL: ${ADORBIT_CRM_URL:-http://4.151.177.116}
+      ADORBIT_CAMPANAS_URL: ${ADORBIT_CAMPANAS_URL:-http://4.151.177.116}
       ADORBIT_N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-token-webhook-local}
       ADORBIT_PUBLIC_URL: ${ADORBIT_PUBLIC_URL:-http://4.151.177.116}
       ADORBIT_CORREO_REMITENTE: "AdOrbit <no-responder@adorbit.local>"
