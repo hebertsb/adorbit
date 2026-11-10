@@ -146,8 +146,16 @@ async function iniciarServidor() {
       changeOrigin: true,
       proxyTimeout: 8000,
       timeout: 8000,
-      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
-      pathRewrite: (_ruta, req) => (req as Request).originalUrl,
+      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa sin el cache-buster _u.
+      pathRewrite: (_ruta, req) => {
+        const urlOriginal = (req as Request).originalUrl;
+        const [rutaBase, queryStr] = urlOriginal.split("?");
+        if (!queryStr) return urlOriginal;
+        const params = new URLSearchParams(queryStr);
+        params.delete("_u");
+        const nuevaQuery = params.toString();
+        return nuevaQuery ? `${rutaBase}?${nuevaQuery}` : rutaBase;
+      },
       on: {
         error: (_err, _req, res) => {
           const respuesta = res as Response;

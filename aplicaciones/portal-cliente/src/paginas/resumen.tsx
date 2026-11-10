@@ -48,7 +48,7 @@ export function PaginaResumen() {
         {resumenes.length === 0 && (
           <article className="tarjeta tarjeta--ok">
             <p className="tarjeta__titulo">Saldo pendiente</p>
-            <p className="tarjeta__valor">{hayMasFacturas ? 'Sin saldo en esta muestra' : 'Al día'}</p>
+            <p className="tarjeta__valor">{hayMasFacturas ? 'Sin saldo en esta muestra' : 'Al dia'}</p>
             <p className="tarjeta__pie">
               {hayMasFacturas ? 'Podría haber facturas abiertas en otras páginas.' : 'No tiene facturas abiertas.'}
             </p>

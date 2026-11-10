@@ -59,6 +59,16 @@ services:
     networks:
       - adorbit-azure-red
 
+  portal-cliente:
+    build:
+      context: ../aplicaciones/portal-cliente
+    container_name: adorbit-portal-cliente
+    restart: unless-stopped
+    ports:
+      - "8082:8080"
+    networks:
+      - adorbit-azure-red
+
   portal-gestion:
     build:
       context: ../aplicaciones/portal-gestion
@@ -69,6 +79,7 @@ services:
     depends_on:
       - pasarela
       - panel-inteligencia
+      - portal-cliente
     networks:
       - adorbit-azure-red
 

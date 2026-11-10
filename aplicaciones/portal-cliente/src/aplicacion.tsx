@@ -29,8 +29,12 @@ function AreaProtegida() {
 
 export function Aplicacion() {
   if (variablesFaltantes().length > 0) return <PantallaConfiguracionIncompleta />;
+  const basename =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/portal-cliente')
+      ? '/portal-cliente'
+      : undefined;
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/autenticado" element={<PaginaRetorno />} />
         <Route element={<AreaProtegida />}>

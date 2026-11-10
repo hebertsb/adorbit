@@ -5,12 +5,21 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const base = env.VITE_BASE_URL || '/';
   // Solo se guardan sin conexion las lecturas (GET) de las APIs propias; nunca el login (OIDC).
   const origenesApi = [env.VITE_API_FACTURACION_URL, env.VITE_API_CRM_URL]
     .filter((u): u is string => Boolean(u))
-    .map((u) => new URL(u).origin);
+    .map((u) => {
+      try {
+        return new URL(u).origin;
+      } catch {
+        return '';
+      }
+    })
+    .filter(Boolean);
 
   return {
+    base,
     plugins: [
       react(),
       VitePWA({
@@ -21,8 +30,8 @@ export default defineConfig(({ mode }) => {
           short_name: 'AdOrbit',
           description: 'Consulte sus facturas, contratos y credito en AdOrbit.',
           lang: 'es-BO',
-          start_url: '/',
-          scope: '/',
+          start_url: base,
+          scope: base,
           display: 'standalone',
           background_color: '#f6f7fb',
           theme_color: '#4f46e5',
@@ -38,11 +47,13 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
-          navigateFallback: '/index.html',
-          navigateFallbackDenylist: [/^\/autenticado/],
+          navigateFallback: `${base}index.html`,
+          navigateFallbackDenylist: [new RegExp(`^${base.replace(/\/$/, '')}/autenticado`)],
           runtimeCaching: [
             {
-              urlPattern: ({ request, url }) => request.method === 'GET' && origenesApi.includes(url.origin),
+              urlPattern: ({ request, url }) =>
+                request.method === 'GET' &&
+                (origenesApi.includes(url.origin) || url.pathname.startsWith('/api/v1/')),
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'api-datos',

@@ -9,7 +9,7 @@ function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNo
   return (
     <main className="pantalla-central" id="contenido">
       <section className="tarjeta tarjeta--central">
-        <img src="/favicon.svg" alt="" width="56" height="56" />
+        <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="56" height="56" />
         <h1>{titulo}</h1>
         {children}
       </section>
@@ -18,7 +18,7 @@ function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNo
 }
 
 export function PantallaIngreso({ volverA }: { volverA: string }) {
-  const { iniciarSesion } = useAutenticacion();
+  const { iniciarSesion, iniciarSesionDemoCliente } = useAutenticacion();
   const [fallo, setFallo] = useState(false);
   return (
     <Tarjeta titulo="Portal del cliente">
@@ -28,19 +28,30 @@ export function PantallaIngreso({ volverA }: { volverA: string }) {
           No pudimos abrir el inicio de sesion. Intente de nuevo en unos minutos.
         </p>
       )}
-      <button
-        type="button"
-        className="boton boton--primario"
-        onClick={() => void iniciarSesion(volverA).catch(() => setFallo(true))}
-      >
-        Ingresar
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%' }}>
+        <button
+          type="button"
+          className="boton boton--primario"
+          onClick={() => void iniciarSesion(volverA).catch(() => setFallo(true))}
+        >
+          Ingresar
+        </button>
+        {iniciarSesionDemoCliente && (
+          <button
+            type="button"
+            className="boton boton--secundario"
+            onClick={() => void iniciarSesionDemoCliente().catch(() => setFallo(true))}
+          >
+            Acceso directo Cliente (Banco Mercantil Santa Cruz)
+          </button>
+        )}
+      </div>
     </Tarjeta>
   );
 }
 
 export function PantallaSinAcceso() {
-  const { usuario, cerrarSesion } = useAutenticacion();
+  const { usuario, cerrarSesion, iniciarSesionDemoCliente } = useAutenticacion();
   const esCliente = usuario?.roles.includes('cliente');
   return (
     <Tarjeta titulo="Sin acceso a este portal">
@@ -49,9 +60,20 @@ export function PantallaSinAcceso() {
       ) : (
         <p>Este portal es para clientes. Si trabaja en la agencia, use el portal de gestion.</p>
       )}
-      <button type="button" className="boton boton--secundario" onClick={() => void cerrarSesion()}>
-        Salir
-      </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%' }}>
+        {iniciarSesionDemoCliente && (
+          <button
+            type="button"
+            className="boton boton--primario"
+            onClick={() => void iniciarSesionDemoCliente()}
+          >
+            Cambiar a cuenta Cliente (Banco Mercantil Santa Cruz)
+          </button>
+        )}
+        <button type="button" className="boton boton--secundario" onClick={() => void cerrarSesion()}>
+          Salir
+        </button>
+      </div>
     </Tarjeta>
   );
 }

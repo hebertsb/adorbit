@@ -20,7 +20,7 @@ export function Disposicion() {
       </a>
       <header className="barra-superior">
         <div className="marca">
-          <img src="/favicon.svg" alt="" width="28" height="28" />
+          <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="28" height="28" />
           <span>
             AdOrbit <small>Portal del cliente</small>
           </span>

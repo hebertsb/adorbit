@@ -1,13 +1,23 @@
 /** Configuracion del portal: solo variables de entorno de build (VITE_*), nunca secretos. */
 const sinBarraFinal = (url: string | undefined): string => (url ?? '').replace(/\/+$/, '');
 
+const origenNavegador =
+  typeof window !== 'undefined' &&
+  window.location?.origin &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1'
+    ? window.location.origin
+    : '';
+
 export const configuracion = {
   oidc: {
-    autoridad: sinBarraFinal(import.meta.env.VITE_OIDC_AUTORIDAD),
+    autoridad: sinBarraFinal(
+      origenNavegador ? `${origenNavegador}/realms/adorbit` : import.meta.env.VITE_OIDC_AUTORIDAD,
+    ),
     clienteId: import.meta.env.VITE_OIDC_CLIENTE_ID ?? 'portal-cliente',
   },
-  apiFacturacion: sinBarraFinal(import.meta.env.VITE_API_FACTURACION_URL),
-  apiCrm: sinBarraFinal(import.meta.env.VITE_API_CRM_URL),
+  apiFacturacion: sinBarraFinal(origenNavegador || import.meta.env.VITE_API_FACTURACION_URL),
+  apiCrm: sinBarraFinal(origenNavegador || import.meta.env.VITE_API_CRM_URL),
 } as const;
 
 /** Nombres de las variables que faltan (vacio = todo configurado). */
