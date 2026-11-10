@@ -58,19 +58,32 @@ export class AutenticacionService {
     const config = configuracionIdentidad();
     const verificador = this.textoAleatorio(64);
     const estado = this.textoAleatorio(32);
-    const resumen = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verificador));
-    const desafio = this.base64Url(new Uint8Array(resumen));
+
+    let desafio = verificador;
+    let metodoDesafio = 'plain';
+
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+      try {
+        const resumen = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(verificador));
+        desafio = this.base64Url(new Uint8Array(resumen));
+        metodoDesafio = 'S256';
+      } catch {
+        desafio = verificador;
+        metodoDesafio = 'plain';
+      }
+    }
+
     const redirectUri = `${window.location.origin}/login`;
     sessionStorage.setItem(CLAVE_VERIFICADOR_PKCE, verificador);
     sessionStorage.setItem(CLAVE_ESTADO_PKCE, estado);
     const parametros = new URLSearchParams({
       client_id: config.clienteId,
       response_type: 'code',
-      scope: 'openid profile',
+      scope: 'openid adorbit-audiencias',
       redirect_uri: redirectUri,
       state: estado,
       code_challenge: desafio,
-      code_challenge_method: 'S256',
+      code_challenge_method: metodoDesafio,
     });
     window.location.href = `${config.autoridad}/protocol/openid-connect/auth?${parametros}`;
   }

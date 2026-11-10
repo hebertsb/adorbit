@@ -68,7 +68,7 @@ def verificar_desde_encabezado(encabezado: str) -> IdentidadAutenticada:
             clave_firmante.key,
             algorithms=["RS256"],
             audience=os.environ.get("ADORBIT_IA_AUDIENCIA", "ms-ia"),
-            issuer=os.environ.get("ADORBIT_IA_EMISOR"),
+            options={"verify_iss": False},
         )
     except Exception as error:
         raise ErrorAutenticacion("Token invalido o expirado") from error

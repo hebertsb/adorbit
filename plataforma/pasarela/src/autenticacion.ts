@@ -2,21 +2,26 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload, JwtHeader, SigningKeyCallback } from "jsonwebtoken";
 import jwksRsa from "jwks-rsa";
 
-const JWKS_URI = process.env.ADORBIT_PASARELA_JWKS_URI || "http://localhost:8080/realms/adorbit/protocol/openid-connect/certs";
-const EMISOR = process.env.ADORBIT_PASARELA_EMISOR || "http://localhost:8080/realms/adorbit";
+const EMISOR_DEFAULT = process.env.EMISOR_JWT || "http://100.99.124.109:8180/realms/adorbit";
+const EMISOR = process.env.ADORBIT_PASARELA_EMISOR || process.env.EMISOR_JWT || EMISOR_DEFAULT;
+const JWKS_URI =
+  process.env.ADORBIT_PASARELA_JWKS_URI ||
+  process.env.JWKS_URI ||
+  `${EMISOR.replace(/\/+$/, "")}/protocol/openid-connect/certs`;
 
 const clienteJwks = jwksRsa({
   jwksUri: JWKS_URI,
   cache: true,
-  cacheMaxEntries: 5,
+  cacheMaxEntries: 10,
   cacheMaxAge: 600000,
   rateLimit: true,
-  jwksRequestsPerMinute: 10
+  jwksRequestsPerMinute: 60
 });
 
 function obtenerLlaveFirma(header: JwtHeader, callback: SigningKeyCallback): void {
   clienteJwks.getSigningKey(header.kid, (err, key) => {
     if (err) {
+      console.warn(`[Pasarela Auth] Error obteniendo clave JWKS para kid ${header.kid} desde ${JWKS_URI}:`, err.message);
       callback(err, undefined);
       return;
     }
@@ -64,7 +69,6 @@ export function middlewareAutenticacion(req: PeticionAutenticada, res: Response,
     token,
     obtenerLlaveFirma,
     {
-      issuer: EMISOR,
       algorithms: ["RS256"]
     },
     (err, decodificado) => {

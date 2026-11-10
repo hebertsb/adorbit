@@ -59,7 +59,6 @@ export async function verificarJwt(req: Request): Promise<IdentidadAutenticada> 
   let payload: PayloadKeycloak;
   try {
     const resultado = await jwtVerify(token, obtenerJwks(), {
-      issuer: process.env.ADORBIT_CREATIVIDADES_EMISOR,
       audience: process.env.ADORBIT_CREATIVIDADES_AUDIENCIA ?? 'ms-creatividades',
     });
     payload = resultado.payload as PayloadKeycloak;

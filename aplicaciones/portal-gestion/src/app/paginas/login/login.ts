@@ -41,7 +41,7 @@ export class Login implements OnInit {
 
   seleccionarDemo(demoEmail: string): void {
     this.email = demoEmail;
-    this.contrasena = 'Adorbit2026!';
+    this.contrasena = 'admin';
     this.iniciarSesion();
   }
 
