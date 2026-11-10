@@ -20,8 +20,8 @@
       </div>
 
       <div class="campo">
-        <label for="contrasena">Contraseña</label>
-        <input id="contrasena" type="password" [(ngModel)]="contrasena" name="contrasena" required />
+        <label for="contrasena">Contraseña (por defecto: admin)</label>
+        <input id="contrasena" type="password" [(ngModel)]="contrasena" name="contrasena" placeholder="admin" required />
       </div>
 
       <ao-boton variante="primario" [tipo]="'submit'" [deshabilitado]="cargando()">

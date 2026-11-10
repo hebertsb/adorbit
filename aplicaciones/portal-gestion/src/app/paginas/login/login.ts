@@ -16,7 +16,7 @@ export class Login implements OnInit {
   private readonly router = inject(Router);
 
   protected email = 'ejecutivo@adorbit.com';
-  protected contrasena = 'Adorbit2026!';
+  protected contrasena = 'admin';
   protected cargando = signal(false);
   protected error = signal<string | null>(null);
 

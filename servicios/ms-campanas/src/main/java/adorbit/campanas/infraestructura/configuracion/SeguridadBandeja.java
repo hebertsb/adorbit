@@ -24,6 +24,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SeguridadBandeja {
     static OAuth2TokenValidator<Jwt> validadores(String emisor, String audiencia) {
+        OAuth2TokenValidator<Jwt> emisorValido = jwt -> {
+            String iss = jwt.getIssuer() != null ? jwt.getIssuer().toString() : "";
+            return iss.contains("/realms/adorbit")
+                    ? OAuth2TokenValidatorResult.success()
+                    : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Emisor invalido: " + iss, null));
+        };
         OAuth2TokenValidator<Jwt> audienciaValida = jwt ->
                 jwt.getAudience() != null && jwt.getAudience().contains(audiencia)
                         ? OAuth2TokenValidatorResult.success()
@@ -32,8 +38,7 @@ public class SeguridadBandeja {
                 jwt.getExpiresAt() != null
                         ? OAuth2TokenValidatorResult.success()
                         : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token"));
-        return new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefaultWithIssuer(emisor),
-                audienciaValida, expiracionObligatoria);
+        return new DelegatingOAuth2TokenValidator<>(emisorValido, audienciaValida, expiracionObligatoria);
     }
 
     @Bean
@@ -46,7 +51,7 @@ public class SeguridadBandeja {
 
             @Override
             public Jwt decode(String token) {
-                if (emisor.isBlank() || audiencia.isBlank() || jwks.isBlank()) {
+                if (audiencia.isBlank() || jwks.isBlank()) {
                     throw new BadJwtException("Validacion JWT no configurada");
                 }
                 try {

@@ -15,8 +15,10 @@ services:
       KEYCLOAK_SEED_PASSWORD: ${KEYCLOAK_SEED_PASSWORD:-admin}
       N8N_CLIENT_SECRET: ${N8N_CLIENT_SECRET:-secreto-local}
       KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-secreto-admin-local}
-      KC_HOSTNAME_URL: http://100.99.124.109:8180
+      KC_HOSTNAME_URL: http://4.151.177.116
       KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_PROXY: "edge"
     networks:
       - adorbit-red
 

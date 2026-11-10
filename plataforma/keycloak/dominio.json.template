@@ -5,7 +5,7 @@
   "displayNameHtml": "<b>AdOrbit</b> SSO",
   "enabled": true,
   "sslRequired": "none",
-  "registrationAllowed": false,
+  "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
@@ -124,13 +124,19 @@
         "http://localhost:3000/*",
         "http://localhost:8000/*",
         "http://localhost:8080/*",
-        "http://127.0.0.1:*"
+        "http://127.0.0.1:*",
+        "http://4.151.177.116/*",
+        "http://4.151.177.116:8080/*",
+        "http://100.99.124.109:8180/*",
+        "*"
       ],
       "webOrigins": [
         "http://localhost:4200",
         "http://localhost:3000",
         "http://localhost:8000",
-        "http://localhost:8080"
+        "http://localhost:8080",
+        "http://4.151.177.116",
+        "*"
       ],
       "attributes": {
         "access.token.lifespan": "7200"
