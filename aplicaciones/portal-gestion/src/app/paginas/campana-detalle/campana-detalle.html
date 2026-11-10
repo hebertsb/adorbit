@@ -147,19 +147,46 @@
     </div>
 
     <div class="rejilla-piezas">
-      @for (pieza of piezas(); track pieza.nombreArchivo) {
+      @for (pieza of piezas(); track pieza.id || pieza.nombreArchivo) {
         <ao-tarjeta [compacta]="true" class="pieza">
-          <div class="pieza__vista" [style.background]="degradadoPieza[pieza.degradado]">
-            <span class="pieza__overlay" [class.pieza__overlay--grande]="pieza.degradado === 'valla'">{{ pieza.overlay }}</span>
+          <div
+            class="pieza__vista"
+            [style.background]="degradadoPieza[pieza.degradado]"
+            (click)="abrirVistaPrevia(pieza)"
+            title="Clic para previsualizar creatividad"
+          >
+            @if (imagenPersonalizada(pieza); as imgUrl) {
+              <img class="pieza__imagen-real" [src]="imgUrl" [alt]="pieza.titulo" />
+            } @else {
+              @if (pieza.degradado === 'video') {
+                <span class="pieza__play-icono">▶</span>
+              } @else {
+                <span class="pieza__marco-mini">{{ dimensionPieza(pieza) }}</span>
+              }
+            }
+            <span class="pieza__overlay" [class.pieza__overlay--grande]="pieza.degradado === 'valla'">
+              {{ pieza.overlay }}
+            </span>
           </div>
-          <h3 class="pieza__titulo">{{ pieza.titulo }}</h3>
-          <p class="dato-mono pieza__formato">{{ pieza.formato }}</p>
+          <h3 class="pieza__titulo" [title]="pieza.titulo">{{ pieza.titulo }}</h3>
+          <p class="dato-mono pieza__formato">{{ pieza.formato }} · {{ dimensionPieza(pieza) }}</p>
           <div class="pieza__pie">
             <ao-etiqueta-estado
               [texto]="pieza.estado === 'bloqueada' ? 'Bloqueada' : (pieza.estado | titlecase)"
               [tono]="tonoEstadoPieza(pieza.estado)"
             />
-            <svg class="ic pieza__ojo" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" /><circle cx="12" cy="12" r="3" /></svg>
+            <button
+              type="button"
+              class="pieza__boton-ojo"
+              (click)="abrirVistaPrevia(pieza)"
+              title="Previsualizar pieza creativa"
+              aria-label="Previsualizar pieza creativa"
+            >
+              <svg class="ic pieza__ojo" viewBox="0 0 24 24">
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
           </div>
           @if (pieza.estado === 'bloqueada') {
             <p class="pieza__nota">Bloqueada por contratación — no se puede editar ni re-aprobar en esta etapa.</p>
@@ -173,6 +200,77 @@
       }
     </div>
   </section>
+
+  @if (piezaVistaPrevia(); as vp) {
+    <div class="modal-fondo" (click)="cerrarVistaPrevia()">
+      <div
+        class="modal-pieza"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="titulo-modal-pieza"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="modal-pieza__cabecera">
+          <div>
+            <span class="modal-pieza__codigo">{{ codigoPieza(vp) }} · Versión {{ vp.version }}</span>
+            <h3 id="titulo-modal-pieza">{{ vp.titulo }}</h3>
+          </div>
+          <button type="button" class="modal-pieza__cerrar" (click)="cerrarVistaPrevia()">
+            ✕ Cerrar
+          </button>
+        </header>
+
+        <div class="modal-pieza__lienzo" [style.background]="degradadoPieza[vp.degradado]">
+          @if (imagenPersonalizada(vp); as imgUrl) {
+            <img class="modal-pieza__img" [src]="imgUrl" [alt]="vp.titulo" />
+          } @else {
+            <div class="modal-pieza__arte">
+              @if (vp.degradado === 'video') {
+                <span class="pieza__play-icono pieza__play-icono--grande">▶</span>
+              }
+              <strong>{{ dimensionPieza(vp) }}</strong>
+              <span>{{ c.cliente }} · {{ c.nombre }}</span>
+            </div>
+          }
+          <span class="pieza__overlay modal-pieza__version">Versión {{ vp.version }}</span>
+        </div>
+
+        <div class="modal-pieza__grid">
+          <div class="modal-pieza__dato">
+            <span>Archivo de activo</span>
+            <strong class="dato-mono">{{ nombreArchivoLegible(vp) }}</strong>
+          </div>
+          <div class="modal-pieza__dato">
+            <span>Formato y dimensiones</span>
+            <strong>{{ vp.formato }} · {{ dimensionPieza(vp) }}</strong>
+          </div>
+          <div class="modal-pieza__dato">
+            <span>Auditoría de marca</span>
+            <strong class="modal-pieza__confianza">🛡️ {{ vp.confianzaMarca }}% de confianza</strong>
+          </div>
+          <div class="modal-pieza__dato">
+            <span>Estado en campaña</span>
+            <ao-etiqueta-estado
+              [texto]="vp.estado === 'bloqueada' ? 'Bloqueada por SAGA' : (vp.estado | titlecase)"
+              [tono]="tonoEstadoPieza(vp.estado)"
+            />
+          </div>
+        </div>
+
+        <footer class="modal-pieza__pie">
+          <a
+            class="modal-pieza__ir"
+            routerLink="/creatividades"
+            [queryParams]="{ campanaId: c.id }"
+            (click)="cerrarVistaPrevia()"
+          >
+            Gestionar en Briefs y Creatividades →
+          </a>
+          <ao-boton variante="secundario" (click)="cerrarVistaPrevia()">Listo</ao-boton>
+        </footer>
+      </div>
+    </div>
+  }
 } @else if (cargandoDetalleReal()) {
   <p role="status">Cargando campaña…</p>
 } @else {

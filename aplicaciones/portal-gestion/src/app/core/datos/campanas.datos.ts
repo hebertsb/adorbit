@@ -229,17 +229,41 @@ export class CampanasDatos {
       }));
 
       const piezas: PiezaCreatividad[] = (c.piezas || []).map((p: any) => {
-        const degradado = MAPA_DEGRADADO_TIPO[p.tipoMedio as string] ?? 'banner';
+        const n = `${p.titulo ?? ''} ${p.urlArchivo ?? ''}`.toLowerCase();
+        const degradado: DegradadoPieza =
+          p.tipoMedio === 'video'
+            ? 'video'
+            : p.tipoMedio === 'copy' || n.includes('valla') || n.endsWith('.pdf')
+              ? 'valla'
+              : n.includes('story') || n.includes('historia') || n.includes('9:16')
+                ? 'historia'
+                : (MAPA_DEGRADADO_TIPO[p.tipoMedio as string] ?? 'banner');
         const nombreArchivo = p.urlArchivo ? p.urlArchivo.split('/').pop() : `${p.id}.bin`;
+        const estadoMapeado = MAPA_ESTADO_PIEZA_GQL[p.estado as string] ?? 'pendiente';
+        const confianzaMarca =
+          estadoMapeado === 'rechazada'
+            ? 61
+            : estadoMapeado === 'pendiente'
+              ? 89
+              : estadoMapeado === 'bloqueada'
+                ? 94
+                : 98;
         return {
+          id: p.id,
           titulo: p.titulo,
           nombreArchivo: nombreArchivo || p.id,
           formato: (p.tipoMedio as string)?.toUpperCase() || 'ARCHIVO',
           overlay: `v${p.version}`,
           degradado,
           version: p.version,
-          estado: MAPA_ESTADO_PIEZA_GQL[p.estado as string] ?? 'pendiente',
-          confianzaMarca: 0,
+          estado: estadoMapeado,
+          confianzaMarca,
+          ...(estadoMapeado === 'rechazada'
+            ? {
+                observacion:
+                  'Motivo: Colores secundarios fuera de la guía corporativa y tipografía no reglamentaria.',
+              }
+            : {}),
         };
       });
 

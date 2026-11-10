@@ -71,6 +71,8 @@ export class CampanaDetalle implements OnInit {
   protected readonly contratando = signal(false);
   protected readonly errorContratacion = signal('');
   protected readonly cargandoDetalleReal = signal(true);
+  protected readonly piezaVistaPrevia = signal<PiezaCreatividad | null>(null);
+  protected readonly vistasGuardadas = signal<Record<string, string>>(this.cargarVistasGuardadas());
 
   protected readonly etiquetas = ETIQUETAS_ESTADO_CAMPANA;
   protected readonly etiquetaMedio = ETIQUETA_MEDIO;
@@ -166,6 +168,62 @@ export class CampanaDetalle implements OnInit {
 
   tonoEstadoPieza(estado: string): TonoEtiqueta {
     return TONO_ESTADO_PIEZA[estado] ?? 'neutro';
+  }
+
+  private cargarVistasGuardadas(): Record<string, string> {
+    try {
+      const raw = localStorage.getItem('adorbit:vistas_previas_piezas_v1');
+      return raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  protected imagenPersonalizada(pieza: PiezaCreatividad): string | null {
+    if (!pieza.id) return null;
+    return this.vistasGuardadas()[pieza.id] ?? null;
+  }
+
+  protected abrirVistaPrevia(pieza: PiezaCreatividad): void {
+    this.piezaVistaPrevia.set(pieza);
+  }
+
+  protected cerrarVistaPrevia(): void {
+    this.piezaVistaPrevia.set(null);
+  }
+
+  protected codigoPieza(pieza: PiezaCreatividad): string {
+    const raw = (pieza.id ?? pieza.nombreArchivo).replaceAll('-', '').toUpperCase();
+    const cola = raw.replace(/^0+/, '') || raw.slice(-4);
+    return `PZA-2026-${cola.slice(-4).padStart(3, '0')}`;
+  }
+
+  protected nombreArchivoLegible(pieza: PiezaCreatividad): string {
+    if (
+      pieza.nombreArchivo &&
+      !/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(pieza.nombreArchivo)
+    ) {
+      return pieza.nombreArchivo;
+    }
+    const base = pieza.titulo
+      .replace(/\s*\(v\d+\)/gi, '')
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 34);
+    const ext =
+      pieza.degradado === 'video' ? 'mp4' : pieza.degradado === 'valla' ? 'pdf' : 'png';
+    return `${base}_v${pieza.version}.${ext}`;
+  }
+
+  protected dimensionPieza(pieza: PiezaCreatividad): string {
+    if (pieza.degradado === 'video') return '16:9 HD · 1080p';
+    if (pieza.degradado === 'historia') return '1080 × 1920 (9:16)';
+    if (pieza.degradado === 'valla') return '8 × 3 m (Exterior)';
+    return '300 × 250 (Display)';
   }
 
   async contratar(): Promise<void> {

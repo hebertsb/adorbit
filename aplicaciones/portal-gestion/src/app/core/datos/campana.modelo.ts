@@ -46,6 +46,7 @@ export interface MedioCalendario {
 export type DegradadoPieza = 'video' | 'banner' | 'historia' | 'valla';
 
 export interface PiezaCreatividad {
+  id?: string;
   titulo: string;
   nombreArchivo: string;
   formato: string;

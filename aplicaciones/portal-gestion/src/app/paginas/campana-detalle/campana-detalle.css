@@ -281,19 +281,234 @@
   aspect-ratio: 16 / 9;
   display: grid;
   place-items: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.pieza__imagen-real {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.pieza__play-icono {
+  position: relative;
+  z-index: 1;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 22%);
+  border: 1.5px solid rgb(255 255 255 / 55%);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+  backdrop-filter: blur(4px);
+}
+
+.pieza__play-icono--grande {
+  width: 52px;
+  height: 52px;
+  font-size: 1.15rem;
+}
+
+.pieza__marco-mini {
+  position: relative;
+  z-index: 1;
+  padding: 6px 12px;
+  border: 1.5px dashed rgb(255 255 255 / 55%);
+  border-radius: 8px;
+  color: #fff;
+  font-family: monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgb(15 23 42 / 22%);
 }
 
 .pieza__overlay {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  padding: 4px 10px;
+  min-width: 34px;
+  padding: 3px 8px;
   border-radius: 6px;
-  background: rgb(255 255 255 / 20%);
+  background: rgb(0 0 0 / 48%);
   backdrop-filter: blur(4px);
   color: #fff;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pieza__boton-ojo {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ao-texto-suave);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.pieza__boton-ojo:hover {
+  background: var(--ao-plano);
+  border-color: var(--ao-borde);
+  color: var(--ao-marca);
+}
+
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgb(15 23 42 / 62%);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.modal-pieza {
+  width: min(560px, 100%);
+  background: var(--ao-superficie);
+  border: 1px solid var(--ao-borde);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 35%);
+  display: grid;
+  gap: 16px;
+}
+
+.modal-pieza__cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-pieza__codigo {
+  color: var(--ao-marca);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modal-pieza__cabecera h3 {
+  margin: 4px 0 0;
+  font-size: 1.08rem;
+}
+
+.modal-pieza__cerrar {
+  border: 0;
+  background: transparent;
+  color: var(--ao-marca);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.modal-pieza__lienzo {
+  position: relative;
+  min-height: 230px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #0f172a;
+}
+
+.modal-pieza__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.modal-pieza__arte {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px 24px;
+  border: 1.5px dashed rgb(255 255 255 / 60%);
+  border-radius: 12px;
+  background: rgb(15 23 42 / 25%);
+  color: #fff;
+  text-align: center;
+}
+
+.modal-pieza__arte strong {
+  font-family: monospace;
+  font-size: 0.95rem;
+}
+
+.modal-pieza__arte span {
+  font-size: 0.76rem;
+  opacity: 0.85;
+}
+
+.modal-pieza__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.modal-pieza__dato {
+  background: var(--ao-plano);
+  border: 1px solid var(--ao-borde);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-pieza__dato span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ao-texto-suave);
+}
+
+.modal-pieza__dato strong {
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.modal-pieza__confianza {
+  color: #16a46b;
+}
+
+.modal-pieza__pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ao-borde);
+}
+
+.modal-pieza__ir {
+  color: var(--ao-marca);
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.modal-pieza__ir:hover {
+  text-decoration: underline;
 }
 
 .pieza__overlay--grande {
