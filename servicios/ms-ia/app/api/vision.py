@@ -78,12 +78,12 @@ async def analizar(
         titulo=f"Auditoría Visual de Creatividad: {estado_logo} ({confianza_pct})",
         datos={
             "pieza_id": str(resultado.pieza_id),
-            "campana_id": str(resultado.campana_id) if resultado.campana_id else "N/A",
-            "detecta_logo": "SI" if resultado.detecta_logo else "NO",
+            "campaña_id": str(resultado.campana_id) if resultado.campana_id else "N/A",
+            "detecta_logo": "SÍ" if resultado.detecta_logo else "NO",
             "confianza": confianza_pct,
             "manual_marca": "CONFORME" if resultado.manual_marca_ok else "REVISIÓN",
             "objetos": ", ".join(resultado.objetos_detectados[:4]) if resultado.objetos_detectados else "Ninguno",
-            "duracion": f"{resultado.duracion_ms} ms",
+            "duración": f"{resultado.duracion_ms} ms",
         },
         enlace_accion="http://localhost:4200/creatividades",
     )

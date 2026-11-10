@@ -49,7 +49,17 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
   };
 
   const compartirWhatsApp = () => {
-    const texto = `🚀 *AdOrbit Intelligence · Reporte Ejecutivo*\n📊 *${reporte.titulo}*\n_«${reporte.pregunta}»_\n\n${reporte.respuesta_nl ? reporte.respuesta_nl.slice(0, 700) : 'Reporte generado con éxito.'}\n\n🔗 *AdOrbit Platform*`;
+    const texto = `🏛️ *ADORBIT ENTERPRISE · REPORTE EJECUTIVO*\n` +
+      `────────────────────────────────────────\n` +
+      `📋 *Reporte:* ${reporte.titulo}\n` +
+      `🔍 *Consulta:* _«${reporte.pregunta}»_\n` +
+      `📅 *Fecha:* ${fechaHora.format(new Date(reporte.generado_en))}\n\n` +
+      `*DICTAMEN Y ANÁLISIS DE INTELIGENCIA:*\n` +
+      `${reporte.respuesta_nl ? reporte.respuesta_nl.slice(0, 700) : 'Reporte y métricas consolidadas con éxito en la plataforma.'}\n\n` +
+      `────────────────────────────────────────\n` +
+      `Consulte el reporte y métricas completas en:\n` +
+      `🌐 http://localhost:4174\n\n` +
+      `*AdOrbit Platform · Dirección de Inteligencia y Operaciones*`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };

@@ -15,6 +15,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=constructor /app/dist ./dist
+COPY assets/ ./assets/
 
 ENV PORT=8000 \
     NODE_ENV=production
