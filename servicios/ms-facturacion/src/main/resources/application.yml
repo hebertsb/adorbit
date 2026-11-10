@@ -10,10 +10,15 @@ spring:
       fail-on-unknown-properties: true
 
   rabbitmq:
+    # Si se define ADORBIT_FACTURACION_URL_RABBITMQ (o ADORBIT_FACTURACION_RABBITMQ_URL), se usa esa URL completa (amqps://…).
+    # Si no, se usan host/port/usuario/clave separados (dev local).
+    addresses: ${ADORBIT_FACTURACION_URL_RABBITMQ:${ADORBIT_FACTURACION_RABBITMQ_URL:}}
     host: ${ADORBIT_FACTURACION_RABBITMQ_HOST:localhost}
     port: ${ADORBIT_FACTURACION_RABBITMQ_PUERTO:5672}
-    username: ${ADORBIT_FACTURACION_RABBITMQ_USUARIO:}
-    password: ${ADORBIT_FACTURACION_RABBITMQ_CLAVE:}
+    username: ${ADORBIT_FACTURACION_RABBITMQ_USUARIO:guest}
+    password: ${ADORBIT_FACTURACION_RABBITMQ_CLAVE:guest}
+    ssl:
+      enabled: ${ADORBIT_FACTURACION_RABBITMQ_SSL:false}
     publisher-confirm-type: simple
     listener:
       simple:
