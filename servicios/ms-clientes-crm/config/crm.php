@@ -16,6 +16,8 @@ return [
         'puerto' => (int) env('ADORBIT_CRM_RABBITMQ_PUERTO', 5672),
         'usuario' => env('ADORBIT_CRM_RABBITMQ_USUARIO', 'guest'),
         'clave' => env('ADORBIT_CRM_RABBITMQ_CLAVE', 'guest'),
+        'vhost' => env('ADORBIT_CRM_RABBITMQ_VHOST', '/'),
+        'ssl' => (bool) env('ADORBIT_CRM_RABBITMQ_SSL', false),
         'exchange_eventos' => 'adorbit.eventos',
         'exchange_saga' => 'adorbit.saga',
         'exchange_errores' => 'adorbit.dlx',

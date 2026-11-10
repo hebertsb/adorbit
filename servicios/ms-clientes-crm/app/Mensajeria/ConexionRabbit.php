@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mensajeria;
 
 use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Connection\AMQPSSLConnection;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 use PhpAmqpLib\Wire\AMQPTable;
 
@@ -15,7 +16,24 @@ final class ConexionRabbit
     {
         $c = config('crm.mensajeria');
 
-        return new AMQPStreamConnection($c['host'], $c['puerto'], $c['usuario'], $c['clave']);
+        if (!empty($c['ssl'])) {
+            return new AMQPSSLConnection(
+                $c['host'],
+                $c['puerto'],
+                $c['usuario'],
+                $c['clave'],
+                $c['vhost'] ?? '/',
+                ['verify_peer' => true]
+            );
+        }
+
+        return new AMQPStreamConnection(
+            $c['host'],
+            $c['puerto'],
+            $c['usuario'],
+            $c['clave'],
+            $c['vhost'] ?? '/'
+        );
     }
 
     public static function declarar_topologia(AMQPChannel $canal): void

@@ -2,6 +2,15 @@
 .env
 .env.local
 *.env
+credenciales.cloud.json
+plataforma/n8n/credenciales.cloud.json
+herramientas/desplegar*.py
+herramientas/servidor_remoto.py
+herramientas/sincronizar*.py
+herramientas/transferir*.py
+*.bundle
+*.apk
+entregables/*.apk
 
 # Dependencias
 node_modules/

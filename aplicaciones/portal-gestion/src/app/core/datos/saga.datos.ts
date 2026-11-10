@@ -3,7 +3,8 @@ import { EstadoSaga, PasoSaga, EstadoPasoSaga } from './saga.modelo';
 import { AutenticacionService } from '../auth/autenticacion.service';
 import { CampanasDatos } from './campanas.datos';
 
-const URL_GATEWAY_SAGA = 'http://localhost:8000/api/v1/sagas';
+const ES_DEV_LOCAL = typeof window !== 'undefined' && window.location.port === '4200';
+const URL_GATEWAY_SAGA = ES_DEV_LOCAL ? 'http://localhost:8000/api/v1/sagas' : '/api/v1/sagas';
 
 @Injectable({ providedIn: 'root' })
 export class SagaDatos {

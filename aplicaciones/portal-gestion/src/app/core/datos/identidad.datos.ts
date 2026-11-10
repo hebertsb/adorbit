@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { AutenticacionService } from '../auth/autenticacion.service';
 
-const URL = 'http://localhost:8000/api/v1/administracion';
+const ES_DEV_LOCAL = typeof window !== 'undefined' && window.location.port === '4200';
+const URL = ES_DEV_LOCAL ? 'http://localhost:8000/api/v1/administracion' : '/api/v1/administracion';
 
 export interface UsuarioIdentidad {
   id: string;

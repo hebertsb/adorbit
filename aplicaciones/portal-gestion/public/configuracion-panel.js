@@ -1,14 +1,14 @@
 // Configuración pública de despliegue; no colocar credenciales aquí.
 window.adorbitPanelInteligencia = {
   urlModulo: 'http://localhost:4174/remoteEntry.js',
-  apiIaUrl: 'http://localhost:8085',
+  apiIaUrl: '/api/v1/ia',
 };
 
-// Configuracion publica de identidad. En produccion, cambiar la autoridad por
-// el Keycloak real y desactivar el atajo de desarrollo.
+// Configuracion publica de identidad. Keycloak proxied via nginx or local direct.
+const origenIdentidad = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:8180';
 window.adorbitIdentidad = {
-  autoridad: 'http://localhost:8180/realms/adorbit',
+  autoridad: origenIdentidad + '/realms/adorbit',
   clienteId: 'adorbit-frontend',
-  emisorPruebaUrl: 'http://localhost:8180',
+  emisorPruebaUrl: origenIdentidad,
   permitirEmisorPrueba: true,
 };

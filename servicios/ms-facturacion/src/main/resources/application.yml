@@ -14,6 +14,9 @@ spring:
     port: ${ADORBIT_FACTURACION_RABBITMQ_PUERTO:5672}
     username: ${ADORBIT_FACTURACION_RABBITMQ_USUARIO:}
     password: ${ADORBIT_FACTURACION_RABBITMQ_CLAVE:}
+    virtual-host: ${ADORBIT_FACTURACION_RABBITMQ_VHOST:/}
+    ssl:
+      enabled: ${ADORBIT_FACTURACION_RABBITMQ_SSL:false}
     publisher-confirm-type: simple
     listener:
       simple:

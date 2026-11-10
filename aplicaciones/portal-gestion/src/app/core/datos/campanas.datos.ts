@@ -2,8 +2,9 @@ import { Injectable, inject, signal } from '@angular/core';
 import { Campana, DegradadoPieza, MedioCalendario, PiezaCreatividad } from './campana.modelo';
 import { AutenticacionService } from '../auth/autenticacion.service';
 
-const URL_GATEWAY_GRAPHQL = 'http://localhost:8000/graphql';
-const URL_GATEWAY_REST = 'http://localhost:8000/api/v1';
+const ES_DEV_LOCAL = typeof window !== 'undefined' && window.location.port === '4200';
+const URL_GATEWAY_GRAPHQL = ES_DEV_LOCAL ? 'http://localhost:8000/graphql' : '/graphql';
+const URL_GATEWAY_REST = ES_DEV_LOCAL ? 'http://localhost:8000/api/v1' : '/api/v1';
 
 // MedioPublicitario (enum GraphQL, pasarela) -> medio local de calendario.modelo.ts.
 // "redes" no tiene equivalente real todavia (el enum GraphQL no lo contempla).

@@ -1,0 +1,117 @@
+# AdOrbit · Docker Compose para AWS (Despliegue de Luis)
+# Aloja ms-facturacion (DynamoDB nativo) y ms-clientes-crm (MongoDB Atlas + Workers)
+# Conectado a CloudAMQP Central Broker y Keycloak en Servidor Personal
+
+services:
+  ms-facturacion:
+    build:
+      context: ../servicios/ms-facturacion
+    container_name: adorbit-ms-facturacion
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      ADORBIT_FACTURACION_PUERTO: "8082"
+      ADORBIT_FACTURACION_DYNAMODB_REGION: ${AWS_REGION:-us-east-1}
+      ADORBIT_FACTURACION_DYNAMODB_TABLA: ${FACTURACION_TABLA:-AdOrbitFacturacion}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      ADORBIT_FACTURACION_MENSAJERIA_ACTIVA: "true"
+      ADORBIT_FACTURACION_RABBITMQ_HOST: jaragua.lmq.cloudamqp.com
+      ADORBIT_FACTURACION_RABBITMQ_PUERTO: "5671"
+      ADORBIT_FACTURACION_RABBITMQ_USUARIO: ${RABBITMQ_USER}
+      ADORBIT_FACTURACION_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
+      ADORBIT_FACTURACION_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      ADORBIT_FACTURACION_RABBITMQ_SSL: "true"
+      ADORBIT_FACTURACION_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_FACTURACION_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_FACTURACION_JWT_AUDIENCIA: ms-facturacion
+    networks:
+      - adorbit-aws-red
+
+  ms-clientes-crm:
+    build:
+      context: ../servicios/ms-clientes-crm
+    container_name: adorbit-ms-clientes-crm
+    restart: unless-stopped
+    ports:
+      - "8081:8000"
+    environment:
+      APP_NAME: AdOrbit-CRM
+      APP_ENV: production
+      APP_KEY: ${CRM_APP_KEY:-base64:R/xZMJ9vCdTFuXjzZQfXldsy+9y18cIiwOWh+0YU97Q=}
+      APP_DEBUG: "false"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mongodb
+      MONGODB_URI: ${CRM_MONGO_DSN}
+      MONGODB_DATABASE: ${CRM_MONGO_BD:-adorbit_crm}
+      ADORBIT_CRM_RABBITMQ_HOST: ${RABBITMQ_HOST:-jaragua.lmq.cloudamqp.com}
+      ADORBIT_CRM_RABBITMQ_PUERTO: ${RABBITMQ_PORT:-5671}
+      ADORBIT_CRM_RABBITMQ_USUARIO: ${RABBITMQ_USER}
+      ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
+      ADORBIT_CRM_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      ADORBIT_CRM_RABBITMQ_SSL: "true"
+      ADORBIT_CRM_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CRM_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
+    networks:
+      - adorbit-aws-red
+
+  crm-consumidor:
+    build:
+      context: ../servicios/ms-clientes-crm
+    container_name: adorbit-crm-consumidor
+    restart: unless-stopped
+    command: ["php", "artisan", "crm:consumir-comandos"]
+    environment:
+      APP_NAME: AdOrbit-CRM
+      APP_ENV: production
+      APP_KEY: ${CRM_APP_KEY:-base64:R/xZMJ9vCdTFuXjzZQfXldsy+9y18cIiwOWh+0YU97Q=}
+      DB_CONNECTION: mongodb
+      MONGODB_URI: ${CRM_MONGO_DSN}
+      MONGODB_DATABASE: ${CRM_MONGO_BD:-adorbit_crm}
+      ADORBIT_CRM_RABBITMQ_HOST: ${RABBITMQ_HOST:-jaragua.lmq.cloudamqp.com}
+      ADORBIT_CRM_RABBITMQ_PUERTO: ${RABBITMQ_PORT:-5671}
+      ADORBIT_CRM_RABBITMQ_USUARIO: ${RABBITMQ_USER}
+      ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
+      ADORBIT_CRM_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      ADORBIT_CRM_RABBITMQ_SSL: "true"
+      ADORBIT_CRM_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CRM_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
+    depends_on:
+      - ms-clientes-crm
+    networks:
+      - adorbit-aws-red
+
+  crm-relevo:
+    build:
+      context: ../servicios/ms-clientes-crm
+    container_name: adorbit-crm-relevo
+    restart: unless-stopped
+    command: ["php", "artisan", "crm:relevar-bandeja"]
+    environment:
+      APP_NAME: AdOrbit-CRM
+      APP_ENV: production
+      APP_KEY: ${CRM_APP_KEY:-base64:R/xZMJ9vCdTFuXjzZQfXldsy+9y18cIiwOWh+0YU97Q=}
+      DB_CONNECTION: mongodb
+      MONGODB_URI: ${CRM_MONGO_DSN}
+      MONGODB_DATABASE: ${CRM_MONGO_BD:-adorbit_crm}
+      ADORBIT_CRM_RABBITMQ_HOST: ${RABBITMQ_HOST:-jaragua.lmq.cloudamqp.com}
+      ADORBIT_CRM_RABBITMQ_PUERTO: ${RABBITMQ_PORT:-5671}
+      ADORBIT_CRM_RABBITMQ_USUARIO: ${RABBITMQ_USER}
+      ADORBIT_CRM_RABBITMQ_CLAVE: ${RABBITMQ_PASS}
+      ADORBIT_CRM_RABBITMQ_VHOST: ${RABBITMQ_VHOST}
+      ADORBIT_CRM_RABBITMQ_SSL: "true"
+      ADORBIT_CRM_JWKS_URI: http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CRM_JWT_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
+    depends_on:
+      - ms-clientes-crm
+    networks:
+      - adorbit-aws-red
+
+networks:
+  adorbit-aws-red:
+    name: adorbit-aws-red
+    driver: bridge

@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { AutenticacionService } from '../auth/autenticacion.service';
 
-const URL_API = 'http://localhost:8000/api/v1';
+const ES_DEV_LOCAL = typeof window !== 'undefined' && window.location.port === '4200';
+const URL_API = ES_DEV_LOCAL ? 'http://localhost:8000/api/v1' : '/api/v1';
 
 export interface LineaCredito {
   limite: string;

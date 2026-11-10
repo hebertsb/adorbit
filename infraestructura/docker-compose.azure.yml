@@ -1,0 +1,61 @@
+# AdOrbit · Docker Compose para Azure (Despliegue de Hebert)
+# Aloja ms-campanas (SAGA Orchestrator), pasarela (API Gateway / GraphQL) y portal-gestion (Angular 18)
+# Conectado a CloudAMQP Central Broker, AWS (Facturación/CRM) y Servidor Personal (IA/Creatividades/Keycloak)
+
+services:
+  ms-campanas:
+    build:
+      context: ../servicios/ms-campanas
+    container_name: adorbit-ms-campanas
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      ADORBIT_CAMPANAS_URL_BD: ${CAMPANAS_URL_BD}
+      ADORBIT_CAMPANAS_USUARIO_BD: ${CAMPANAS_USUARIO_BD}
+      ADORBIT_CAMPANAS_CONTRASENA_BD: ${CAMPANAS_CONTRASENA_BD}
+      ADORBIT_CAMPANAS_URL_RABBITMQ: ${RABBITMQ_URL}
+      ADORBIT_CAMPANAS_CONSUMIDOR_ACTIVO: "true"
+    networks:
+      - adorbit-azure-red
+
+  pasarela:
+    build:
+      context: ../plataforma/pasarela
+    container_name: adorbit-pasarela
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      URL_MS_CAMPANAS: http://ms-campanas:8081
+      URL_MS_CLIENTES_CRM: ${URL_MS_CLIENTES_CRM:-https://hans-released-hero-vol.trycloudflare.com}
+      URL_MS_FACTURACION: ${URL_MS_FACTURACION:-https://warrior-doctrine-with-achieved.trycloudflare.com}
+      URL_MS_CREATIVIDADES: ${URL_MS_CREATIVIDADES:-http://100.99.124.109:8083}
+      URL_MS_IA: ${URL_MS_IA:-http://100.99.124.109:8085}
+      EMISOR_JWT: ${EMISOR_JWT:-http://100.99.124.109:8180/realms/adorbit}
+      AUDIENCIA_JWT: pasarela
+      ADORBIT_ULTRAMSG_INSTANCE: ${ADORBIT_ULTRAMSG_INSTANCE}
+      ADORBIT_ULTRAMSG_TOKEN: ${ADORBIT_ULTRAMSG_TOKEN}
+    depends_on:
+      - ms-campanas
+    networks:
+      - adorbit-azure-red
+
+  portal-gestion:
+    build:
+      context: ../aplicaciones/portal-gestion
+    container_name: adorbit-portal-gestion
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+    depends_on:
+      - pasarela
+    networks:
+      - adorbit-azure-red
+
+networks:
+  adorbit-azure-red:
+    name: adorbit-azure-red
+    driver: bridge

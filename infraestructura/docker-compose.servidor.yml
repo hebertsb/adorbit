@@ -1,0 +1,117 @@
+# AdOrbit · Docker Compose para Servidor Personal (Ubuntu Server)
+# Aloja ms-ia, ms-creatividades, n8n, mailpit y keycloak
+# Conectado a CloudAMQP para eventos y SAGA multi-cloud
+
+services:
+  keycloak:
+    build:
+      context: ../plataforma/keycloak
+    container_name: adorbit-keycloak
+    ports:
+      - "8180:8080"
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_SEED_PASSWORD: ${KEYCLOAK_SEED_PASSWORD:-admin}
+      N8N_CLIENT_SECRET: ${N8N_CLIENT_SECRET:-secreto-local}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET:-secreto-admin-local}
+      KC_HOSTNAME_URL: http://100.99.124.109:8180
+      KC_HOSTNAME_STRICT: "false"
+    networks:
+      - adorbit-red
+
+  ms-creatividades:
+    build:
+      context: ../servicios/ms-creatividades
+    container_name: adorbit-ms-creatividades
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: "8083"
+      ADORBIT_CREATIVIDADES_URL_BD: ${CREATIVIDADES_URL_BD}
+      ADORBIT_CREATIVIDADES_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_CREATIVIDADES_EMISOR: http://keycloak:8080/realms/adorbit
+      ADORBIT_CREATIVIDADES_AUDIENCIA: ms-creatividades
+      ADORBIT_CREATIVIDADES_RABBITMQ_URL: ${RABBITMQ_URL}
+      ADORBIT_CREATIVIDADES_SUPABASE_URL: ${CREATIVIDADES_SUPABASE_URL}
+      ADORBIT_CREATIVIDADES_SUPABASE_SERVICE_KEY: ${CREATIVIDADES_SUPABASE_SERVICE_KEY}
+      ADORBIT_CREATIVIDADES_SUPABASE_BUCKET: ${CREATIVIDADES_SUPABASE_BUCKET:-piezas-creatividades}
+    depends_on:
+      - keycloak
+    networks:
+      - adorbit-red
+
+  ms-ia:
+    build:
+      context: ../servicios/ms-ia
+    container_name: adorbit-ms-ia
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      PORT: "8085"
+      ADORBIT_IA_URL_BD: ${IA_URL_BD}
+      ADORBIT_IA_URL_BD_LECTOR_MCP: ${IA_URL_BD_LECTOR_MCP}
+      ADORBIT_IA_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
+      ADORBIT_IA_EMISOR: http://keycloak:8080/realms/adorbit
+      ADORBIT_IA_AUDIENCIA: ms-ia
+      ADORBIT_IA_RABBITMQ_URL: ${RABBITMQ_URL}
+      ADORBIT_IA_GROQ_API_KEY: ${IA_GROQ_API_KEY}
+      ADORBIT_IA_GROQ_MODELO: ${IA_GROQ_MODELO:-openai/gpt-oss-120b}
+      ADORBIT_N8N_WEBHOOK_URL: http://n8n:5678/webhook/notificacion-multicanal
+      ADORBIT_N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-token-webhook-local}
+      ADORBIT_WHATSAPP_NUMERO_GERENCIA: ${ADORBIT_WHATSAPP_NUMERO_GERENCIA:-+59169215158}
+      ADORBIT_CORREO_GERENCIA: ${ADORBIT_CORREO_GERENCIA:-hebertsuarezb@gmail.com}
+    depends_on:
+      - keycloak
+    networks:
+      - adorbit-red
+
+  mailpit:
+    image: axllent/mailpit:v1.29.0
+    container_name: adorbit-mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - adorbit-red
+
+  n8n:
+    image: n8nio/n8n:1.76.1
+    container_name: adorbit-n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-clave-local-n8n-solo-desarrollo}
+      WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://100.99.124.109:5678/}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      GENERIC_TIMEZONE: America/La_Paz
+      TZ: America/La_Paz
+      ADORBIT_N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-token-webhook-local}
+      ADORBIT_CORREO_REMITENTE: "AdOrbit <no-responder@adorbit.local>"
+      ADORBIT_CORREO_GERENCIA: ${ADORBIT_CORREO_GERENCIA:-hebertsuarezb@gmail.com}
+      ADORBIT_WHATSAPP_NUMERO_GERENCIA: ${ADORBIT_WHATSAPP_NUMERO_GERENCIA:-+59169215158}
+      ADORBIT_ULTRAMSG_INSTANCE: ${ADORBIT_ULTRAMSG_INSTANCE:-instance196533}
+      ADORBIT_ULTRAMSG_TOKEN: ${ADORBIT_ULTRAMSG_TOKEN:-rrekxu5rt1e3v4bc}
+    volumes:
+      - n8n_datos:/home/node/.n8n
+      - ../plataforma/n8n/flujos:/flujos:ro
+    depends_on:
+      - mailpit
+    networks:
+      - adorbit-red
+
+volumes:
+  n8n_datos:
+
+networks:
+  adorbit-red:
+    name: adorbit-red-servidor
+    driver: bridge
