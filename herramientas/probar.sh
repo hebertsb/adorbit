@@ -34,7 +34,25 @@ ejecutar_ia() {
   fi
 }
 
+ejecutar_facturacion() {
+  echo "=== [ms-facturacion] Ejecutando pruebas unitarias ==="
+  mvn -f servicios/ms-facturacion/pom.xml test -Dcheckstyle.skip=true -Dspotless.check.skip=true
+}
+
+ejecutar_crm() {
+  echo "=== [ms-clientes-crm] Ejecutando pruebas ==="
+  if [ -f "servicios/ms-clientes-crm/vendor/bin/phpunit" ]; then
+    ./servicios/ms-clientes-crm/vendor/bin/phpunit -c servicios/ms-clientes-crm/phpunit.xml
+  fi
+}
+
 case "$SERVICIO" in
+  ms-facturacion)
+    ejecutar_facturacion
+    ;;
+  ms-clientes-crm)
+    ejecutar_crm
+    ;;
   ms-campanas)
     ejecutar_campanas
     ;;
@@ -54,7 +72,7 @@ case "$SERVICIO" in
     ;;
   *)
     echo "Servicio desconocido: $SERVICIO"
-    echo "Opciones válidas: ms-campanas, pasarela, ms-creatividades, ms-ia"
+    echo "Opciones válidas: ms-facturacion, ms-clientes-crm, ms-campanas, pasarela, ms-creatividades, ms-ia"
     exit 1
     ;;
 esac

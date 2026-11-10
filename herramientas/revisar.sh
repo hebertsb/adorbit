@@ -20,7 +20,24 @@ revisar_pasarela() {
   node plataforma/pasarela/tests/esquema.test.js
 }
 
+revisar_facturacion() {
+  echo "=== [ms-facturacion] Verificando compilación Maven ==="
+  mvn -f servicios/ms-facturacion/pom.xml compile -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true
+}
+
+revisar_crm() {
+  echo "=== [ms-clientes-crm] Verificando sintaxis PHP y Laravel ==="
+  php -l servicios/ms-clientes-crm/config/crm.php
+  php -l servicios/ms-clientes-crm/app/Mensajeria/ConexionRabbit.php
+}
+
 case "$SERVICIO" in
+  ms-facturacion)
+    revisar_facturacion
+    ;;
+  ms-clientes-crm)
+    revisar_crm
+    ;;
   ms-campanas)
     revisar_campanas
     ;;

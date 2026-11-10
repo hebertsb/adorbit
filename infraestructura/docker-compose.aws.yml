@@ -1,0 +1,48 @@
+# ============================================================================
+# docker-compose.aws.yml — Servicios de Luis (ms-facturacion y ms-clientes-crm)
+# Conectados a bases de datos reales (DynamoDB en AWS, MongoDB Atlas) y CloudAMQP.
+#
+# Uso:
+#   cd infraestructura
+#   docker compose -f docker-compose.aws.yml up -d --build
+# ============================================================================
+services:
+  ms-facturacion:
+    build:
+      context: ../servicios/ms-facturacion
+    container_name: adorbit-ms-facturacion
+    ports:
+      - "8082:8082"
+    environment:
+      ADORBIT_FACTURACION_PUERTO: "8082"
+      ADORBIT_FACTURACION_JWKS_URI: ${EMISOR_JWT:-http://localhost:8180/realms/adorbit}/protocol/openid-connect/certs
+      ADORBIT_FACTURACION_JWT_EMISOR: ${EMISOR_JWT:-http://localhost:8180/realms/adorbit}
+      ADORBIT_FACTURACION_JWT_AUDIENCIA: ms-facturacion
+      ADORBIT_FACTURACION_DYNAMODB_REGION: ${AWS_REGION:-us-east-1}
+      ADORBIT_FACTURACION_DYNAMODB_TABLA: ${FACTURACION_TABLA:-AdOrbitFacturacion}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      ADORBIT_FACTURACION_MENSAJERIA_ACTIVA: "true"
+      ADORBIT_FACTURACION_URL_RABBITMQ: ${RABBITMQ_URL:-amqps://twrxyrzb:pKm6UQ6jImJCG-zUaMiLko7xTDj_yCuS@jaragua.lmq.cloudamqp.com/twrxyrzb}
+      ADORBIT_FACTURACION_RABBITMQ_SSL: "true"
+      ADORBIT_FACTURACION_CORS_ORIGENES: "*"
+    restart: unless-stopped
+
+  ms-clientes-crm:
+    build:
+      context: ../servicios/ms-clientes-crm
+    container_name: adorbit-ms-clientes-crm
+    ports:
+      - "8084:8084"
+    environment:
+      APP_KEY: ${CRM_APP_KEY}
+      DB_CONNECTION: mongodb
+      ADORBIT_CRM_MONGO_DSN: ${CRM_MONGO_DSN}
+      ADORBIT_CRM_MONGO_BD: ${CRM_MONGO_BD:-adorbit_crm}
+      ADORBIT_CRM_JWKS_URI: ${EMISOR_JWT:-http://localhost:8180/realms/adorbit}/protocol/openid-connect/certs
+      ADORBIT_CRM_JWT_EMISOR: ${EMISOR_JWT:-http://localhost:8180/realms/adorbit}
+      ADORBIT_CRM_JWT_AUDIENCIA: ms-clientes-crm
+      ADORBIT_CRM_URL_RABBITMQ: ${RABBITMQ_URL:-amqps://twrxyrzb:pKm6UQ6jImJCG-zUaMiLko7xTDj_yCuS@jaragua.lmq.cloudamqp.com/twrxyrzb}
+      ADORBIT_CRM_RABBITMQ_SSL: "true"
+      ADORBIT_CRM_CORS_ORIGENES: "*"
+    restart: unless-stopped
