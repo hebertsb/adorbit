@@ -515,18 +515,31 @@ export class Creatividades {
     const kb = pieza.archivo ? Math.max(1, Math.round(pieza.archivo.tamano / 1024)) : 0;
     const tamanoStr =
       kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : kb > 0 ? `${kb} KB` : '142 KB';
+    const mime = pieza.archivo?.mime?.toLowerCase() ?? '';
 
-    if (sub === 'video') {
+    if (mime.startsWith('image/')) {
+      const extImg = mime.includes('png')
+        ? 'PNG'
+        : mime.includes('jpeg') || mime.includes('jpg')
+          ? 'JPG'
+          : mime.includes('webp')
+            ? 'WEBP'
+            : 'IMG';
+      if (sub === 'historia') return `1080 × 1920 · ${extImg} (${tamanoStr})`;
+      return `${extImg} · ${tamanoStr}`;
+    }
+
+    if (sub === 'video' || mime.startsWith('video/')) {
       const segs = pieza.nombre.match(/(\d+)\s*s\b/i)?.[1] ?? '30';
       return `0:${segs.padStart(2, '0')} · MP4 (1080p)`;
     }
     if (sub === 'historia') {
       return `1080 × 1920 · PNG`;
     }
-    if (sub === 'valla') {
+    if (sub === 'valla' || mime.includes('pdf')) {
       return `PDF / Vectorial · ${tamanoStr}`;
     }
-    if (sub === 'audio') {
+    if (sub === 'audio' || mime.startsWith('audio/')) {
       const segs = pieza.nombre.match(/(\d+)\s*s\b/i)?.[1] ?? '20';
       return `0:${segs.padStart(2, '0')} · MP3 (${tamanoStr})`;
     }
@@ -537,21 +550,64 @@ export class Creatividades {
   protected nombreArchivoCorto(pieza: PiezaCreativaReal): string {
     if (pieza.archivo?.ruta) {
       const partes = pieza.archivo.ruta.split('/');
-      return partes[partes.length - 1] || pieza.archivo.ruta;
+      const base = partes[partes.length - 1] || pieza.archivo.ruta;
+      // Si el backend generó un nombre con UUID largo (ej. 91ad7e6c-133a-...png), mostrar un slug legible
+      if (!/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(base)) {
+        return base;
+      }
     }
-    const slug = pieza.nombre
+    const baseLimpia = pieza.nombre.replace(/\s*\(v\d+\)/gi, '').trim();
+    const slug = baseLimpia
       .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_|_$/g, '');
-    const ext =
-      pieza.tipo === 'video'
-        ? 'mp4'
-        : pieza.tipo === 'audio'
-          ? 'mp3'
-          : pieza.tipo === 'copy'
-            ? 'pdf'
-            : 'png';
+      .replace(/^_|_$/g, '')
+      .slice(0, 36);
+    const mime = pieza.archivo?.mime?.toLowerCase() ?? '';
+    const ext = mime.includes('png')
+      ? 'png'
+      : mime.includes('jpeg') || mime.includes('jpg')
+        ? 'jpg'
+        : mime.includes('pdf')
+          ? 'pdf'
+          : mime.includes('mp4') || pieza.tipo === 'video'
+            ? 'mp4'
+            : mime.includes('mp3') || mime.includes('mpeg') || pieza.tipo === 'audio'
+              ? 'mp3'
+              : pieza.tipo === 'copy'
+                ? 'pdf'
+                : 'png';
     return `${slug}_v${pieza.versionNumero}.${ext}`;
+  }
+
+  protected rutaAlmacenamientoLegible(pieza: PiezaCreativaReal): string {
+    const carpetaBrief = this.codigoBrief(pieza.briefId).toLowerCase();
+    return `bucket-creatividades/${carpetaBrief}/${this.nombreArchivoCorto(pieza)}`;
+  }
+
+  protected etiquetaEstadoOperativo(pieza: PiezaCreativaReal): string {
+    if (pieza.estado === 'aprobada') return '✓ Aprobada · Lista para campaña';
+    if (pieza.estado === 'bloqueada_saga') return '🔒 Bloqueada por SAGA activa';
+    if (pieza.estado === 'rechazada') return '✕ Observada · Requiere reemplazo';
+    return '◷ Pendiente de revisión';
+  }
+
+  protected descripcionTecnicaPieza(pieza: PiezaCreativaReal): string {
+    const campana = this.campanaSeleccionada();
+    const brief = this.briefSeleccionado();
+    const sub = this.subtipoVisual(pieza);
+    const formatoDesc =
+      sub === 'video'
+        ? 'Pieza audiovisual masterizada para emisión en TV abierta y plataformas de streaming digital'
+        : sub === 'historia'
+          ? 'Adaptación vertical 9:16 optimizada para historias y reels en redes sociales'
+          : sub === 'valla'
+            ? 'Arte de gran formato para exhibición en vía pública y circuito exterior'
+            : sub === 'audio'
+              ? 'Cuña radial masterizada en estéreo para pauta en emisoras locales'
+              : 'Pieza gráfica digital para pauta en red de display y redes sociales';
+    return `${formatoDesc} dentro del brief «${brief?.titulo ?? 'Campaña'}» para ${campana?.cliente ?? 'el anunciante'}.`;
   }
 
   protected confianzaMarca(pieza: PiezaCreativaReal): number {

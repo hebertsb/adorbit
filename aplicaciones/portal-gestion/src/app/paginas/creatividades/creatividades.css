@@ -1486,8 +1486,52 @@ button:disabled {
 
 .pieza__vista--modal {
   border-radius: 12px;
-  min-height: 210px;
+  min-height: 230px;
+  background: #0f172a;
   cursor: default;
+}
+
+.pieza__imagen-real--modal {
+  object-fit: contain;
+  opacity: 1;
+}
+
+.modal-especificaciones__descripcion {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--ao-borde);
+  background: var(--ao-fondo);
+  display: grid;
+  gap: 8px;
+}
+
+.modal-especificaciones__descripcion p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--ao-texto);
+}
+
+.modal-especificaciones__checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.check-marca {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(22, 164, 107, 0.12);
+  color: #16a46b;
+  border: 1px solid rgba(22, 164, 107, 0.28);
+}
+
+.ia-metrica__ruta {
+  font-family: monospace;
+  font-size: 0.76rem !important;
+  word-break: break-all;
 }
 
 .modal-especificaciones__grid {

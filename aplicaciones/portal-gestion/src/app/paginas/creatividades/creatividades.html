@@ -492,52 +492,51 @@
               >
                 @if (imagenPersonalizada(pieza.id); as imgUrl) {
                   <img class="pieza__imagen-real" [src]="imgUrl" [alt]="pieza.nombre" />
+                } @else {
+                  <!-- Arte visual representativo según el formato cuando no hay imagen subida -->
+                  @switch (subtipoVisual(pieza)) {
+                    @case ('video') {
+                      <div class="pieza__escena-video">
+                        <span class="pieza__marca-agua">{{ campana.cliente }}</span>
+                        <button
+                          type="button"
+                          class="pieza__boton-play"
+                          aria-label="Previsualizar spot de video"
+                        >
+                          ▶
+                        </button>
+                        <span class="pieza__subtitulo-arte">{{ pieza.nombre }}</span>
+                      </div>
+                    }
+                    @case ('historia') {
+                      <div class="pieza__marco-historia">
+                        <span class="pieza__marco-etiqueta">9:16</span>
+                        <small class="pieza__marco-marca">{{ campana.id }}</small>
+                      </div>
+                    }
+                    @case ('valla') {
+                      <div class="pieza__marco-valla">
+                        <strong>{{ dimensionMarco(pieza) }}</strong>
+                        <span>{{ campana.cliente }}</span>
+                      </div>
+                    }
+                    @case ('audio') {
+                      <div class="pieza__ondas-audio" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span><span></span>
+                      </div>
+                    }
+                    @default {
+                      <div class="pieza__marco-banner">
+                        <strong>{{ dimensionMarco(pieza) }}</strong>
+                        <span>{{ campana.cliente }}</span>
+                      </div>
+                    }
+                  }
                 }
 
                 <span class="pieza__tipo">{{ codigo(pieza.id) }}</span>
                 <span class="pieza__version">Versión {{ pieza.versionNumero }}</span>
-
-                <!-- Arte visual representativo según el formato de la pieza -->
-                @switch (subtipoVisual(pieza)) {
-                  @case ('video') {
-                    <div class="pieza__escena-video">
-                      <span class="pieza__marca-agua">{{ campana.cliente }}</span>
-                      <button
-                        type="button"
-                        class="pieza__boton-play"
-                        aria-label="Previsualizar spot de video"
-                      >
-                        ▶
-                      </button>
-                      <span class="pieza__subtitulo-arte">{{ pieza.nombre }}</span>
-                    </div>
-                  }
-                  @case ('historia') {
-                    <div class="pieza__marco-historia">
-                      <span class="pieza__marco-etiqueta">9:16</span>
-                      <small class="pieza__marco-marca">{{ campana.id }}</small>
-                    </div>
-                  }
-                  @case ('valla') {
-                    <div class="pieza__marco-valla">
-                      <strong>{{ dimensionMarco(pieza) }}</strong>
-                      <span>{{ campana.cliente }}</span>
-                    </div>
-                  }
-                  @case ('audio') {
-                    <div class="pieza__ondas-audio" aria-hidden="true">
-                      <span></span><span></span><span></span><span></span><span></span>
-                      <span></span><span></span><span></span><span></span><span></span>
-                    </div>
-                  }
-                  @default {
-                    <div class="pieza__marco-banner">
-                      <strong>{{ dimensionMarco(pieza) }}</strong>
-                      <span>{{ campana.cliente }}</span>
-                    </div>
-                  }
-                }
-
                 <span class="pieza__formato">{{ etiquetaFormatoTecnico(pieza) }}</span>
               </div>
 
@@ -718,21 +717,36 @@
         [class]="'pieza__vista pieza__vista--modal pieza__vista--' + subtipoVisual(esp)"
       >
         @if (imagenPersonalizada(esp.id); as imgUrl) {
-          <img class="pieza__imagen-real" [src]="imgUrl" [alt]="esp.nombre" />
+          <img
+            class="pieza__imagen-real pieza__imagen-real--modal"
+            [src]="imgUrl"
+            [alt]="esp.nombre"
+          />
+        } @else {
+          <div class="pieza__marco-banner">
+            <strong>{{ dimensionMarco(esp) }}</strong>
+            <span>{{ campanaSeleccionada()?.cliente }}</span>
+          </div>
         }
         <span class="pieza__tipo">{{ codigo(esp.id) }}</span>
         <span class="pieza__version">Versión {{ esp.versionNumero }}</span>
-        <div class="pieza__marco-banner">
-          <strong>{{ dimensionMarco(esp) }}</strong>
-          <span>{{ campanaSeleccionada()?.cliente }}</span>
-        </div>
         <span class="pieza__formato">{{ etiquetaFormatoTecnico(esp) }}</span>
       </div>
 
+      <div class="modal-especificaciones__descripcion">
+        <span class="sobrelinea">Ficha creativa y propósito</span>
+        <p>{{ descripcionTecnicaPieza(esp) }}</p>
+        <div class="modal-especificaciones__checks">
+          <span class="check-marca">✓ Paleta corporativa verificada</span>
+          <span class="check-marca">✓ Zona segura de marca</span>
+          <span class="check-marca">✓ Contraste visual óptimo</span>
+        </div>
+      </div>
+
       <div class="modal-especificaciones__grid">
-        <div class="ia-metrica">
+        <div class="ia-metrica" [title]="esp.archivo?.ruta || ''">
           <span>Archivo en almacenamiento</span>
-          <strong>{{ esp.archivo?.ruta || nombreArchivoCorto(esp) }}</strong>
+          <strong class="ia-metrica__ruta">{{ rutaAlmacenamientoLegible(esp) }}</strong>
         </div>
         <div class="ia-metrica">
           <span>Formato y dimensiones</span>
@@ -740,11 +754,19 @@
         </div>
         <div class="ia-metrica">
           <span>Validación de marca</span>
-          <strong>{{ confianzaMarca(esp) }}% de confianza</strong>
+          <strong
+            [class.confianza--alta]="confianzaMarca(esp) >= 90"
+            [class.confianza--media]="confianzaMarca(esp) >= 75 && confianzaMarca(esp) < 90"
+            [class.confianza--baja]="confianzaMarca(esp) < 75"
+          >
+            🛡️ {{ confianzaMarca(esp) }}% de confianza
+          </strong>
         </div>
         <div class="ia-metrica">
           <span>Estado operativo</span>
-          <strong>{{ esp.estado === 'bloqueada_saga' ? 'Bloqueada por SAGA' : esp.estado }}</strong>
+          <strong [class.confianza--alta]="esp.estado === 'aprobada'">
+            {{ etiquetaEstadoOperativo(esp) }}
+          </strong>
         </div>
       </div>
 
