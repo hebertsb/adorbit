@@ -1,17 +1,29 @@
-<header class="encabezado">
+<section class="encabezado" aria-labelledby="titulo-creatividades">
   <div>
-    <span class="sobrelinea">FLUJO CREATIVO</span>
-    <h1>Briefs y piezas</h1>
-    <p>Registro, carga y aprobación de materiales publicitarios.</p>
+    <span class="sobrelinea">Flujo creativo</span>
+    <div class="encabezado__titulo">
+      <h1 id="titulo-creatividades">Briefs y Piezas de Creatividad</h1>
+      <span class="insignia">ms-creatividades</span>
+    </div>
+    <p>Gestión de piezas publicitarias, auditoría de versiones y control de bloqueo por orquestación SAGA.</p>
   </div>
-  <button
-    type="button"
-    class="boton-primario"
-    (click)="mostrarNuevoBrief.set(!mostrarNuevoBrief())"
-  >
-    + Nuevo brief
-  </button>
-</header>
+  <div class="encabezado__acciones">
+    <button
+      type="button"
+      class="boton-secundario"
+      (click)="mostrarNuevoBrief.set(!mostrarNuevoBrief())"
+    >
+      {{ mostrarNuevoBrief() ? 'Cerrar formulario' : '+ Nuevo brief' }}
+    </button>
+    <button
+      type="button"
+      class="boton-primario"
+      (click)="mostrarNuevaPieza() ? mostrarNuevaPieza.set(false) : abrirFormularioNuevaPieza()"
+    >
+      {{ mostrarNuevaPieza() ? 'Cerrar carga' : '↑ Subir nueva pieza' }}
+    </button>
+  </div>
+</section>
 
 @if (error()) {
   <div class="mensaje mensaje--error" role="alert">{{ error() }}</div>
@@ -21,175 +33,181 @@
 }
 
 @if (mostrarNuevoBrief()) {
-  <form
-    class="formulario-operacion"
-    (submit)="$event.preventDefault(); crearBrief(titulo.value, descripcion.value)"
-  >
-    <div class="formulario-operacion__titulo">
-      <div>
-        <span class="sobrelinea">NUEVO REGISTRO</span>
-        <h2>Crear brief creativo</h2>
+  <!-- Asistente IA Creativo (AdOrbit Copilot) -->
+  <section class="copilot-card" aria-label="Asistente Creativo con IA">
+    <div class="copilot-card__cabecera">
+      <div class="copilot-card__identidad">
+        <span class="copilot-badge">✨ AdOrbit Copilot IA</span>
+        <h3>Generador Inteligente de Briefs Publicitarios</h3>
+        <p>
+          Describe tu idea en pocas palabras y la IA redactará el brief, sugerirá formatos y
+          definirá el tono de campaña para
+          <strong>{{ campanaSeleccionada()?.cliente || 'tu cliente' }}</strong
+          >.
+        </p>
       </div>
-      <button type="button" class="boton-texto" (click)="mostrarNuevoBrief.set(false)">
-        Cerrar
+      <button type="button" class="boton-copilot-toggle" (click)="alternarAsistente()">
+        {{ asistenteAbierto() ? 'Ocultar asistente' : 'Usar asistente IA' }}
       </button>
     </div>
 
-    <!-- SECCIÓN ADORBIT COPILOT CON IA -->
-    <section class="copilot-card campo-ancho" aria-label="Asistente de Creatividad con IA">
-      <div class="copilot-card__cabecera">
-        <div class="copilot-card__identidad">
-          <span class="copilot-badge">✨ AdOrbit Copilot</span>
-          <h3>Asistente Creativo con IA</h3>
-          <p>Formula o perfecciona tu brief en segundos a partir de una idea clave o necesidad comercial.</p>
+    @if (asistenteAbierto()) {
+      <div class="copilot-card__cuerpo">
+        <div class="copilot-fila">
+          <label class="copilot-campo">
+            <span>¿Cuál es la idea o producto a promocionar?</span>
+            <input
+              #conceptoInput
+              type="text"
+              [value]="conceptoIa()"
+              (input)="conceptoIa.set(conceptoInput.value)"
+              placeholder="Ej. Lanzamiento de fibra óptica 1000 Mbps para gamers y trabajo remoto..."
+            />
+          </label>
+          <label class="copilot-campo">
+            <span>Público objetivo (opcional)</span>
+            <input #publicoInput type="text" placeholder="Ej. Jóvenes 18-35 años, familias..." />
+          </label>
         </div>
-        <button
-          type="button"
-          class="boton-secundario boton-copilot-toggle"
-          (click)="alternarAsistente()"
-        >
-          {{ asistenteAbierto() ? 'Ocultar asistente' : 'Desplegar asistente' }}
-        </button>
-      </div>
 
-      @if (asistenteAbierto()) {
-        <div class="copilot-card__cuerpo">
-          <div class="copilot-fila">
-            <label class="copilot-campo">
-              <span>¿Cuál es el concepto, producto o mensaje que deseas comunicar?</span>
-              <textarea
-                #conceptoInput
-                rows="2"
-                (input)="conceptoIa.set(conceptoInput.value)"
-                placeholder="Ej. Bebida energizante natural sin azúcar para jóvenes que estudian y entrenan de noche"
-              ></textarea>
-            </label>
-          </div>
-
-          <div class="copilot-fila copilot-fila--doble">
-            <label class="copilot-campo">
-              <span>Público objetivo (opcional)</span>
-              <input
-                #publicoInput
-                placeholder="Ej. Jóvenes de 18 a 30 años, universitarios y atletas"
-              />
-            </label>
-
-            <div class="copilot-campo">
-              <span>Tono de comunicación</span>
-              <div class="pildoras-tono">
-                @for (t of tonosDisponibles; track t) {
-                  <button
-                    type="button"
-                    class="pildora-tono"
-                    [class.pildora-tono--activa]="tonoIa() === t"
-                    (click)="seleccionarTono(t)"
-                  >
-                    {{ t }}
-                  </button>
-                }
-              </div>
-            </div>
-          </div>
-
-          <div class="copilot-acciones">
-            <button
-              type="button"
-              class="boton-copilot-generar"
-              [disabled]="generandoIa() || !conceptoIa().trim()"
-              (click)="generarConIa(conceptoInput.value, publicoInput.value)"
-            >
-              @if (generandoIa()) {
-                <span class="icono-giratorio">⚙️</span> Formulando con IA…
-              } @else {
-                ✨ Generar propuesta con IA
-              }
-            </button>
-          </div>
-
-          @if (propuestaIa(); as propuesta) {
-            <div class="copilot-resultado">
-              <div class="copilot-resultado__cabecera">
-                <div>
-                  <span class="insignia-origen">{{ propuesta.origen === 'groq_llm' ? 'Motor: Groq LLM' : 'Motor: Síntesis Inteligente AdOrbit' }}</span>
-                  <h4 class="copilot-resultado__titulo">{{ propuesta.titulo }}</h4>
-                </div>
+        <div class="copilot-fila copilot-fila--controles">
+          <div class="copilot-tonos">
+            <span class="copilot-tonos__etiqueta">Tono creativo:</span>
+            <div class="copilot-tonos__lista">
+              @for (tono of tonosDisponibles; track tono) {
                 <button
                   type="button"
-                  class="boton-primario boton-aplicar-ia"
-                  (click)="aplicarPropuestaIa(titulo, descripcion)"
+                  class="pildora-tono"
+                  [class.pildora-tono--activa]="tonoIa() === tono"
+                  (click)="seleccionarTono(tono)"
                 >
-                  🪄 Aplicar al formulario
+                  {{ tono }}
                 </button>
-              </div>
-
-              <div class="copilot-resultado__cta">
-                <strong>Llamada a la acción / CTA:</strong> «{{ propuesta.llamada_a_la_accion }}»
-              </div>
-
-              @if (propuesta.piezas_sugeridas.length > 0) {
-                <div class="copilot-sugerencias">
-                  <span class="copilot-sugerencias__etiqueta">Piezas clave recomendadas:</span>
-                  <div class="copilot-piezas-tags">
-                    @for (pz of propuesta.piezas_sugeridas; track pz.nombre) {
-                      <span class="tag-pieza">
-                        <strong class="tag-pieza__tipo">{{ pz.formato }}</strong>
-                        {{ pz.nombre }}
-                        @if (pz.dimensiones) {
-                          <small>({{ pz.dimensiones }})</small>
-                        }
-                      </span>
-                    }
-                  </div>
-                </div>
               }
             </div>
-          }
+          </div>
+
+          <button
+            type="button"
+            class="boton-generar-ia"
+            [disabled]="generandoIa() || !conceptoIa().trim()"
+            (click)="generarConIa(conceptoIa(), publicoInput.value)"
+          >
+            @if (generandoIa()) {
+              <span class="spinner-ia" aria-hidden="true"></span> Redactando con IA...
+            } @else {
+              ✨ Generar propuesta con IA
+            }
+          </button>
         </div>
-      }
-    </section>
-    <label
-      >Campaña
-      <select
-        #campana
-        (change)="seleccionarCampana(campana.value)"
-        [value]="campanaSeleccionada()?.id"
-        required
-      >
-        @for (item of campanasDatos.listar(); track item.id) {
-          <option [value]="item.id">{{ item.codigoReferencia }} · {{ item.nombre }}</option>
+
+        @if (propuestaIa(); as prop) {
+          <div class="copilot-resultado">
+            <div class="copilot-resultado__cabecera">
+              <div>
+                <span class="copilot-origen">
+                  {{
+                    prop.origen === 'groq_llm'
+                      ? '⚡ Generado con LLM Cloud'
+                      : '🧠 Generado con Motor Creativo AdOrbit'
+                  }}
+                </span>
+                <h4>{{ prop.titulo }}</h4>
+              </div>
+              <button
+                type="button"
+                class="boton-aplicar-ia"
+                (click)="aplicarPropuestaIa(tituloBrief, descripcionBrief)"
+              >
+                🪄 Aplicar al formulario
+              </button>
+            </div>
+
+            <p class="copilot-resultado__desc">{{ prop.descripcion }}</p>
+
+            <div class="copilot-resultado__meta">
+              <div class="copilot-meta-bloque">
+                <span class="copilot-meta-titulo">Canales sugeridos</span>
+                <div class="copilot-chips">
+                  @for (canal of prop.canales_sugeridos; track canal) {
+                    <span class="copilot-chip">{{ canal }}</span>
+                  }
+                </div>
+              </div>
+
+              <div class="copilot-meta-bloque">
+                <span class="copilot-meta-titulo">Call to Action (CTA)</span>
+                <p class="copilot-cta">"{{ prop.llamada_a_la_accion }}"</p>
+              </div>
+            </div>
+
+            @if (prop.piezas_sugeridas.length > 0) {
+              <div class="copilot-piezas-sugeridas">
+                <span class="copilot-meta-titulo">Piezas recomendadas para producir</span>
+                <div class="copilot-piezas-grid">
+                  @for (pieza of prop.piezas_sugeridas; track pieza.nombre) {
+                    <div class="copilot-pieza-item">
+                      <strong>{{ pieza.nombre }}</strong>
+                      <span>{{ pieza.formato }} · {{ pieza.dimensiones || 'Estándar' }}</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
         }
-      </select>
-    </label>
-    <label
-      >Título<input
-        #titulo
-        maxlength="200"
-        placeholder="Ej. Piezas para lanzamiento digital"
+      </div>
+    }
+  </section>
+
+  <form
+    class="formulario-operacion"
+    (submit)="$event.preventDefault(); crearBrief(tituloBrief.value, descripcionBrief.value)"
+  >
+    <div class="formulario-operacion__titulo">
+      <div>
+        <span class="sobrelinea">Nuevo brief</span>
+        <h2>Registrar brief para {{ campanaSeleccionada()?.nombre }}</h2>
+      </div>
+      <button type="button" class="boton-texto" (click)="mostrarNuevoBrief.set(false)">
+        Cancelar
+      </button>
+    </div>
+    <label>
+      <span>Título del brief</span>
+      <input
+        #tituloBrief
+        type="text"
         required
-    /></label>
-    <label class="campo-ancho"
-      >Descripción<textarea
-        #descripcion
-        maxlength="2000"
+        placeholder="Ej. Lanzamiento digital Q2"
+        (input)="$event.stopPropagation()"
+      />
+    </label>
+    <label class="campo-ancho">
+      <span>Descripción creativa</span>
+      <textarea
+        #descripcionBrief
         rows="3"
-        placeholder="Objetivo, público, formatos y lineamientos de marca"
+        placeholder="Objetivos, mensaje clave, formatos esperados y lineamientos de marca."
       ></textarea>
     </label>
-    <div class="acciones campo-ancho">
-      <button class="boton-primario" [disabled]="guardando()">
-        {{ guardando() ? 'Guardando…' : 'Crear brief' }}
+    <div class="acciones">
+      <button type="submit" class="boton-primario" [disabled]="guardando()">
+        {{ guardando() ? 'Guardando...' : 'Crear brief' }}
       </button>
     </div>
   </form>
 }
 
 <div class="rejilla">
-  <aside class="lista-briefs" aria-labelledby="titulo-campanas">
-    <div class="lista-briefs__cabecera">
-      <h2 id="titulo-campanas">Campañas</h2>
+  <aside class="lista-briefs" aria-label="Campañas con briefs">
+    <header class="lista-briefs__cabecera">
+      <div class="lista-briefs__cabecera-fila">
+        <h2>Campañas <span>{{ campanasDatos.listar().length }}</span></h2>
+        <span class="lista-briefs__sub">Briefs vinculados</span>
+      </div>
       <p>Elige el contexto de trabajo</p>
-    </div>
+    </header>
     <ul>
       @for (campana of campanasDatos.listar(); track campana.id) {
         <li>
@@ -199,36 +217,59 @@
             [class.item-brief--activo]="campana.id === campanaSeleccionada()?.id"
             (click)="seleccionarCampana(campana.id)"
           >
-            <span class="codigo">{{ campana.codigoReferencia }}</span
-            ><strong>{{ campana.nombre }}</strong
-            ><span class="item-brief__cliente">{{ campana.cliente }}</span>
+            <div class="item-brief__fila-sup">
+              <span class="codigo">{{ campana.id }}</span>
+              <span class="item-brief__chip-estado">Activa</span>
+            </div>
+            <strong>{{ campana.nombre }}</strong>
+            <span class="item-brief__cliente">📢 {{ campana.cliente }}</span>
           </button>
         </li>
-      } @empty {
-        <li class="vacio">No hay campañas disponibles.</li>
       }
     </ul>
   </aside>
 
-  <main class="panel-piezas">
+  <div class="panel-piezas">
     @if (campanaSeleccionada(); as campana) {
-      <section class="resumen">
+      <header class="resumen">
         <div>
-          <span class="resumen__etiqueta">Campaña seleccionada</span>
-          <h2>{{ campana.nombre }}</h2>
-          <p>{{ campana.codigoReferencia }} · {{ campana.cliente }}</p>
+          <div class="resumen__encabezado-brief">
+            <span class="resumen__etiqueta">BRIEF SELECCIONADO:</span>
+            @if (briefSeleccionado(); as briefActual) {
+              <span class="resumen__codigo-brief">{{ codigoBrief(briefActual.id) }}</span>
+            }
+          </div>
+          <h2>{{ briefSeleccionado()?.titulo || campana.nombre }}</h2>
+          <p>
+            Cliente: <strong>{{ campana.cliente }}</strong> · Campaña:
+            <strong>{{ campana.id }}</strong> · Estado operativo:
+            <strong class="resumen__estado-operativo">Campaña Activa</strong>
+          </p>
         </div>
-        <div class="resumen__estados">
-          <span><i class="punto punto--ok"></i>{{ contar('aprobada') }} aprobadas</span
-          ><span><i class="punto punto--aviso"></i>{{ contar('en_revision') }} en revisión</span
-          ><span><i class="punto punto--peligro"></i>{{ contar('rechazada') }} rechazadas</span>
+        <div class="resumen__estados" aria-label="Conteo de piezas por estado">
+          <span class="resumen__pildora resumen__pildora--ok">
+            <i class="punto punto--ok" aria-hidden="true"></i>{{ contar('aprobada') }} Aprobadas
+          </span>
+          <span class="resumen__pildora resumen__pildora--aviso">
+            <i class="punto punto--aviso" aria-hidden="true"></i>{{ contar('en_revision') }} Pendientes
+          </span>
+          <span class="resumen__pildora resumen__pildora--peligro">
+            <i class="punto punto--peligro" aria-hidden="true"></i>{{ contar('rechazada') }} Rechazadas
+          </span>
+          @if (contar('bloqueada_saga') > 0) {
+            <span class="resumen__pildora resumen__pildora--saga">
+              🔒 {{ contar('bloqueada_saga') }} Bloqueada SAGA
+            </span>
+          }
         </div>
-      </section>
+      </header>
 
-      <section class="selector-brief">
-        <div>
-          <span class="sobrelinea">BRIEFS REGISTRADOS</span>
-          <h2>{{ briefs().length }} disponibles</h2>
+      <section class="selector-brief" aria-label="Briefs de la campaña">
+        <div class="selector-brief__cabecera">
+          <div>
+            <span class="sobrelinea">Briefs registrados</span>
+            <h2>{{ briefs().length }} disponibles en esta campaña</h2>
+          </div>
         </div>
         <div class="pildoras">
           @for (brief of briefs(); track brief.id) {
@@ -237,10 +278,11 @@
               [class.activa]="brief.id === briefSeleccionado()?.id"
               (click)="seleccionarBrief(brief.id)"
             >
-              {{ brief.titulo }}
+              <span class="pildora-brief__codigo">{{ codigoBrief(brief.id) }}</span>
+              <span>{{ brief.titulo }}</span>
             </button>
           } @empty {
-            <span class="vacio-inline">Crea el primer brief de esta campaña.</span>
+            <span class="vacio-inline">Esta campaña aún no tiene briefs.</span>
           }
         </div>
       </section>
@@ -248,16 +290,21 @@
       @if (briefSeleccionado(); as brief) {
         <div class="seccion-titulo">
           <div>
-            <span class="sobrelinea">{{ brief.estado.replace('_', ' ') }}</span>
+            <div class="seccion-titulo__estado-fila">
+              <span class="sobrelinea">{{ etiquetaEstadoBrief(brief) }}</span>
+              <span class="seccion-titulo__id">{{ codigoBrief(brief.id) }}</span>
+            </div>
             <h2>{{ brief.titulo }}</h2>
-            <p>{{ brief.descripcion || 'Sin descripción adicional.' }}</p>
+            @if (brief.descripcion) {
+              <p>{{ brief.descripcion }}</p>
+            }
           </div>
           <button
             type="button"
             class="boton-primario"
-            (click)="mostrarNuevaPieza.set(!mostrarNuevaPieza())"
+            (click)="mostrarNuevaPieza() ? mostrarNuevaPieza.set(false) : abrirFormularioNuevaPieza()"
           >
-            + Nueva pieza
+            {{ mostrarNuevaPieza() ? 'Cerrar' : '+ Nueva pieza' }}
           </button>
         </div>
 
@@ -265,152 +312,471 @@
           <form
             class="formulario-operacion formulario-operacion--pieza"
             (submit)="
-              $event.preventDefault(); crearPieza(nombre.value, tipo.value, archivo.files?.[0])
+              $event.preventDefault();
+              crearPieza(nombrePieza.value, tipoPieza.value, archivoPieza.files?.[0])
             "
           >
-            <label
-              >Nombre<input #nombre maxlength="200" placeholder="Ej. Banner principal" required
-            /></label>
-            <label
-              >Tipo<select #tipo>
-                <option value="imagen">Imagen</option>
-                <option value="video">Video</option>
-                <option value="copy">Copy</option>
-                <option value="audio">Audio</option>
-              </select></label
-            >
-            <label
-              >Archivo opcional<input
-                #archivo
-                type="file"
-                accept="image/jpeg,image/png,video/mp4,application/pdf"
-                (change)="alSeleccionarArchivoPieza(archivo.files?.[0])"
-            /></label>
-
-            @if (iaLocal.analizando()) {
-              <div class="ia-local-card campo-ancho">
-                <span class="icono-giratorio">⚙️</span> Analizando pieza en el navegador con IA local (On-Device)…
+            <div class="formulario-operacion__titulo">
+              <div>
+                <span class="sobrelinea">
+                  {{
+                    piezaReemplazoBase()
+                      ? 'Reemplazo de versión observada'
+                      : 'Nueva pieza creativa'
+                  }}
+                </span>
+                <h2>
+                  {{
+                    piezaReemplazoBase()
+                      ? 'Subir versión ' +
+                        (piezaReemplazoBase()!.versionNumero + 1) +
+                        ' para ' +
+                        piezaReemplazoBase()!.nombre
+                      : 'Registrar activo visual o audiovisual en el brief'
+                  }}
+                </h2>
               </div>
-            }
+              <button
+                type="button"
+                class="boton-texto"
+                (click)="mostrarNuevaPieza.set(false); piezaReemplazoBase.set(null)"
+              >
+                Cancelar
+              </button>
+            </div>
+
+            <label>
+              <span>Nombre de la pieza</span>
+              <input
+                #nombrePieza
+                type="text"
+                required
+                [value]="nombreNuevaPieza()"
+                (input)="nombreNuevaPieza.set(nombrePieza.value)"
+                placeholder="Ej. Banner Display 300x250 - Promoción Hogar"
+              />
+            </label>
+            <label>
+              <span>Formato / Tipo</span>
+              <select
+                #tipoPieza
+                [value]="tipoNuevaPieza()"
+                (change)="tipoNuevaPieza.set($any(tipoPieza.value))"
+              >
+                <option value="imagen">Imagen / Banner / Story</option>
+                <option value="video">Spot de Video (MP4)</option>
+                <option value="copy">Valla / Arte Vectorial (PDF)</option>
+                <option value="audio">Cuña Radial (MP3)</option>
+              </select>
+            </label>
+            <label>
+              <span>Archivo de diseño (imagen, video, PDF)</span>
+              <input
+                #archivoPieza
+                type="file"
+                accept="image/*,video/*,audio/*,.pdf,.zip"
+                (change)="alSeleccionarArchivoPieza(archivoPieza.files?.[0])"
+              />
+            </label>
+            <div class="acciones">
+              <button type="submit" class="boton-primario" [disabled]="guardando()">
+                {{ guardando() ? 'Subiendo...' : 'Guardar pieza' }}
+              </button>
+            </div>
+
+            <!-- Vista previa interactiva en vivo de lo que se está creando -->
+            <div class="vista-previa-creacion campo-ancho">
+              <div class="vista-previa-creacion__lienzo" [attr.data-subtipo]="tipoNuevaPieza()">
+                @if (vistaPreviaImagenUrl(); as urlImg) {
+                  <img
+                    class="vista-previa-creacion__img"
+                    [src]="urlImg"
+                    alt="Vista previa del archivo cargado"
+                  />
+                } @else {
+                  <div class="pieza__marco-diseno">
+                    <strong>{{ nombreNuevaPieza() || 'Vista previa del arte en creación' }}</strong>
+                    <span>{{ campana.cliente }} · {{ tipoNuevaPieza().toUpperCase() }}</span>
+                  </div>
+                }
+                <span class="pieza__version">
+                  Versión {{ piezaReemplazoBase() ? piezaReemplazoBase()!.versionNumero + 1 : 1 }}
+                </span>
+              </div>
+              <div class="vista-previa-creacion__info">
+                <span class="sobrelinea">Previsualización del diseño en tiempo real</span>
+                <h4>{{ nombreNuevaPieza() || 'Nueva pieza publicitaria' }}</h4>
+                <p>
+                  @if (vistaPreviaImagenUrl()) {
+                    Imagen cargada lista para auditoría de marca y publicación en el brief.
+                  } @else {
+                    Selecciona una imagen o archivo desde tu equipo para visualizar el arte real, o
+                    guarda la pieza con la maqueta creativa del formato seleccionado.
+                  }
+                </p>
+              </div>
+            </div>
 
             @if (analisisImagenLocal(); as ia) {
-              <section class="ia-local-card campo-ancho" aria-label="Auditoría de IA Local en el Navegador">
+              <div class="ia-local-card campo-ancho" role="region" aria-label="Auditoría IA Local">
                 <div class="ia-local-card__cabecera">
                   <div>
-                    <span class="copilot-badge">🧠 IA Local (En el Dispositivo · Sin Red)</span>
-                    <h4>Auditoría instantánea del Manual de Marca</h4>
-                    <small class="ia-local-card__motor">Motor: {{ ia.motor }}</small>
+                    <span class="copilot-badge">🧠 Web AI · En tu navegador (0 bytes a la nube)</span>
+                    <h4>Pre-auditoría visual instantánea de marca</h4>
+                    <span class="ia-local-card__motor">{{ ia.motor }}</span>
                   </div>
                   <ao-etiqueta-estado
-                    [texto]="ia.manualMarcaOk ? 'Conforme Manual (' + ia.confianza + '%)' : 'Con observaciones (' + ia.confianza + '%)'"
+                    [texto]="ia.manualMarcaOk ? 'Cumple guía' : 'Revisar observaciones'"
                     [tono]="ia.manualMarcaOk ? 'ok' : 'aviso'"
                   />
                 </div>
+
                 <div class="ia-local-card__metricas">
                   <div class="ia-metrica">
-                    <span>Detección de marca</span>
-                    <strong>{{ ia.detectaLogo ? 'Detectada' : 'No detectada' }}</strong>
+                    <span>Resolución</span>
+                    <strong>{{ ia.resolucion }}</strong>
                   </div>
                   <div class="ia-metrica">
-                    <span>Confianza On-Device</span>
+                    <span>Detección de logo</span>
+                    <strong>{{ ia.detectaLogo ? 'Detectado' : 'Verificar zona segura' }}</strong>
+                  </div>
+                  <div class="ia-metrica">
+                    <span>Confianza IA</span>
                     <strong>{{ ia.confianza }}%</strong>
-                  </div>
-                  <div class="ia-metrica">
-                    <span>Resolución / Aspecto</span>
-                    <strong>{{ ia.resolucion }} ({{ ia.relacionAspecto }})</strong>
                   </div>
                   <div class="ia-metrica">
                     <span>Paleta dominante</span>
                     <div class="ia-paleta">
-                      @for (hex of ia.paletaDominante; track hex) {
-                        <span class="ia-muestra-color" [style.background]="hex" [title]="hex"></span>
+                      @for (color of ia.paletaDominante; track color) {
+                        <span
+                          class="ia-muestra-color"
+                          [style.background]="color"
+                          [title]="color"
+                        ></span>
                       }
                     </div>
                   </div>
                 </div>
+
                 <ul class="ia-local-card__lista">
                   @for (obs of ia.observaciones; track obs) {
                     <li>{{ obs }}</li>
                   }
                 </ul>
-              </section>
+              </div>
             }
-
-            <div class="acciones">
-              <button class="boton-primario" [disabled]="guardando()">Registrar pieza</button
-              ><button
-                type="button"
-                class="boton-secundario"
-                (click)="mostrarNuevaPieza.set(false)"
-              >
-                Cancelar
-              </button>
-            </div>
           </form>
         }
 
-        @if (cargando()) {
-          <p class="vacio">Cargando información creativa…</p>
-        }
         <div class="rejilla-piezas">
           @for (pieza of piezas(); track pieza.id) {
-            <article class="pieza" [class.pieza--bloqueada]="pieza.estado === 'bloqueada_saga'">
-              <div class="pieza__vista pieza__vista--{{ pieza.tipo }}">
-                <span class="pieza__tipo">{{ pieza.tipo }}</span
-                ><strong>{{ codigo(pieza.id) }}</strong
-                ><span class="pieza__version">Versión {{ pieza.versionNumero }}</span>
+            <article
+              class="pieza"
+              [class.pieza--aprobada]="pieza.estado === 'aprobada'"
+              [class.pieza--revision]="pieza.estado === 'en_revision'"
+              [class.pieza--rechazada]="pieza.estado === 'rechazada'"
+              [class.pieza--bloqueada]="pieza.estado === 'bloqueada_saga'"
+            >
+              @if (pieza.estado === 'bloqueada_saga') {
+                <div class="pieza__bloqueo">
+                  <span>🔒 Bloqueada por contratación</span>
+                  <span class="pieza__bloqueo-origen">ms-campanas (SAGA activa)</span>
+                </div>
+              }
+
+              <div
+                class="pieza__vista"
+                [class]="'pieza__vista pieza__vista--' + subtipoVisual(pieza)"
+                (click)="abrirEspecificaciones(pieza)"
+                title="Clic para ver especificaciones y vista ampliada"
+              >
+                @if (imagenPersonalizada(pieza.id); as imgUrl) {
+                  <img class="pieza__imagen-real" [src]="imgUrl" [alt]="pieza.nombre" />
+                }
+
+                <span class="pieza__tipo">{{ codigo(pieza.id) }}</span>
+                <span class="pieza__version">Versión {{ pieza.versionNumero }}</span>
+
+                <!-- Arte visual representativo según el formato de la pieza -->
+                @switch (subtipoVisual(pieza)) {
+                  @case ('video') {
+                    <div class="pieza__escena-video">
+                      <span class="pieza__marca-agua">{{ campana.cliente }}</span>
+                      <button
+                        type="button"
+                        class="pieza__boton-play"
+                        aria-label="Previsualizar spot de video"
+                      >
+                        ▶
+                      </button>
+                      <span class="pieza__subtitulo-arte">{{ pieza.nombre }}</span>
+                    </div>
+                  }
+                  @case ('historia') {
+                    <div class="pieza__marco-historia">
+                      <span class="pieza__marco-etiqueta">9:16</span>
+                      <small class="pieza__marco-marca">{{ campana.id }}</small>
+                    </div>
+                  }
+                  @case ('valla') {
+                    <div class="pieza__marco-valla">
+                      <strong>{{ dimensionMarco(pieza) }}</strong>
+                      <span>{{ campana.cliente }}</span>
+                    </div>
+                  }
+                  @case ('audio') {
+                    <div class="pieza__ondas-audio" aria-hidden="true">
+                      <span></span><span></span><span></span><span></span><span></span>
+                      <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                  }
+                  @default {
+                    <div class="pieza__marco-banner">
+                      <strong>{{ dimensionMarco(pieza) }}</strong>
+                      <span>{{ campana.cliente }}</span>
+                    </div>
+                  }
+                }
+
+                <span class="pieza__formato">{{ etiquetaFormatoTecnico(pieza) }}</span>
               </div>
+
               <div class="pieza__cuerpo">
                 <div class="pieza__titulo">
-                  <div>
-                    <span class="codigo">{{ codigo(pieza.id) }}</span>
-                    <h3>{{ pieza.nombre }}</h3>
-                  </div>
-                  <ao-etiqueta-estado
-                    [texto]="pieza.estado.replace('_', ' ')"
-                    [tono]="tonoDe(pieza.estado)"
-                  />
+                  <h3>{{ pieza.nombre }}</h3>
+                  @switch (pieza.estado) {
+                    @case ('aprobada') {
+                      <span class="estado-pildora estado-pildora--aprobada">✓ Aprobada</span>
+                    }
+                    @case ('bloqueada_saga') {
+                      <span class="estado-pildora estado-pildora--aprobada">✓ Aprobada</span>
+                    }
+                    @case ('en_revision') {
+                      <span class="estado-pildora estado-pildora--pendiente">◷ Pendiente</span>
+                    }
+                    @case ('rechazada') {
+                      <span class="estado-pildora estado-pildora--rechazada">✕ Rechazada</span>
+                    }
+                  }
                 </div>
-                @if (pieza.archivo; as adjunto) {
-                  <p class="pieza__archivo">
-                    {{ adjunto.mime }} · {{ (adjunto.tamano / 1024).toFixed(1) }} KB
-                  </p>
+
+                <p class="pieza__archivo">{{ nombreArchivoCorto(pieza) }}</p>
+
+                <div
+                  class="pieza__validacion"
+                  [class.pieza__validacion--rechazada]="pieza.estado === 'rechazada'"
+                >
+                  <span>
+                    {{ pieza.estado === 'rechazada' ? '⚠️' : '🛡️' }} Validación de marca:
+                  </span>
+                  <strong
+                    [class.confianza--alta]="confianzaMarca(pieza) >= 90"
+                    [class.confianza--media]="
+                      confianzaMarca(pieza) >= 75 && confianzaMarca(pieza) < 90
+                    "
+                    [class.confianza--baja]="confianzaMarca(pieza) < 75"
+                  >
+                    {{ confianzaMarca(pieza) }}% de confianza
+                  </strong>
+                </div>
+
+                @switch (pieza.estado) {
+                  @case ('bloqueada_saga') {
+                    <p class="pieza__nota pieza__nota--cursiva">
+                      Pieza protegida: no se puede editar ni re-aprobar mientras la SAGA esté en
+                      ejecución.
+                    </p>
+                  }
+                  @case ('aprobada') {
+                    <p class="pieza__nota">Pieza lista para uso en la campaña.</p>
+                  }
+                  @case ('en_revision') {
+                    <p class="pieza__nota">
+                      Requiere decisión del equipo para habilitar inclusión en el flujo de
+                      contratación.
+                    </p>
+                  }
+                  @case ('rechazada') {
+                    <p class="pieza__observacion">Motivo: {{ motivoRechazo(pieza) }}</p>
+                  }
                 }
-                @if (pieza.estado === 'bloqueada_saga') {
-                  <p class="pieza__nota">Bloqueada por una contratación en curso.</p>
-                }
-                @if (pieza.estado !== 'bloqueada_saga') {
-                  <div class="acciones-pieza">
-                    <button
-                      type="button"
-                      class="boton-aprobar"
-                      [disabled]="guardando()"
-                      (click)="decidir(pieza, 'aprobar')"
-                    >
-                      Aprobar</button
-                    ><button
-                      type="button"
-                      class="boton-rechazar"
-                      [disabled]="guardando()"
-                      (click)="decidir(pieza, 'rechazar')"
-                    >
-                      Rechazar
-                    </button>
-                  </div>
-                }
+
+                <footer class="pieza__pie">
+                  @switch (pieza.estado) {
+                    @case ('en_revision') {
+                      <div class="acciones-pieza">
+                        <button
+                          type="button"
+                          class="boton-aprobar"
+                          [disabled]="guardando()"
+                          (click)="decidir(pieza, 'aprobar')"
+                        >
+                          ✓ Aprobar
+                        </button>
+                        <button
+                          type="button"
+                          class="boton-rechazar"
+                          [disabled]="guardando()"
+                          (click)="decidir(pieza, 'rechazar')"
+                        >
+                          ✕ Rechazar
+                        </button>
+                      </div>
+                    }
+                    @case ('aprobada') {
+                      <div class="pieza__pie-fila">
+                        <span class="pieza__estado-final pieza__estado-final--ok">
+                          Lista para campaña
+                        </span>
+                        <button
+                          type="button"
+                          class="pieza__enlace"
+                          (click)="abrirEspecificaciones(pieza)"
+                        >
+                          Ver especificaciones
+                        </button>
+                      </div>
+                    }
+                    @case ('rechazada') {
+                      <div class="pieza__pie-fila">
+                        <span class="pieza__estado-final">Requiere reemplazo</span>
+                        <button
+                          type="button"
+                          class="pieza__enlace"
+                          (click)="prepararNuevaVersion(pieza)"
+                        >
+                          Subir versión {{ pieza.versionNumero + 1 }}
+                        </button>
+                      </div>
+                    }
+                    @case ('bloqueada_saga') {
+                      <div class="pieza__pie-fila">
+                        <span class="pieza__estado-final pieza__estado-final--bloqueada">
+                          🔒 Edición deshabilitada
+                        </span>
+                        <span class="pieza__insignia-bloqueada">Bloqueada</span>
+                      </div>
+                    }
+                  }
+                </footer>
               </div>
             </article>
           } @empty {
-            @if (!cargando()) {
-              <p class="vacio vacio--piezas">
-                Este brief todavía no tiene piezas. Registra la primera para comenzar la revisión.
-              </p>
-            }
+            <div class="vacio vacio--piezas">
+              No hay piezas registradas en este brief. Usa «+ Nueva pieza» para registrar una.
+            </div>
           }
         </div>
       }
+
+      <!-- Barra de estado inferior de ms-creatividades -->
+      <footer class="barra-estado" aria-label="Estado del servicio ms-creatividades">
+        <div class="barra-estado__servicio">
+          <span class="punto punto--ok" aria-hidden="true"></span>
+          <span>
+            Servicio activo: <strong>ms-creatividades</strong> · Validación interna de marca y
+            control de bloqueos distribuidos
+          </span>
+        </div>
+        <div class="barra-estado__metricas">
+          <span>
+            Hash de activos: <code>{{ hashActivosBrief() }}</code>
+          </span>
+          <span>
+            Tasa de aprobación: <strong>{{ tasaAprobacion() }}%</strong>
+          </span>
+        </div>
+      </footer>
     } @else {
-      <section class="vacio vacio--panel">No hay campañas disponibles.</section>
+      <div class="vacio vacio--panel">No hay campañas disponibles.</div>
     }
-  </main>
+  </div>
 </div>
+
+<!-- Modal de Especificaciones Técnicas y Previsualización de Pieza -->
+@if (piezaEspecificaciones(); as esp) {
+  <div class="modal-fondo" (click)="cerrarEspecificaciones()">
+    <div
+      class="modal-especificaciones"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="titulo-modal-esp"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="modal-especificaciones__cabecera">
+        <div>
+          <span class="sobrelinea">{{ codigo(esp.id) }} · Versión {{ esp.versionNumero }}</span>
+          <h3 id="titulo-modal-esp">{{ esp.nombre }}</h3>
+        </div>
+        <button type="button" class="boton-texto" (click)="cerrarEspecificaciones()">
+          ✕ Cerrar
+        </button>
+      </header>
+
+      <div
+        class="pieza__vista pieza__vista--modal"
+        [class]="'pieza__vista pieza__vista--modal pieza__vista--' + subtipoVisual(esp)"
+      >
+        @if (imagenPersonalizada(esp.id); as imgUrl) {
+          <img class="pieza__imagen-real" [src]="imgUrl" [alt]="esp.nombre" />
+        }
+        <span class="pieza__tipo">{{ codigo(esp.id) }}</span>
+        <span class="pieza__version">Versión {{ esp.versionNumero }}</span>
+        <div class="pieza__marco-banner">
+          <strong>{{ dimensionMarco(esp) }}</strong>
+          <span>{{ campanaSeleccionada()?.cliente }}</span>
+        </div>
+        <span class="pieza__formato">{{ etiquetaFormatoTecnico(esp) }}</span>
+      </div>
+
+      <div class="modal-especificaciones__grid">
+        <div class="ia-metrica">
+          <span>Archivo en almacenamiento</span>
+          <strong>{{ esp.archivo?.ruta || nombreArchivoCorto(esp) }}</strong>
+        </div>
+        <div class="ia-metrica">
+          <span>Formato y dimensiones</span>
+          <strong>{{ dimensionMarco(esp) }} · {{ etiquetaFormatoTecnico(esp) }}</strong>
+        </div>
+        <div class="ia-metrica">
+          <span>Validación de marca</span>
+          <strong>{{ confianzaMarca(esp) }}% de confianza</strong>
+        </div>
+        <div class="ia-metrica">
+          <span>Estado operativo</span>
+          <strong>{{ esp.estado === 'bloqueada_saga' ? 'Bloqueada por SAGA' : esp.estado }}</strong>
+        </div>
+      </div>
+
+      <footer class="modal-especificaciones__pie">
+        @if (esp.estado !== 'bloqueada_saga') {
+          <div class="modal-especificaciones__acciones">
+            @if (esp.estado !== 'aprobada') {
+              <button
+                type="button"
+                class="boton-aprobar"
+                [disabled]="guardando()"
+                (click)="decidir(esp, 'aprobar')"
+              >
+                ✓ Aprobar pieza
+              </button>
+            }
+            @if (esp.estado !== 'rechazada') {
+              <button
+                type="button"
+                class="boton-rechazar"
+                [disabled]="guardando()"
+                (click)="decidir(esp, 'rechazar')"
+              >
+                ✕ Marcar como observada / rechazar
+              </button>
+            }
+          </div>
+        }
+        <button type="button" class="boton-secundario" (click)="cerrarEspecificaciones()">
+          Listo
+        </button>
+      </footer>
+    </div>
+  </div>
+}

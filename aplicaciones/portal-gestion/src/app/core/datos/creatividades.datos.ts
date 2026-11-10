@@ -56,7 +56,18 @@ export interface PiezaCreativaReal {
   versionNumero: number;
   archivo?: { ruta: string; mime: string; tamano: number };
   estado: EstadoPieza;
-  validacionesMarca?: { manualMarcaOk: boolean; detalles?: Record<string, unknown> };
+  estadoPrevio?: EstadoPieza;
+  bloqueoSaga?: {
+    sagaId: string;
+    campanaId: string;
+    bloqueadoAt: string;
+    expiraAt: string;
+  };
+  validacionesMarca?: {
+    manualMarcaOk: boolean;
+    detalles?: Record<string, unknown>;
+    validadoAt?: string;
+  };
   version: number;
   creadoEn: string;
   actualizadoEn: string;
@@ -214,7 +225,11 @@ export class CreatividadesDatos {
 
   async crearPieza(
     briefId: string,
-    cuerpo: { nombre: string; tipo: TipoPieza },
+    cuerpo: {
+      nombre: string;
+      tipo: TipoPieza;
+      archivo?: { ruta: string; mime: string; tamano: number };
+    },
   ): Promise<PiezaCreativaReal> {
     const claveIdempotencia = crypto.randomUUID();
     if (!this.offline.enLinea()) {
@@ -234,6 +249,7 @@ export class CreatividadesDatos {
         nombre: `${cuerpo.nombre} (en cola offline)`,
         tipo: cuerpo.tipo,
         versionNumero: 1,
+        archivo: cuerpo.archivo,
         estado: 'en_revision',
         version: 1,
         creadoEn: ahora,

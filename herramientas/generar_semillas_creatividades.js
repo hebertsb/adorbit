@@ -38,13 +38,19 @@ const briefs = [
 ];
 
 const piezas = [
-  // Brief 1: BMSC Spot Cuenta Joven
-  { n: 1, bf: 1, c: 1, nom: 'Master Spot TV 30s Cuenta Joven', tipo: 'video', v: 1, est: 'aprobada', prev: null,
-    arch: { ruta: 'piezas-creatividades/bmsc/spot-cuenta-joven-30s.mp4', mime: 'video/mp4', tamano: 45200000 },
+  // Brief 1: BMSC Spot Cuenta Joven (4 piezas con los 4 estados operativos del diseño)
+  { n: 1, bf: 1, c: 1, nom: 'Master Spot TV 30s Cuenta Joven', tipo: 'video', v: 4, est: 'bloqueada_saga', prev: 'aprobada',
+    arch: { ruta: 'piezas-creatividades/bmsc/spot_cuenta_joven_v4_final.mp4', mime: 'video/mp4', tamano: 45200000 },
+    valOk: true, bloq: { saga_id: sId(1), campana_id: cId(1) } },
+  { n: 2, bf: 1, c: 1, nom: 'Banner Display - Cuenta Joven BMSC', tipo: 'imagen', v: 3, est: 'aprobada', prev: null,
+    arch: { ruta: 'piezas-creatividades/bmsc/banner_cuenta_joven_300x250_v3.jpg', mime: 'image/jpeg', tamano: 145408 },
     valOk: true, bloq: null },
-  { n: 2, bf: 1, c: 1, nom: 'Cutdown 15s TikTok Tu Plata Tu Ritmo', tipo: 'video', v: 2, est: 'aprobada', prev: null,
-    arch: { ruta: 'piezas-creatividades/bmsc/tiktok-cuenta-joven-15s.mp4', mime: 'video/mp4', tamano: 18400000 },
+  { n: 41, bf: 1, c: 1, nom: 'Story Redes Sociales - Tu Plata Tu Ritmo', tipo: 'imagen', v: 2, est: 'en_revision', prev: null,
+    arch: { ruta: 'piezas-creatividades/bmsc/story_redes_tu_plata_v2.png', mime: 'image/png', tamano: 3240000 },
     valOk: true, bloq: null },
+  { n: 42, bf: 1, c: 1, nom: 'Valla Carretera 8x3m - Cobertura BMSC', tipo: 'copy', v: 1, est: 'rechazada', prev: null,
+    arch: { ruta: 'piezas-creatividades/bmsc/valla_8x3m_curvas_v1.pdf', mime: 'application/pdf', tamano: 18874368 },
+    valOk: false, bloq: null },
 
   // Brief 2: BMSC Key Visual Redes
   { n: 3, bf: 2, c: 1, nom: 'Post Feed 1080x1080 Beneficios Cuenta', tipo: 'imagen', v: 1, est: 'aprobada', prev: null,
@@ -332,6 +338,10 @@ const pzDocs = piezas.map(p => {
       validado_at: new Date("2026-01-25T11:00:00Z")
     },`;
 
+  const bloqStr = p.bloq
+    ? `{ saga_id: "${p.bloq.saga_id}", campana_id: "${p.bloq.campana_id}", bloqueado_at: new Date("2026-02-01T12:00:00Z"), expira_at: new Date("2028-12-31T23:59:59Z") }`
+    : 'null';
+
   return `  {
     id: "${pzId(p.n)}",
     brief_id: "${bfId(p.bf)}",
@@ -346,7 +356,7 @@ const pzDocs = piezas.map(p => {
     },
     estado: "${p.est}",
     estado_previo: ${p.prev ? `"${p.prev}"` : 'null'},
-    bloqueo_saga: ${p.bloq ? JSON.stringify(p.bloq) : 'null'},${valObj}
+    bloqueo_saga: ${bloqStr},${valObj}
     version: 1,
     creado_en: new Date("2026-01-20T10:00:00Z"),
     actualizado_en: new Date("2026-01-25T12:00:00Z")

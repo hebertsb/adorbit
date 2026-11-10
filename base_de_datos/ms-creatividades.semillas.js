@@ -393,11 +393,35 @@ dbc.piezas.insertMany([
     campana_id: "00000000-0000-0000-0000-00000000c001",
     nombre: "Master Spot TV 30s Cuenta Joven",
     tipo: "video",
-    version_numero: 1,
+    version_numero: 4,
     archivo: {
-      ruta: "piezas-creatividades/bmsc/spot-cuenta-joven-30s.mp4",
+      ruta: "piezas-creatividades/bmsc/spot_cuenta_joven_v4_final.mp4",
       mime: "video/mp4",
       tamano: 45200000
+    },
+    estado: "bloqueada_saga",
+    estado_previo: "aprobada",
+    bloqueo_saga: { saga_id: "00000000-0000-0000-0000-000000005a01", campana_id: "00000000-0000-0000-0000-00000000c001", bloqueado_at: new Date("2026-02-01T12:00:00Z"), expira_at: new Date("2028-12-31T23:59:59Z") },
+    validaciones_marca: {
+      manual_marca_ok: true,
+      detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001002",
+    brief_id: "00000000-0000-0000-0000-00000000bf01",
+    campana_id: "00000000-0000-0000-0000-00000000c001",
+    nombre: "Banner Display - Cuenta Joven BMSC",
+    tipo: "imagen",
+    version_numero: 3,
+    archivo: {
+      ruta: "piezas-creatividades/bmsc/banner_cuenta_joven_300x250_v3.jpg",
+      mime: "image/jpeg",
+      tamano: 145408
     },
     estado: "aprobada",
     estado_previo: null,
@@ -412,23 +436,47 @@ dbc.piezas.insertMany([
     actualizado_en: new Date("2026-01-25T12:00:00Z")
   },
   {
-    id: "00000000-0000-0000-0000-000000001002",
+    id: "00000000-0000-0000-0000-000000001041",
     brief_id: "00000000-0000-0000-0000-00000000bf01",
     campana_id: "00000000-0000-0000-0000-00000000c001",
-    nombre: "Cutdown 15s TikTok Tu Plata Tu Ritmo",
-    tipo: "video",
+    nombre: "Story Redes Sociales - Tu Plata Tu Ritmo",
+    tipo: "imagen",
     version_numero: 2,
     archivo: {
-      ruta: "piezas-creatividades/bmsc/tiktok-cuenta-joven-15s.mp4",
-      mime: "video/mp4",
-      tamano: 18400000
+      ruta: "piezas-creatividades/bmsc/story_redes_tu_plata_v2.png",
+      mime: "image/png",
+      tamano: 3240000
     },
-    estado: "aprobada",
+    estado: "en_revision",
     estado_previo: null,
     bloqueo_saga: null,
     validaciones_marca: {
       manual_marca_ok: true,
       detalles: { paleta_colores: "cumple", logo_zona_segura: "cumple", contraste: "optimo" },
+      validado_at: new Date("2026-01-25T11:00:00Z")
+    },
+    version: 1,
+    creado_en: new Date("2026-01-20T10:00:00Z"),
+    actualizado_en: new Date("2026-01-25T12:00:00Z")
+  },
+  {
+    id: "00000000-0000-0000-0000-000000001042",
+    brief_id: "00000000-0000-0000-0000-00000000bf01",
+    campana_id: "00000000-0000-0000-0000-00000000c001",
+    nombre: "Valla Carretera 8x3m - Cobertura BMSC",
+    tipo: "copy",
+    version_numero: 1,
+    archivo: {
+      ruta: "piezas-creatividades/bmsc/valla_8x3m_curvas_v1.pdf",
+      mime: "application/pdf",
+      tamano: 18874368
+    },
+    estado: "rechazada",
+    estado_previo: null,
+    bloqueo_saga: null,
+    validaciones_marca: {
+      manual_marca_ok: false,
+      detalles: { paleta_colores: "inconsistente", logo_zona_segura: "violada", tipografia: "no autorizada" },
       validado_at: new Date("2026-01-25T11:00:00Z")
     },
     version: 1,
