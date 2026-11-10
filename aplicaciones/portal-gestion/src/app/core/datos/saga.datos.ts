@@ -37,6 +37,10 @@ export class SagaDatos {
     }
 
     const pasoActual = d.estado as string;
+    const numeroPasoActual =
+      typeof d.paso_actual === 'number' && d.paso_actual > 0
+        ? d.paso_actual
+        : this.ordenDePaso(pasoActual);
 
     const pasosDefinicion: { orden: number; servicio: string; titulo: string; pasoClave: string }[] = [
       { orden: 1, servicio: 'ms-campanas', titulo: 'Reservar presupuesto', pasoClave: 'reservando_presupuesto' },
@@ -54,19 +58,22 @@ export class SagaDatos {
         estadoPaso = 'completado';
         detalle = 'Paso verificado y confirmado exitosamente.';
       } else if (resultado === 'rechazada') {
-        if (def.pasoClave === pasoActual || pasoActual === 'compensando') {
+        if (def.orden === numeroPasoActual) {
           estadoPaso = 'fallido';
-          detalle = d.motivo_fallo || 'Rechazo o compensación aplicada en este paso.';
-        } else {
+          detalle = d.motivo_fallo || 'Rechazo o fallo registrado en este paso.';
+        } else if (def.orden < numeroPasoActual) {
           estadoPaso = 'compensado';
           detalle = 'Operación revertida por compensación SAGA.';
+        } else {
+          estadoPaso = 'omitido';
+          detalle = 'Omitido tras la compensación de la transacción.';
         }
       } else {
         // En progreso
-        if (def.pasoClave === pasoActual) {
+        if (def.orden === numeroPasoActual) {
           estadoPaso = 'en_curso';
           detalle = 'Ejecutando y esperando confirmación del participante…';
-        } else if (this.ordenDePaso(def.pasoClave) < this.ordenDePaso(pasoActual)) {
+        } else if (def.orden < numeroPasoActual) {
           estadoPaso = 'completado';
           detalle = 'Confirmado exitosamente.';
         } else {

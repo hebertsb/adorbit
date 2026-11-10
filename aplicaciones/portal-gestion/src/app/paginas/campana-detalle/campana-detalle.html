@@ -157,6 +157,8 @@
           >
             @if (imagenPersonalizada(pieza); as imgUrl) {
               <img class="pieza__imagen-real" [src]="imgUrl" [alt]="pieza.titulo" />
+            } @else if (videoPersonalizado(pieza); as vidUrl) {
+              <video class="pieza__imagen-real" [src]="vidUrl" muted playsinline preload="metadata"></video>
             } @else {
               @if (pieza.degradado === 'video') {
                 <span class="pieza__play-icono">▶</span>
@@ -223,6 +225,8 @@
         <div class="modal-pieza__lienzo" [style.background]="degradadoPieza[vp.degradado]">
           @if (imagenPersonalizada(vp); as imgUrl) {
             <img class="modal-pieza__img" [src]="imgUrl" [alt]="vp.titulo" />
+          } @else if (videoPersonalizado(vp); as vidUrl) {
+            <video class="modal-pieza__img" [src]="vidUrl" controls playsinline></video>
           } @else {
             <div class="modal-pieza__arte">
               @if (vp.degradado === 'video') {

@@ -492,6 +492,14 @@
               >
                 @if (imagenPersonalizada(pieza.id); as imgUrl) {
                   <img class="pieza__imagen-real" [src]="imgUrl" [alt]="pieza.nombre" />
+                } @else if (videoPersonalizado(pieza.id); as vidUrl) {
+                  <video
+                    class="pieza__imagen-real"
+                    [src]="vidUrl"
+                    muted
+                    playsinline
+                    preload="metadata"
+                  ></video>
                 } @else {
                   <!-- Arte visual representativo según el formato cuando no hay imagen subida -->
                   @switch (subtipoVisual(pieza)) {
@@ -722,6 +730,13 @@
             [src]="imgUrl"
             [alt]="esp.nombre"
           />
+        } @else if (videoPersonalizado(esp.id); as vidUrl) {
+          <video
+            class="pieza__imagen-real pieza__imagen-real--modal"
+            [src]="vidUrl"
+            controls
+            playsinline
+          ></video>
         } @else {
           <div class="pieza__marco-banner">
             <strong>{{ dimensionMarco(esp) }}</strong>

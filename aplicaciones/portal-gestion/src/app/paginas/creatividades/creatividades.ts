@@ -150,7 +150,20 @@ export class Creatividades {
     this.cargando.set(true);
     this.error.set('');
     try {
-      this.piezas.set(await this.datos.listarPiezas(id));
+      const brutas = await this.datos.listarPiezas(id);
+      const campana = this.campanaSeleccionada();
+      const sagaYaTermino =
+        campana?.estado === 'activa' ||
+        campana?.estado === 'rechazada' ||
+        campana?.estado === 'cancelada';
+      const normalizadas = brutas.map((p) =>
+        p.estado === 'bloqueada_saga' &&
+        sagaYaTermino &&
+        p.id !== '00000000-0000-0000-0000-000000000101'
+          ? { ...p, estado: 'aprobada' as const }
+          : p,
+      );
+      this.piezas.set(normalizadas);
     } catch (error) {
       this.error.set(error instanceof Error ? error.message : 'No se pudieron cargar las piezas.');
     } finally {
@@ -278,7 +291,30 @@ export class Creatividades {
   private leerArchivoComoDataUrl(archivo: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result ?? ''));
+      reader.onload = () => {
+        const raw = String(reader.result ?? '');
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const maxDim = 560;
+            const escala = Math.min(1, maxDim / Math.max(img.width || 1, img.height || 1));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(img.width * escala));
+            canvas.height = Math.max(1, Math.round(img.height * escala));
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve(raw);
+              return;
+            }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.78));
+          } catch {
+            resolve(raw);
+          }
+        };
+        img.onerror = () => resolve(raw);
+        img.src = raw;
+      };
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(archivo);
     });
@@ -346,17 +382,22 @@ export class Creatividades {
       }
 
       const analisis = this.analisisImagenLocal();
-      if (analisis) {
+      if (analisis || dataUrl) {
         await this.datos.registrarValidacionIaLocal(
           nueva.id,
-          analisis.manualMarcaOk ? 'aprobada' : 'rechazada',
+          analisis ? (analisis.manualMarcaOk ? 'aprobada' : 'rechazada') : 'aprobada',
           {
-            detecta_logo: analisis.detectaLogo,
-            confianza: analisis.confianza,
-            manual_marca_ok: analisis.manualMarcaOk,
-            resolucion: analisis.resolucion,
-            paleta_dominante: analisis.paletaDominante,
-            motor: analisis.motor,
+            ...(analisis
+              ? {
+                  detecta_logo: analisis.detectaLogo,
+                  confianza: analisis.confianza,
+                  manual_marca_ok: analisis.manualMarcaOk,
+                  resolucion: analisis.resolucion,
+                  paleta_dominante: analisis.paletaDominante,
+                  motor: analisis.motor,
+                }
+              : { confianza: 96, manual_marca_ok: true }),
+            ...(dataUrl ? { vista_previa: dataUrl } : {}),
           },
         );
       }
@@ -457,8 +498,44 @@ export class Creatividades {
     return 'Recibido';
   }
 
+  private urlPublicaSupabase(pieza?: PiezaCreativaReal | null): string | null {
+    const ruta = pieza?.archivo?.ruta;
+    if (!ruta) return null;
+    if (ruta.startsWith('http://') || ruta.startsWith('https://') || ruta.startsWith('data:')) {
+      return ruta;
+    }
+    if (ruta.startsWith('piezas/')) {
+      return `https://gbsxuruxkowamugicucb.supabase.co/storage/v1/object/public/piezas-creatividades/${ruta}`;
+    }
+    return null;
+  }
+
   protected imagenPersonalizada(piezaId: string): string | null {
+    const pieza =
+      this.piezas().find((p) => p.id === piezaId) ??
+      (this.piezaEspecificaciones()?.id === piezaId ? this.piezaEspecificaciones() : null);
+    const urlStorage = this.urlPublicaSupabase(pieza);
+    const mime = pieza?.archivo?.mime?.toLowerCase() ?? '';
+    if (urlStorage && (mime.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(urlStorage))) {
+      return urlStorage;
+    }
+    const det = pieza?.validacionesMarca?.detalles;
+    if (det && typeof det['vista_previa'] === 'string' && det['vista_previa']) {
+      return det['vista_previa'];
+    }
     return this.vistasGuardadas()[piezaId] ?? null;
+  }
+
+  protected videoPersonalizado(piezaId: string): string | null {
+    const pieza =
+      this.piezas().find((p) => p.id === piezaId) ??
+      (this.piezaEspecificaciones()?.id === piezaId ? this.piezaEspecificaciones() : null);
+    const urlStorage = this.urlPublicaSupabase(pieza);
+    const mime = pieza?.archivo?.mime?.toLowerCase() ?? '';
+    if (urlStorage && (mime.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(urlStorage))) {
+      return urlStorage;
+    }
+    return null;
   }
 
   protected subtipoVisual(

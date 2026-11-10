@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SagaDatos } from '../../core/datos/saga.datos';
+import { CampanasDatos } from '../../core/datos/campanas.datos';
 import { EstadoPasoSaga, EstadoSaga } from '../../core/datos/saga.modelo';
 
 @Component({
@@ -12,6 +13,7 @@ import { EstadoPasoSaga, EstadoSaga } from '../../core/datos/saga.modelo';
 export class SagaEstado implements OnInit, OnDestroy {
   private readonly ruta = inject(ActivatedRoute);
   private readonly sagaDatos = inject(SagaDatos);
+  private readonly campanasDatos = inject(CampanasDatos);
 
   private readonly idSaga = this.ruta.snapshot.paramMap.get('id') ?? '';
   private intervaloPolling: any = null;
@@ -55,6 +57,9 @@ export class SagaEstado implements OnInit, OnDestroy {
       const datos = await this.sagaDatos.consultarSaga(this.idSaga);
       this.sagaReal.set(datos);
       this.error.set('');
+      if (datos.resultado !== 'en_progreso') {
+        void this.campanasDatos.sincronizarConBackend();
+      }
     } catch (error) {
       this.sagaReal.set(null);
       this.error.set(error instanceof Error ? error.message : 'No se pudo consultar la SAGA');

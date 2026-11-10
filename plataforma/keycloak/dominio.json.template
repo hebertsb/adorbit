@@ -206,7 +206,8 @@
         "pkce.code.challenge.method": "S256",
         "access.token.lifespan": "1800"
       },
-      "defaultClientScopes": ["acr", "profile", "roles", "basic", "email", "offline_access", "adorbit-audiencias"]
+      "defaultClientScopes": ["acr", "profile", "roles", "basic", "email", "adorbit-audiencias"],
+      "optionalClientScopes": ["offline_access"]
     },
     {
       "clientId": "portal-cliente",

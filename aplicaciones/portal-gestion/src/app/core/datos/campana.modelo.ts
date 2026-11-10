@@ -49,6 +49,7 @@ export interface PiezaCreatividad {
   id?: string;
   titulo: string;
   nombreArchivo: string;
+  urlArchivo?: string;
   formato: string;
   overlay: string;
   degradado: DegradadoPieza;

@@ -105,19 +105,23 @@ export class CampanasDatos {
       if (Array.isArray(resultado.data?.campanas)) {
         for (const c of resultado.data.campanas) {
           this.piezasPorCampana[c.id] = c.piezas.map((p: any) => ({
+            id: p.id,
             titulo: p.titulo,
-            nombreArchivo: p.urlArchivo || '',
+            nombreArchivo: p.urlArchivo ? p.urlArchivo.split('/').pop() : '',
+            urlArchivo: p.urlArchivo || '',
             formato: p.tipoMedio,
-            overlay: '',
+            overlay: `v${p.version}`,
             degradado: p.tipoMedio === 'video' ? 'video' : 'banner',
             version: p.version,
             estado:
               p.estado === 'en_revision'
                 ? 'pendiente'
                 : p.estado === 'bloqueada_saga'
-                  ? 'bloqueada'
+                  ? c.estado === 'activa' && p.id !== '00000000-0000-0000-0000-000000000101'
+                    ? 'aprobada'
+                    : 'bloqueada'
                   : p.estado,
-            confianzaMarca: 0,
+            confianzaMarca: 98,
           }));
         }
         const mapeadas: Campana[] = resultado.data.campanas.map((c: any, index: number) => ({
@@ -239,7 +243,13 @@ export class CampanasDatos {
                 ? 'historia'
                 : (MAPA_DEGRADADO_TIPO[p.tipoMedio as string] ?? 'banner');
         const nombreArchivo = p.urlArchivo ? p.urlArchivo.split('/').pop() : `${p.id}.bin`;
-        const estadoMapeado = MAPA_ESTADO_PIEZA_GQL[p.estado as string] ?? 'pendiente';
+        const estadoBruto = MAPA_ESTADO_PIEZA_GQL[p.estado as string] ?? 'pendiente';
+        const estadoMapeado: PiezaCreatividad['estado'] =
+          estadoBruto === 'bloqueada' &&
+          c.estado === 'activa' &&
+          p.id !== '00000000-0000-0000-0000-000000000101'
+            ? 'aprobada'
+            : estadoBruto;
         const confianzaMarca =
           estadoMapeado === 'rechazada'
             ? 61
@@ -252,6 +262,7 @@ export class CampanasDatos {
           id: p.id,
           titulo: p.titulo,
           nombreArchivo: nombreArchivo || p.id,
+          urlArchivo: p.urlArchivo || '',
           formato: (p.tipoMedio as string)?.toUpperCase() || 'ARCHIVO',
           overlay: `v${p.version}`,
           degradado,

@@ -3,7 +3,7 @@
 }
 @if (saga(); as estadoSaga) {
   <div class="barra-superior">
-    <a [routerLink]="['/campanas', estadoSaga.idCampana]" class="volver">← Volver a la campaña</a>
+    <a [routerLink]="['/campanas', estadoSaga.idCampana]" [replaceUrl]="true" class="volver">← Volver a la campaña</a>
     <span class="estado-global estado-global--{{ estadoSaga.resultado }}">
       @switch (estadoSaga.resultado) {
         @case ('en_progreso') { En progreso }

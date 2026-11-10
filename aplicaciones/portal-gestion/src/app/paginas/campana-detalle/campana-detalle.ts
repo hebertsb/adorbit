@@ -139,14 +139,9 @@ export class CampanaDetalle implements OnInit {
     return Math.max(0, Math.ceil(diferenciaMs / (1000 * 60 * 60 * 24)));
   });
 
-  // "Volver" usa el historial real del navegador (de dónde vino el usuario: dashboard,
-  // creatividades, lista de campañas...) en vez de forzar siempre /campanas.
+  // Navega siempre al listado de campañas para evitar bucles de historial con la pantalla de SAGA.
   volver(): void {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      this.ubicacion.back();
-    } else {
-      void this.router.navigateByUrl('/campanas');
-    }
+    void this.router.navigate(['/campanas']);
   }
 
   private formatearFecha(fechaIso: string): string {
@@ -179,9 +174,32 @@ export class CampanaDetalle implements OnInit {
     }
   }
 
+  private urlPublicaStorage(ruta?: string): string | null {
+    if (!ruta) return null;
+    if (ruta.startsWith('http://') || ruta.startsWith('https://') || ruta.startsWith('data:')) {
+      return ruta;
+    }
+    if (ruta.startsWith('piezas/')) {
+      return `https://gbsxuruxkowamugicucb.supabase.co/storage/v1/object/public/piezas-creatividades/${ruta}`;
+    }
+    return null;
+  }
+
   protected imagenPersonalizada(pieza: PiezaCreatividad): string | null {
+    const urlStorage = this.urlPublicaStorage(pieza.urlArchivo);
+    if (urlStorage && /\.(png|jpe?g|webp|gif|svg)$/i.test(urlStorage)) {
+      return urlStorage;
+    }
     if (!pieza.id) return null;
     return this.vistasGuardadas()[pieza.id] ?? null;
+  }
+
+  protected videoPersonalizado(pieza: PiezaCreatividad): string | null {
+    const urlStorage = this.urlPublicaStorage(pieza.urlArchivo);
+    if (urlStorage && /\.(mp4|webm|mov)$/i.test(urlStorage)) {
+      return urlStorage;
+    }
+    return null;
   }
 
   protected abrirVistaPrevia(pieza: PiezaCreatividad): void {
@@ -232,7 +250,7 @@ export class CampanaDetalle implements OnInit {
     this.errorContratacion.set('');
     try {
       const res = await this.campanasDatos.contratarCampana(this.idCampana);
-      await this.router.navigate(['/sagas', res.sagaId]);
+      await this.router.navigate(['/sagas', res.sagaId], { replaceUrl: true });
     } catch (error) {
       this.errorContratacion.set(error instanceof Error ? error.message : 'No se pudo iniciar la contratación');
     } finally {
