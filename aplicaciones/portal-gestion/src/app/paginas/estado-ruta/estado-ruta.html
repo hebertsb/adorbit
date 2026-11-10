@@ -10,6 +10,10 @@
           : 'La dirección solicitada no existe o fue modificada.'
       }}
     </p>
-    <a [routerLink]="rutaInicio">Volver al inicio</a>
+    @if (tieneAlgunaVista) {
+      <a [routerLink]="rutaInicio">Volver al inicio</a>
+    } @else {
+      <button type="button" (click)="cerrarSesion()">Cerrar sesión e ir al inicio de sesión</button>
+    }
   </div>
 </section>

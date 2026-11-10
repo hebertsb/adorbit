@@ -140,7 +140,11 @@ export class CampanaDetalle implements OnInit {
   // "Volver" usa el historial real del navegador (de dónde vino el usuario: dashboard,
   // creatividades, lista de campañas...) en vez de forzar siempre /campanas.
   volver(): void {
-    this.ubicacion.back();
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      this.ubicacion.back();
+    } else {
+      void this.router.navigateByUrl('/campanas');
+    }
   }
 
   private formatearFecha(fechaIso: string): string {

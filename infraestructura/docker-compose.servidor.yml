@@ -18,7 +18,8 @@ services:
       KC_HOSTNAME_URL: http://4.151.177.116
       KC_HOSTNAME_STRICT: "false"
       KC_HOSTNAME_STRICT_HTTPS: "false"
-      KC_PROXY: "edge"
+      KC_PROXY: "passthrough"
+      KC_HTTP_ENABLED: "true"
     networks:
       - adorbit-red
 
@@ -33,7 +34,7 @@ services:
       PORT: "8083"
       ADORBIT_CREATIVIDADES_URL_BD: ${CREATIVIDADES_URL_BD}
       ADORBIT_CREATIVIDADES_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
-      ADORBIT_CREATIVIDADES_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_CREATIVIDADES_EMISOR: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
       ADORBIT_CREATIVIDADES_AUDIENCIA: ms-creatividades
       ADORBIT_CREATIVIDADES_RABBITMQ_URL: ${RABBITMQ_URL}
       ADORBIT_CREATIVIDADES_SUPABASE_URL: ${CREATIVIDADES_SUPABASE_URL}
@@ -56,11 +57,12 @@ services:
       ADORBIT_IA_URL_BD: ${IA_URL_BD}
       ADORBIT_IA_URL_BD_LECTOR_MCP: ${IA_URL_BD_LECTOR_MCP}
       ADORBIT_IA_JWKS_URI: http://keycloak:8080/realms/adorbit/protocol/openid-connect/certs
-      ADORBIT_IA_EMISOR: http://100.99.124.109:8180/realms/adorbit
+      ADORBIT_IA_EMISOR: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
       ADORBIT_IA_AUDIENCIA: ms-ia
       ADORBIT_IA_RABBITMQ_URL: ${RABBITMQ_URL}
       ADORBIT_IA_GROQ_API_KEY: ${IA_GROQ_API_KEY}
       ADORBIT_IA_GROQ_MODELO: ${IA_GROQ_MODELO:-openai/gpt-oss-120b}
+      ADORBIT_PUBLIC_URL: ${ADORBIT_PUBLIC_URL:-http://4.151.177.116}
       ADORBIT_N8N_WEBHOOK_URL: http://n8n:5678/webhook/notificacion-multicanal
       ADORBIT_N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-token-webhook-local}
       ADORBIT_WHATSAPP_NUMERO_GERENCIA: ${ADORBIT_WHATSAPP_NUMERO_GERENCIA:-+59169215158}
@@ -74,6 +76,8 @@ services:
     image: axllent/mailpit:v1.29.0
     container_name: adorbit-mailpit
     restart: unless-stopped
+    environment:
+      MP_WEBROOT: /mailpit/
     ports:
       - "8025:8025"
       - "1025:1025"
@@ -97,6 +101,7 @@ services:
       GENERIC_TIMEZONE: America/La_Paz
       TZ: America/La_Paz
       ADORBIT_N8N_WEBHOOK_TOKEN: ${N8N_WEBHOOK_TOKEN:-token-webhook-local}
+      ADORBIT_PUBLIC_URL: ${ADORBIT_PUBLIC_URL:-http://4.151.177.116}
       ADORBIT_CORREO_REMITENTE: "AdOrbit <no-responder@adorbit.local>"
       ADORBIT_CORREO_GERENCIA: ${ADORBIT_CORREO_GERENCIA:-hebertsuarezb@gmail.com}
       ADORBIT_WHATSAPP_NUMERO_GERENCIA: ${ADORBIT_WHATSAPP_NUMERO_GERENCIA:-+59169215158}

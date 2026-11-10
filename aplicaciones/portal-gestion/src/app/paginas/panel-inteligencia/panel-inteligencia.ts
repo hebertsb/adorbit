@@ -75,7 +75,7 @@ export class PanelInteligencia implements AfterViewInit, OnDestroy {
 
   private validarUrl(valor: string): URL {
     const url = new URL(valor, window.location.href);
-    const local = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    const local = ['localhost', '127.0.0.1', '[::1]', window.location.hostname].includes(url.hostname);
     if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local)) {
       throw new Error('Se requiere HTTPS fuera del equipo local');
     }

@@ -6,6 +6,7 @@ escritura ademas de /reportes, mismo patron de Idempotency-Key + transaccion uni
 
 from __future__ import annotations
 
+import os
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -16,6 +17,7 @@ from ..adapters.postgres.agente_repo import AgenteRepositorioPg, EjecucionAgente
 from ..adapters.postgres.auditoria_mcp_repo import AuditoriaMcpRepositorioPg
 from ..adapters.postgres.conexion import obtener_pool_principal
 from ..adapters.postgres.outbox_repo import OutboxEventosRepositorioPg
+from ..adapters.postgres.vision_resultado_repo import VisionResultadoRepositorioPg
 from ..adapters.postgres.vista_mcp_repo import VistaMcpRepositorioPg
 from ..adapters.seguridad.verificar_jwt import IdentidadAutenticada, exigir_rol, verificar_jwt
 from ..domain.agente import Agente, EjecucionAgente
@@ -30,8 +32,59 @@ _ROLES_AGENTES = {"ejecutivo", "gerente"}
 _agentes_repo = AgenteRepositorioPg()
 _ejecuciones_repo = EjecucionAgenteRepositorioPg()
 _outbox_repo = OutboxEventosRepositorioPg()
+_vision_repo = VisionResultadoRepositorioPg()
 _consultas = ConsultasMcp(VistaMcpRepositorioPg(), EjecutorHerramientaMcp(AuditoriaMcpRepositorioPg()))
-_ejecutar_agente = EjecutarAgente(_agentes_repo, _ejecuciones_repo, _consultas, _outbox_repo)
+_ejecutar_agente = EjecutarAgente(_agentes_repo, _ejecuciones_repo, _consultas, _outbox_repo, _vision_repo)
+
+_NOMBRES_AGENTES = {
+    "monitor_campanas": "Monitor de Campañas",
+    "cobranza": "Agente de Cobranza",
+    "agente_vision": "Agente de Visión (DL)",
+    "consultor_ejecutivo_nl": "Consultor Ejecutivo IA (MCP)",
+}
+
+
+def _construir_datos_notificacion(agente_nombre: str, ejecucion: EjecucionAgente) -> tuple[str, str, dict[str, Any]]:
+    salida = ejecucion.salida or {}
+    nombre_amigable = _NOMBRES_AGENTES.get(agente_nombre, agente_nombre.replace("_", " ").title())
+    resumen = str(salida.get("resumen_texto") or "Ejecución completada correctamente.")
+
+    if agente_nombre == "monitor_campanas":
+        tipo_alerta = "alerta_campana"
+        metricas = (
+            f"{salida.get('campanas_revisadas', 0)} campañas auditadas · "
+            f"{len(salida.get('alertas_generadas') or [])} alertas generadas"
+        )
+    elif agente_nombre == "cobranza":
+        tipo_alerta = "cobranza"
+        metricas = (
+            f"{salida.get('total_vencidas', 0)} vencidas · "
+            f"{salida.get('total_por_vencer', 0)} por vencer · "
+            f"{salida.get('total_morosos', 0)} en mora"
+        )
+    elif agente_nombre == "agente_vision":
+        tipo_alerta = "auditoria_vision"
+        metricas = (
+            f"{salida.get('piezas_auditadas', 0)} piezas · "
+            f"{salida.get('conformes_marca', 0)} conformes · "
+            f"Confianza {salida.get('confianza_promedio_pct', 0)}%"
+        )
+    else:
+        tipo_alerta = "analisis_ia"
+        metricas = (
+            f"{salida.get('campanas_totales', 0)} campañas · "
+            f"Ejecución {salida.get('ejecucion_global_pct', 0)}% · "
+            f"{salida.get('facturas_pendientes_30d', 0)} facturas pendientes"
+        )
+
+    datos = {
+        "agente": nombre_amigable,
+        "estado": "Completada" if ejecucion.estado == "exitosa" else ejecucion.estado,
+        "resumen": resumen,
+        "metricas_clave": metricas,
+        "referencia": f"EJ-{str(ejecucion.id)[:8].upper()}",
+    }
+    return tipo_alerta, nombre_amigable, datos
 
 
 def _agente_a_dict(agente: Agente) -> dict[str, Any]:
@@ -90,18 +143,16 @@ async def ejecutar_agente(
             conexion=conexion,
         )
 
-    tipo_alerta = "alerta_campana" if "presupuesto" in str(ejecucion.salida or "").lower() else "cobranza"
+    agente = await _agentes_repo.buscar(id_agente)
+    agente_nombre = agente.nombre if agente else "agente"
+    tipo_alerta, nombre_amigable, datos_notif = _construir_datos_notificacion(agente_nombre, ejecucion)
+    url_publica = os.getenv("ADORBIT_PUBLIC_URL", "http://4.151.177.116").rstrip("/")
     background_tasks.add_task(
         notificar_evento_multicanal,
         tipo=tipo_alerta,
-        titulo=f"Ejecución de Agente Autónomo ({disparador}): {ejecucion.estado.upper()}",
-        datos={
-            "ejecucion_id": str(ejecucion.id),
-            "agente_id": str(ejecucion.agente_id),
-            "estado": ejecucion.estado,
-            "hallazgos": str(ejecucion.salida)[:200] if ejecucion.salida else "Sin hallazgos críticos",
-        },
-        enlace_accion="http://localhost:4200/dashboard",
+        titulo=f"{nombre_amigable}: reporte completado",
+        datos=datos_notif,
+        enlace_accion=f"{url_publica}/dashboard",
     )
 
     return _ejecucion_a_dict(ejecucion)

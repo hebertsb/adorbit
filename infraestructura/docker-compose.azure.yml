@@ -17,7 +17,7 @@ services:
       ADORBIT_CAMPANAS_CONTRASENA_BD: ${CAMPANAS_CONTRASENA_BD}
       ADORBIT_CAMPANAS_URL_RABBITMQ: ${RABBITMQ_URL}
       ADORBIT_CAMPANAS_CONSUMIDOR_ACTIVO: "true"
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${EMISOR_JWT:-http://100.99.124.109:8180/realms/adorbit}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ${ADORBIT_CAMPANAS_JWKS_URI:-http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs}
       ADORBIT_CAMPANAS_AUDIENCIA_JWT: ms-campanas
     networks:
@@ -37,14 +37,25 @@ services:
       URL_MS_FACTURACION: ${URL_MS_FACTURACION:-https://warrior-doctrine-with-achieved.trycloudflare.com}
       URL_MS_CREATIVIDADES: ${URL_MS_CREATIVIDADES:-http://100.99.124.109:8083}
       URL_MS_IA: ${URL_MS_IA:-http://100.99.124.109:8085}
-      EMISOR_JWT: ${EMISOR_JWT:-http://100.99.124.109:8180/realms/adorbit}
-      ADORBIT_PASARELA_EMISOR: ${ADORBIT_PASARELA_EMISOR:-http://100.99.124.109:8180/realms/adorbit}
+      EMISOR_JWT: ${EMISOR_JWT:-http://4.151.177.116/realms/adorbit}
+      ADORBIT_PASARELA_EMISOR: ${ADORBIT_PASARELA_EMISOR:-http://4.151.177.116/realms/adorbit}
       ADORBIT_PASARELA_JWKS_URI: ${ADORBIT_PASARELA_JWKS_URI:-http://100.99.124.109:8180/realms/adorbit/protocol/openid-connect/certs}
       AUDIENCIA_JWT: pasarela
+      KEYCLOAK_ADMIN_BASE_URL: ${KEYCLOAK_ADMIN_BASE_URL:-http://100.99.124.109:8180}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
       ADORBIT_ULTRAMSG_INSTANCE: ${ADORBIT_ULTRAMSG_INSTANCE}
       ADORBIT_ULTRAMSG_TOKEN: ${ADORBIT_ULTRAMSG_TOKEN}
     depends_on:
       - ms-campanas
+    networks:
+      - adorbit-azure-red
+
+  panel-inteligencia:
+    build:
+      context: ../aplicaciones/panel-inteligencia
+    container_name: adorbit-panel-inteligencia
+    restart: unless-stopped
     networks:
       - adorbit-azure-red
 
@@ -57,6 +68,7 @@ services:
       - "80:8080"
     depends_on:
       - pasarela
+      - panel-inteligencia
     networks:
       - adorbit-azure-red
 

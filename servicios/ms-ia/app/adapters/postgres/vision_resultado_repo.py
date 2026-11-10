@@ -51,3 +51,22 @@ class VisionResultadoRepositorioPg:
             resultado.duracion_ms,
         )
         resultado.creado_en = creado_en
+
+    async def listar_recientes(self, limite: int = 20) -> list[VisionResultado]:
+        pool = await obtener_pool_principal()
+        filas = await pool.fetch(
+            "SELECT * FROM vision_resultados ORDER BY creado_en DESC LIMIT $1",
+            limite,
+        )
+        salida: list[VisionResultado] = []
+        for fila in filas:
+            datos = dict(fila)
+            datos["objetos_detectados"] = (
+                json.loads(datos["objetos_detectados"]) if datos["objetos_detectados"] else []
+            )
+            datos["salida_cruda"] = (
+                json.loads(datos["salida_cruda"]) if datos["salida_cruda"] else {}
+            )
+            datos["confianza"] = float(datos["confianza"]) if datos["confianza"] is not None else None
+            salida.append(VisionResultado(**datos))
+        return salida

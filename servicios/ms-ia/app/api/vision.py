@@ -5,6 +5,7 @@ use_cases/analizar_vision.py."""
 
 from __future__ import annotations
 
+import os
 from typing import Annotated, Any
 from uuid import UUID
 
@@ -85,7 +86,7 @@ async def analizar(
             "objetos": ", ".join(resultado.objetos_detectados[:4]) if resultado.objetos_detectados else "Ninguno",
             "duración": f"{resultado.duracion_ms} ms",
         },
-        enlace_accion="http://localhost:4200/creatividades",
+        enlace_accion=f"{os.getenv('ADORBIT_PUBLIC_URL', 'http://4.151.177.116').rstrip('/')}/creatividades",
     )
 
     return _a_dict(resultado)

@@ -29,7 +29,7 @@ async def notificar_evento_multicanal(
         "destinatario_whatsapp": destinatario_whatsapp or os.getenv("ADORBIT_WHATSAPP_NUMERO_GERENCIA", "+59170000000"),
         "destinatario_email": destinatario_email or os.getenv("ADORBIT_CORREO_GERENCIA", "gerencia@adorbit.local"),
         "datos": datos or {},
-        "enlace_accion": enlace_accion or "http://localhost:4200",
+        "enlace_accion": enlace_accion or os.getenv("ADORBIT_PUBLIC_URL", "http://4.151.177.116").rstrip("/"),
     }
     headers = {
         "Content-Type": "application/json",

@@ -1,8 +1,10 @@
 import { Router, type Response as ExpressResponse } from "express";
 import type { PeticionAutenticada } from "./autenticacion";
 
-const BASE = process.env.KEYCLOAK_ADMIN_BASE_URL ?? "http://keycloak:8080";
+const BASE = process.env.KEYCLOAK_ADMIN_BASE_URL ?? "http://100.99.124.109:8180";
 const REALM = process.env.KEYCLOAK_ADMIN_REALM ?? "adorbit";
+const ADMIN_USER = process.env.KEYCLOAK_ADMIN ?? "admin";
+const ADMIN_PASS = process.env.KEYCLOAK_ADMIN_PASSWORD ?? "admin";
 const CLIENTE = process.env.KEYCLOAK_ADMIN_CLIENT_ID ?? "pasarela-admin";
 const SECRETO = process.env.KEYCLOAK_ADMIN_CLIENT_SECRET ?? "";
 const ROLES_ADORBIT = ["ejecutivo", "creativo", "cliente", "gerente"];
@@ -27,12 +29,37 @@ function exigirGerencia(req: PeticionAutenticada, res: ExpressResponse): boolean
 }
 
 async function tokenAdministrativo(): Promise<string> {
-  if (!SECRETO) throw new Error("KEYCLOAK_ADMIN_CLIENT_SECRET no configurado");
+  // Primero intentamos con credenciales master admin-cli (garantizado para todas las operaciones de realm)
+  try {
+    const cuerpoMaster = new URLSearchParams({
+      grant_type: "password",
+      client_id: "admin-cli",
+      username: ADMIN_USER,
+      password: ADMIN_PASS,
+    });
+    const resMaster = await fetch(`${BASE}/realms/master/protocol/openid-connect/token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: cuerpoMaster,
+    });
+    if (resMaster.ok) {
+      const datos = (await resMaster.json()) as { access_token: string };
+      return datos.access_token;
+    }
+  } catch {
+    // Fallback a client credentials si estuviera configurado
+  }
+
+  if (!SECRETO) throw new Error("Credenciales de Keycloak Admin no configuradas");
   const cuerpo = new URLSearchParams({
-    grant_type: "client_credentials", client_id: CLIENTE, client_secret: SECRETO,
+    grant_type: "client_credentials",
+    client_id: CLIENTE,
+    client_secret: SECRETO,
   });
   const respuesta = await fetch(`${BASE}/realms/${REALM}/protocol/openid-connect/token`, {
-    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: cuerpo,
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: cuerpo,
   });
   if (!respuesta.ok) throw new Error(`Keycloak no emitió token administrativo (${respuesta.status})`);
   return ((await respuesta.json()) as { access_token: string }).access_token;

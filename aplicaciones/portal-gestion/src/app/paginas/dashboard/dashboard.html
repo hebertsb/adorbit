@@ -121,26 +121,65 @@
             <div class="agente__cabecera">
               <div>
                 <span class="agente__badge">Agente de IA</span>
-                <h3 class="agente__nombre">{{ agente.nombre === 'monitor_campanas' ? 'Monitor de Campañas' : 'Agente de Cobranza' }}</h3>
+                <h3 class="agente__nombre">{{ nombreAgente(agente.nombre) }}</h3>
               </div>
               <ao-boton
                 variante="secundario"
                 [deshabilitado]="ejecutandoAgente() === agente.id"
-                (click)="ejecutarAgente(agente.id)">
+                (click)="ejecutarAgente(agente)">
                 {{ ejecutandoAgente() === agente.id ? 'Ejecutando…' : 'Ejecutar agente' }}
               </ao-boton>
             </div>
             <p class="agente__mision">{{ agente.mision }}</p>
+            @if (errorAgente()[agente.id]; as errMsg) {
+              <div class="agente__resultado agente__resultado--error" role="alert">
+                <strong>No se pudo completar la ejecución</strong>
+                <p class="agente__resumen">{{ errMsg }}</p>
+              </div>
+            }
             @if (resultadoAgente()[agente.id]; as res) {
+              @let reporte = miniReporte(agente.nombre, res);
               <div class="agente__resultado" [class.agente__resultado--ok]="res.estado === 'exitosa'">
-                <strong>Estado: {{ res.estado }}</strong>
-                <pre class="agente__salida">{{ formatearSalida(res.salida) }}</pre>
+                <div class="agente__resultado-cabecera">
+                  <span class="agente__estado-pill">{{ res.estado === 'exitosa' ? '✓ Ejecución exitosa' : res.estado }}</span>
+                  <small class="agente__hora">{{ reporte.hora }}</small>
+                </div>
+                <p class="agente__resumen">{{ reporte.resumen }}</p>
+                <div class="agente__metricas">
+                  @for (m of reporte.metricas; track m.etiqueta) {
+                    <div class="agente__metrica" [attr.data-tono]="m.tono ?? 'neutro'">
+                      <span>{{ m.etiqueta }}</span>
+                      <strong>{{ m.valor }}</strong>
+                    </div>
+                  }
+                </div>
+                @if (reporte.detalles.length > 0) {
+                  <ul class="agente__detalles">
+                    @for (d of reporte.detalles; track d) {
+                      <li>{{ d }}</li>
+                    }
+                  </ul>
+                }
+                <p class="agente__envio">✓ Notificación enviada a WhatsApp y Correo (Mailpit)</p>
               </div>
             }
           </ao-tarjeta>
         }
       </div>
     </section>
+  }
+
+  @if (toastAgente(); as toast) {
+    <div class="toast-agente" [class.toast-agente--error]="toast.tipo === 'error'" role="status" aria-live="polite">
+      <div class="toast-agente__contenido">
+        <strong>{{ toast.titulo }}</strong>
+        <p>{{ toast.mensaje }}</p>
+        @if (toast.subtexto) {
+          <small>{{ toast.subtexto }}</small>
+        }
+      </div>
+      <button type="button" class="toast-agente__cerrar" aria-label="Cerrar aviso" (click)="cerrarToast()">×</button>
+    </div>
   }
 
   <section class="seccion">

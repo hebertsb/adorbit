@@ -8,6 +8,7 @@ import { defineConfig } from 'vite';
  * React va empaquetado dentro del remoto (no se comparte): el anfitrion no necesita React.
  */
 export default defineConfig({
+  base: './',
   plugins: [
     react(),
     federation({

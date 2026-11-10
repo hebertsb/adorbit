@@ -83,10 +83,14 @@ class ProcesarEvento:
         await self._reportes_cliente.guardar(reporte, conexion)
 
     async def _procesar_facturacion(self, tipo_evento: str, carga: dict[str, Any], conexion: Any) -> None:
+        raw_factura_id = carga.get("factura_id") or carga.get("id")
+        raw_cliente_id = carga.get("cliente_id")
+        if not raw_factura_id or not raw_cliente_id:
+            return
         reporte = ReporteFacturacion(
-            factura_id=UUID(carga["factura_id"]),
-            cliente_id=UUID(carga["cliente_id"]),
-            campana_id=UUID(carga["campana_id"]) if carga.get("campana_id") else None,
+            factura_id=UUID(str(raw_factura_id)),
+            cliente_id=UUID(str(raw_cliente_id)),
+            campana_id=UUID(str(carga["campana_id"])) if carga.get("campana_id") else None,
             estado=_estado_facturacion(tipo_evento, carga),
             total=_decimal(carga.get("total")),
             moneda=carga.get("moneda", "BOB"),

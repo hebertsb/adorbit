@@ -56,7 +56,7 @@ export class CampanaFormulario {
       this.formulario.controls.moneda.disable();
       void this.cargarCampanaEdicion(this.idCampana);
     } else {
-      void this.campanasDatos.listarClientesReales().then((clientes) => this.clientes.set(clientes));
+      void this.cargarClientesDisponibles();
       try {
         const guardado = sessionStorage.getItem(CLAVE_PENDIENTE);
         if (guardado) {
@@ -84,7 +84,31 @@ export class CampanaFormulario {
     this.cargandoEdicion.set(false);
   }
 
-  volver(): void { this.ubicacion.back(); }
+  private async cargarClientesDisponibles(): Promise<void> {
+    const reales = await this.campanasDatos.listarClientesReales();
+    if (reales.length > 0) {
+      this.clientes.set(reales);
+      return;
+    }
+    if (this.campanasDatos.listar().length === 0) {
+      await this.campanasDatos.sincronizarConBackend();
+    }
+    const mapa = new Map<string, ClienteReal>();
+    for (const c of this.campanasDatos.listar()) {
+      if (c.clienteId && !mapa.has(c.clienteId)) {
+        mapa.set(c.clienteId, { id: c.clienteId, razonSocial: c.cliente || c.clienteId });
+      }
+    }
+    this.clientes.set(Array.from(mapa.values()));
+  }
+
+  volver(): void {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      this.ubicacion.back();
+    } else {
+      void this.router.navigateByUrl('/campanas');
+    }
+  }
 
   async guardar(): Promise<void> {
     if (this.guardando() || this.envioBloqueado() || this.cargandoEdicion() || this.pendiente()) return;

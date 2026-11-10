@@ -26,8 +26,20 @@ export class Usuarios {
   protected async cargar(): Promise<void> {
     this.cargando.set(true); this.error.set('');
     try {
-      const [usuarios, clientes] = await Promise.all([this.identidad.listar(), this.operaciones.listarClientes()]);
-      this.usuarios.set(usuarios); this.clientes.set(clientes.contenido);
+      const [resUsuarios, resClientes] = await Promise.allSettled([
+        this.identidad.listar(),
+        this.operaciones.listarClientes(),
+      ]);
+      if (resUsuarios.status === 'fulfilled') {
+        this.usuarios.set(resUsuarios.value);
+      } else {
+        throw resUsuarios.reason;
+      }
+      if (resClientes.status === 'fulfilled') {
+        this.clientes.set(resClientes.value.contenido);
+      } else {
+        this.clientes.set([]);
+      }
     } catch (error) { this.error.set(error instanceof Error ? error.message : 'No se pudo cargar identidad.'); }
     finally { this.cargando.set(false); }
   }

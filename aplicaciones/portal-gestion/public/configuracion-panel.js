@@ -1,14 +1,17 @@
 // Configuración pública de despliegue; no colocar credenciales aquí.
+const esDevLocal = typeof window !== 'undefined' && window.location.port === '4200';
+const origenActual =
+  typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:8080';
+
 window.adorbitPanelInteligencia = {
-  urlModulo: 'http://localhost:4174/remoteEntry.js',
-  apiIaUrl: '/api/v1/ia',
+  urlModulo: esDevLocal ? 'http://localhost:4174/remoteEntry.js' : '/panel-inteligencia/remoteEntry.js',
+  apiIaUrl: esDevLocal ? 'http://localhost:8000' : origenActual,
 };
 
-// Configuracion publica de identidad. Keycloak proxied via nginx or local direct.
-const origenIdentidad = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:8180';
+// Configuración pública de identidad. Keycloak proxied via nginx or local direct.
 window.adorbitIdentidad = {
-  autoridad: origenIdentidad + '/realms/adorbit',
+  autoridad: esDevLocal ? 'http://localhost:8180/realms/adorbit' : `${origenActual}/realms/adorbit`,
   clienteId: 'adorbit-frontend',
-  emisorPruebaUrl: origenIdentidad,
-  permitirEmisorPrueba: true,
+  emisorPruebaUrl: esDevLocal ? 'http://localhost:8180' : origenActual,
+  permitirEmisorPrueba: esDevLocal,
 };

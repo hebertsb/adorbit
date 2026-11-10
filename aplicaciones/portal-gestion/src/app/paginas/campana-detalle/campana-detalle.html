@@ -140,7 +140,7 @@
   <section class="seccion">
     <div class="seccion__cabecera">
       <h2>Piezas de creatividad <span class="seccion__contador">({{ piezas().length }} piezas cargadas)</span></h2>
-      <ao-boton variante="secundario" routerLink="/creatividades">
+      <ao-boton variante="secundario" routerLink="/creatividades" [queryParams]="{ campanaId: c.id }">
         <svg class="ic" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M5 20h14" /></svg>
         Subir creatividad
       </ao-boton>

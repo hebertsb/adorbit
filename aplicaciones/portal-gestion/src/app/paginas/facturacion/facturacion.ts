@@ -54,12 +54,15 @@ export class Facturacion implements OnInit {
     this.cargando.set(true);
     this.error.set(null);
     try {
-      const [f, c] = await Promise.all([
+      const [resFacturas, resClientes] = await Promise.allSettled([
         this.api.listarFacturas(this.estado),
         this.api.listarClientes(),
       ]);
-      this.facturas.set(f.contenido);
-      this.clientes.set(c.contenido);
+      if (resFacturas.status === 'rejected') {
+        throw resFacturas.reason;
+      }
+      this.facturas.set(resFacturas.value.contenido);
+      this.clientes.set(resClientes.status === 'fulfilled' ? resClientes.value.contenido : []);
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'No se pudo consultar facturación.');
     } finally {

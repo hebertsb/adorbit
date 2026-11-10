@@ -60,6 +60,7 @@
               <textarea
                 #conceptoInput
                 rows="2"
+                (input)="conceptoIa.set(conceptoInput.value)"
                 placeholder="Ej. Bebida energizante natural sin azúcar para jóvenes que estudian y entrenan de noche"
               ></textarea>
             </label>
@@ -95,7 +96,7 @@
             <button
               type="button"
               class="boton-copilot-generar"
-              [disabled]="generandoIa() || !conceptoInput.value"
+              [disabled]="generandoIa() || !conceptoIa().trim()"
               (click)="generarConIa(conceptoInput.value, publicoInput.value)"
             >
               @if (generandoIa()) {

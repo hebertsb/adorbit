@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { EtiquetaEstado, TonoEtiqueta } from '../../compartido/etiqueta-estado/etiqueta-estado';
 import { CampanasDatos } from '../../core/datos/campanas.datos';
 import {
@@ -28,7 +29,9 @@ const TONO_ESTADO: Record<string, TonoEtiqueta> = {
 export class Creatividades {
   protected readonly campanasDatos = inject(CampanasDatos);
   private readonly datos = inject(CreatividadesDatos);
+  private readonly ruta = inject(ActivatedRoute);
   protected readonly idCampana = signal('');
+  protected readonly conceptoIa = signal('');
   protected readonly idBrief = signal('');
   protected readonly briefs = signal<BriefCreativo[]>([]);
   protected readonly piezas = signal<PiezaCreativaReal[]>([]);
@@ -65,8 +68,11 @@ export class Creatividades {
 
   private async inicializar(): Promise<void> {
     await this.campanasDatos.sincronizarConBackend();
-    const primera = this.campanasDatos.listar()[0];
-    if (primera) await this.seleccionarCampana(primera.id);
+    const campanaParam = this.ruta.snapshot.queryParamMap.get('campanaId');
+    const objetivo =
+      (campanaParam ? this.campanasDatos.buscarPorId(campanaParam) : undefined) ??
+      this.campanasDatos.listar()[0];
+    if (objetivo) await this.seleccionarCampana(objetivo.id);
   }
 
   protected async seleccionarCampana(id: string): Promise<void> {

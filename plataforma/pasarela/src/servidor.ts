@@ -140,49 +140,38 @@ async function iniciarServidor() {
   app.use("/api/v1/administracion", express.json(), crearRouterAdministracionIdentidad());
 
   // Proxies REST transparentes hacia microservicios
-  // ms-campanas
-  app.use(
-    ["/api/v1/campanas", "/api/v1/sagas"],
+  const crearProxy = (target: string, nombreServicio: string) =>
     createProxyMiddleware({
-      target: URL_MS_CAMPANAS,
+      target,
       changeOrigin: true,
+      proxyTimeout: 8000,
+      timeout: 8000,
       // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
-      pathRewrite: (_ruta, req) => (req as Request).originalUrl
-    })
-  );
+      pathRewrite: (_ruta, req) => (req as Request).originalUrl,
+      on: {
+        error: (_err, _req, res) => {
+          const respuesta = res as Response;
+          if (!respuesta.headersSent) {
+            respuesta.status(504).json({
+              codigo: "SERVICIO_NO_DISPONIBLE",
+              mensaje: `El microservicio ${nombreServicio} no responde temporalmente.`,
+            });
+          }
+        },
+      },
+    });
+
+  // ms-campanas
+  app.use(["/api/v1/campanas", "/api/v1/sagas"], crearProxy(URL_MS_CAMPANAS, "ms-campanas"));
 
   // ms-clientes-crm
-  app.use(
-    ["/api/v1/clientes", "/api/v1/contratos"],
-    createProxyMiddleware({
-      target: URL_MS_CLIENTES_CRM,
-      changeOrigin: true,
-      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
-      pathRewrite: (_ruta, req) => (req as Request).originalUrl
-    })
-  );
+  app.use(["/api/v1/clientes", "/api/v1/contratos"], crearProxy(URL_MS_CLIENTES_CRM, "ms-clientes-crm"));
 
   // ms-facturacion
-  app.use(
-    ["/api/v1/facturas", "/api/v1/cotizaciones"],
-    createProxyMiddleware({
-      target: URL_MS_FACTURACION,
-      changeOrigin: true,
-      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
-      pathRewrite: (_ruta, req) => (req as Request).originalUrl
-    })
-  );
+  app.use(["/api/v1/facturas", "/api/v1/cotizaciones"], crearProxy(URL_MS_FACTURACION, "ms-facturacion"));
 
   // ms-creatividades
-  app.use(
-    ["/api/v1/briefs", "/api/v1/piezas"],
-    createProxyMiddleware({
-      target: URL_MS_CREATIVIDADES,
-      changeOrigin: true,
-      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
-      pathRewrite: (_ruta, req) => (req as Request).originalUrl
-    })
-  );
+  app.use(["/api/v1/briefs", "/api/v1/piezas"], crearProxy(URL_MS_CREATIVIDADES, "ms-creatividades"));
 
   // ms-ia
   app.use(
@@ -195,12 +184,7 @@ async function iniciarServidor() {
       "/api/v1/ml",
       "/api/v1/asistente"
     ],
-    createProxyMiddleware({
-      target: URL_MS_IA,
-      changeOrigin: true,
-      // Express quita el prefijo montado en app.use(); se reenvia la URL original completa.
-      pathRewrite: (_ruta, req) => (req as Request).originalUrl
-    })
+    crearProxy(URL_MS_IA, "ms-ia")
   );
 
   // GraphQL Apollo Server

@@ -58,7 +58,7 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
       `${reporte.respuesta_nl ? reporte.respuesta_nl.slice(0, 700) : 'Reporte y métricas consolidadas con éxito en la plataforma.'}\n\n` +
       `────────────────────────────────────────\n` +
       `Consulte el reporte y métricas completas en:\n` +
-      `🌐 http://localhost:4174\n\n` +
+      `🌐 ${typeof window !== 'undefined' ? `${window.location.origin}/reportes` : 'http://4.151.177.116/reportes'}\n\n` +
       `*AdOrbit Platform · Dirección de Inteligencia y Operaciones*`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
     window.open(url, '_blank', 'noopener,noreferrer');

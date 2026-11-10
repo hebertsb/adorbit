@@ -12,10 +12,19 @@ export class EstadoRuta {
   private readonly router = inject(Router);
   private readonly auth = inject(AutenticacionService);
   protected readonly sinAcceso = this.router.url.startsWith('/sin-acceso');
+  protected readonly tieneAlgunaVista =
+    this.auth.tieneRol('ejecutivo') ||
+    this.auth.tieneRol('gerente') ||
+    this.auth.tieneRol('creativo');
   protected readonly rutaInicio =
     this.auth.tieneRol('creativo') &&
     !this.auth.tieneRol('ejecutivo') &&
     !this.auth.tieneRol('gerente')
       ? '/creatividades'
       : '/dashboard';
+
+  protected cerrarSesion(): void {
+    this.auth.cerrarSesion();
+    void this.router.navigateByUrl('/login');
+  }
 }
