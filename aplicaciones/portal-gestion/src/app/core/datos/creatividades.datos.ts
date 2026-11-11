@@ -269,7 +269,8 @@ export class CreatividadesDatos {
     });
   }
 
-  decidirPieza(id: string, decision: 'aprobar' | 'rechazar'): Promise<PiezaCreativaReal> {
+  decidirPieza(idUi: string, decision: 'aprobar' | 'rechazar'): Promise<PiezaCreativaReal> {
+    const id = this.offline.idReal(idUi);
     const claveIdempotencia = crypto.randomUUID();
     if (!this.offline.enLinea()) {
       this.offline.encolarOperacion({
@@ -282,7 +283,7 @@ export class CreatividadesDatos {
       });
       // Sin red: respuesta optimista; la UI la fusiona con la pieza que ya tiene.
       return Promise.resolve({
-        id,
+        id: idUi,
         estado: decision === 'aprobar' ? 'aprobada' : 'rechazada',
       } as PiezaCreativaReal);
     }
@@ -299,6 +300,7 @@ export class CreatividadesDatos {
     detalles: Record<string, unknown>,
   ): Promise<unknown> {
     const claveIdempotencia = crypto.randomUUID();
+    piezaId = this.offline.idReal(piezaId);
     const ruta = `/piezas/${encodeURIComponent(piezaId)}/validaciones`;
     const cuerpo = { resultado, origen: 'ia', detalles };
 

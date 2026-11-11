@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { EtiquetaEstado, TonoEtiqueta } from '../../compartido/etiqueta-estado/etiqueta-estado';
 import { CampanasDatos } from '../../core/datos/campanas.datos';
@@ -100,6 +100,13 @@ export class Creatividades {
     void this.inicializar();
     // Con red: deja YOLO ONNX en memoria para que la detección siga funcionando sin red.
     this.iaLocal.precargarModelo()?.catch(() => undefined);
+    // Al terminar una sincronización offline, recargar el brief abierto: las tarjetas
+    // "(en cola offline)" se reemplazan por las reales con su id del servidor.
+    effect(() => {
+      if (!this.offline.ultimaSincronizacion()) return;
+      const brief = untracked(() => this.idBrief());
+      if (brief) void untracked(() => this.seleccionarBrief(brief));
+    });
   }
 
   private cargarVistasGuardadas(): Record<string, string> {
@@ -430,7 +437,7 @@ export class Creatividades {
     await this.ejecutar(async () => {
       const actualizada = await this.datos.decidirPieza(pieza.id, decision);
       this.piezas.update((actuales) =>
-        actuales.map((item) => (item.id === actualizada.id ? { ...item, ...actualizada } : item)),
+        actuales.map((item) => (item.id === pieza.id ? { ...item, ...actualizada } : item)),
       );
       if (this.piezaEspecificaciones()?.id === actualizada.id) {
         this.piezaEspecificaciones.set(actualizada);

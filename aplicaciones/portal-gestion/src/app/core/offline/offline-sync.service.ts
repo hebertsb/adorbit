@@ -22,6 +22,7 @@ const MAX_INTENTOS_AUTOMATICOS = 5;
 
 const CLAVE_BANDEJA_OFFLINE = 'adorbit_bandeja_salida_web_v1';
 const CLAVE_CACHE_LECTURA_PREFIJO = 'adorbit_cache_lectura_v1:';
+const CLAVE_IDS_REALES = 'adorbit_ids_reales_v1';
 
 /**
  * Servicio de Modo Offline, Caché Local y Sincronización con Idempotencia en el Front Web.
@@ -239,7 +240,25 @@ export class OfflineSyncService {
     );
   }
 
+  /** Traduce el id provisional de algo creado sin red al id real del servidor (si ya se sincronizó). */
+  idReal(id: string): string {
+    return this.idsReales()[id] ?? id;
+  }
+
+  private idsReales(): Record<string, string> {
+    try {
+      return JSON.parse(localStorage.getItem(CLAVE_IDS_REALES) ?? '{}') as Record<string, string>;
+    } catch {
+      return {};
+    }
+  }
+
   private reemplazarIdTemporal(temporal: string, real: string): void {
+    try {
+      localStorage.setItem(CLAVE_IDS_REALES, JSON.stringify({ ...this.idsReales(), [temporal]: real }));
+    } catch {
+      // sin almacenamiento: solo se pierde la traducción para tarjetas ya pintadas
+    }
     this.bandeja.update((actual) => {
       const nueva = actual.map((op) => {
         if (op.estado === 'sincronizado') return op;
