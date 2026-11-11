@@ -58,8 +58,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Solo interceptar GET para archivos estáticos y navegación SPA
-  if (req.method !== 'GET') {
+  // Solo interceptar GET para archivos estáticos y navegación SPA.
+  // /salud es el latido de conectividad: siempre a la red, nunca a la caché.
+  if (req.method !== 'GET' || url.pathname === '/salud') {
     return;
   }
 

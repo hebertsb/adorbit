@@ -50,7 +50,26 @@ export class OfflineSyncService {
       window.addEventListener('offline', () => {
         this.enLinea.set(false);
       });
+      // `navigator.onLine` solo mira si hay ALGÚN adaptador conectado: con adaptadores
+      // virtuales (Tailscale, VPN, Hyper-V) sigue en true aunque se apague el Wi-Fi.
+      // Latido real contra el servidor cada 5 s para detectar la caída de verdad.
+      setInterval(() => void this.verificarConexionReal(), 5000);
     }
+  }
+
+  private async verificarConexionReal(): Promise<void> {
+    let alcanzable: boolean;
+    try {
+      // Cualquier respuesta HTTP (incluso 404) significa que hay red hasta el servidor.
+      await fetch(`/salud?_u=${Date.now()}`, { cache: 'no-store', signal: AbortSignal.timeout(3000) });
+      alcanzable = true;
+    } catch {
+      alcanzable = false;
+    }
+    const antes = this.enLinea();
+    if (alcanzable === antes) return;
+    this.enLinea.set(alcanzable);
+    if (alcanzable) void this.sincronizarPendientes();
   }
 
   /** Guarda una lectura en la caché persistente del navegador para consultas sin red. */
