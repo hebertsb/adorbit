@@ -14,15 +14,18 @@ export interface ResultadoVisionLocalWeb {
   cajaFraccion?: [number, number, number, number];
 }
 
+interface SesionOnnxWeb {
+  inputNames: string[];
+  outputNames: string[];
+  run(entradas: Record<string, unknown>): Promise<Record<string, { data: Float32Array | number[] }>>;
+}
+
 declare global {
   interface Window {
     ort?: {
+      env: { wasm: { wasmPaths?: string; numThreads?: number } };
       InferenceSession: {
-        create(ruta: string): Promise<{
-          inputNames: string[];
-          outputNames: string[];
-          run(entradas: Record<string, unknown>): Promise<Record<string, { data: Float32Array | number[] }>>;
-        }>;
+        create(ruta: string): Promise<SesionOnnxWeb>;
       };
       Tensor: new (tipo: string, datos: Float32Array, dims: number[]) => unknown;
     };
@@ -40,6 +43,33 @@ declare global {
 export class IaLocalWebService {
   readonly ultimoAnalisis = signal<ResultadoVisionLocalWeb | null>(null);
   readonly analizando = signal(false);
+  /** true cuando el YOLO ONNX ya está en memoria: desde ahí la inferencia no necesita red. */
+  readonly modeloListo = signal(false);
+  private sesionOnnx: Promise<SesionOnnxWeb> | null = null;
+
+  /**
+   * Descarga (una vez, con red) el runtime WASM y yolo_logo_adorbit.onnx y deja la sesión en
+   * memoria. Llamarlo al entrar a Creatividades: luego la detección funciona aunque se corte la red.
+   */
+  precargarModelo(): Promise<SesionOnnxWeb> | null {
+    const ort = typeof window !== 'undefined' ? window.ort : undefined;
+    if (!ort) return null;
+    if (!this.sesionOnnx) {
+      ort.env.wasm.wasmPaths = '/ort/';
+      ort.env.wasm.numThreads = 1; // sin COOP/COEP no hay SharedArrayBuffer
+      this.sesionOnnx = ort.InferenceSession.create('/modelos/yolo_logo_adorbit.onnx').then(
+        (sesion) => {
+          this.modeloListo.set(true);
+          return sesion;
+        },
+        (error: unknown) => {
+          this.sesionOnnx = null; // permitir reintento cuando vuelva la red
+          throw error;
+        },
+      );
+    }
+    return this.sesionOnnx;
+  }
 
   /**
    * Analiza un archivo de imagen 100% en el navegador (sin enviar bytes por red).
@@ -262,7 +292,9 @@ export class IaLocalWebService {
     tamano: number,
   ): Promise<{ detecta: boolean; confianza: number; caja?: [number, number, number, number] }> {
     const ort = window.ort!;
-    const sesion = await ort.InferenceSession.create('/modelos/yolo_logo_adorbit.onnx');
+    const pendiente = this.precargarModelo();
+    if (!pendiente) throw new Error('ONNX Runtime Web no disponible');
+    const sesion = await pendiente;
     const total = tamano * tamano;
     const tensorDatos = new Float32Array(3 * total);
     for (let i = 0; i < total; i++) {

@@ -9,6 +9,8 @@
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#3b82f6">
   <script src="configuracion-panel.js"></script>
+  <!-- ONNX Runtime Web servido desde el propio portal (sin CDN) para la IA local offline -->
+  <script src="ort/ort.wasm.min.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

@@ -98,6 +98,8 @@ export class Creatividades {
 
   constructor() {
     void this.inicializar();
+    // Con red: deja YOLO ONNX en memoria para que la detección siga funcionando sin red.
+    this.iaLocal.precargarModelo()?.catch(() => undefined);
   }
 
   private cargarVistasGuardadas(): Record<string, string> {
