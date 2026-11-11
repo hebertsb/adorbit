@@ -117,6 +117,24 @@ Explorador (Angular) → POST /graphql (Bearer JWT) → Apollo (pasarela)
        └─ facturas    → ms-facturacion
 ```
 
+### Cómo está implementado (explicación técnica)
+- **Dónde vive:** en la **pasarela** (API Gateway, Node + Express). Apollo Server se monta en la ruta `/graphql`, al lado de los proxies REST. Los microservicios **no** saben de GraphQL: siguen exponiendo REST. La pasarela es la capa de **agregación** (patrón *API Gateway / BFF*).
+- **Esquema (contrato):** tipos `Campana`, `Cliente`, `PiezaCreativa`, `Factura`, `Presupuesto`, `SagaTransaccion`, enum `EstadoCampana`; 4 queries (`campanas`, `campana`, `cliente`, `saga`) y 2 mutaciones (`crearCampana`, `contratarCampana`). El contrato documentado está en [contratos/graphql/esquema.graphql](../contratos/graphql/esquema.graphql).
+- **Resolvers:** cada campo sabe de qué microservicio sacar su dato. Si el cliente pide `campana { nombre }`, solo se llama a ms-campanas; si además pide `cliente` y `piezas`, Apollo ejecuta **esos** resolvers extra (en paralelo) contra ms-clientes-crm y ms-creatividades. **Solo se ejecuta lo que la consulta pide.**
+- **Seguridad:** la petición pasa primero por el middleware de autenticación global de la pasarela (JWT de Keycloak). El token se pone en el **contexto** de Apollo y cada resolver lo reenvía al microservicio (`Authorization`), así cada servicio vuelve a validar el rol.
+- **Tolerancia a fallos:** los resolvers usan `peticionSegura()` ([esquema.ts:162](../plataforma/pasarela/src/esquema.ts)) con timeout de 2 s; si un microservicio cae (ej. CRM), ese campo vuelve `null` y **el resto de la respuesta llega igual** (circuit breaker simple: CRM marcado caído 15 s).
+- **Mutaciones con idempotencia:** `crearCampana` y `contratarCampana` generan un `Idempotency-Key` antes de llamar al REST de ms-campanas; `contratarCampana` **dispara la SAGA** (reserva crédito → factura anticipo → brief creativo).
+- **Uso real en el sistema (no solo el explorador):** el portal de gestión usa GraphQL en la **lista de campañas** (`query ObtenerCampanas`), el **detalle de campaña** (`query DetalleCampana`, trae campaña + cliente + piezas en una sola llamada) y al **crear campaña** (`mutation CrearCampana`): [campanas.datos.ts](../aplicaciones/portal-gestion/src/app/core/datos/campanas.datos.ts) líneas 69, 181 y 321. → Para demostrarlo sin F12: abrir el detalle de una campaña y decir "esta pantalla se llena con una sola consulta GraphQL".
+
+### Preguntas probables (GraphQL)
+- **"¿Qué es GraphQL?"** → Un lenguaje de consulta para APIs: hay **un solo endpoint** y el cliente describe **exactamente qué campos quiere**; el servidor responde con esa misma forma. Lo creó Facebook.
+- **"¿Diferencia con REST?"** → REST: varios endpoints con respuesta fija → *over-fetching* (datos de más) y *under-fetching* (varias llamadas). GraphQL: una llamada, solo los campos pedidos, con esquema tipado que sirve de contrato.
+- **"¿Por qué no todo en GraphQL?"** → Las operaciones simples y los proxies a microservicios siguen en REST (más simple, cacheable, con `Idempotency-Key` estándar). GraphQL se usa donde aporta: **vistas que combinan datos de varios servicios**.
+- **"¿Query vs Mutation?"** → Query = lectura; Mutation = escritura (crear/contratar campaña).
+- **"¿Qué es un resolver?"** → La función que obtiene el valor de un campo del esquema; en nuestro caso, hace la llamada HTTP al microservicio dueño del dato.
+- **"¿Qué pasa si un microservicio está caído?"** → Ese campo viene `null` y el resto de la consulta funciona (lo hace `peticionSegura`).
+- **"¿Está protegido?"** → Sí: sin token devuelve 401; el explorador manda el token de la sesión.
+
 ---
 
 ## PREGUNTA 4C — Machine Learning supervisado y no supervisado
