@@ -111,12 +111,19 @@ export class Dashboard {
   private async cargarPiezasPorAprobar(): Promise<void> {
     try {
       const briefs = await this.creatividades.listarBriefs();
-      const piezas = await Promise.all(
-        briefs.map((brief) => this.creatividades.listarPiezas(brief.id)),
-      );
-      this.piezasPorAprobar.set(
-        piezas.flat().filter((pieza) => pieza.estado === 'en_revision').length,
-      );
+      // Máximo 2 peticiones a la vez: el navegador solo abre ~6 conexiones por servidor y
+      // antes este conteo (1 llamada por brief) bloqueaba la carga de campañas y agentes.
+      let pendientes = 0;
+      const cola = [...briefs];
+      const trabajador = async () => {
+        for (let brief = cola.shift(); brief; brief = cola.shift()) {
+          const piezas = await this.creatividades.listarPiezas(brief.id).catch(() => []);
+          pendientes += piezas.filter((pieza) => pieza.estado === 'en_revision').length;
+          this.piezasPorAprobar.set(pendientes);
+        }
+      };
+      await Promise.all([trabajador(), trabajador()]);
+      this.piezasPorAprobar.set(pendientes);
     } catch {
       this.piezasPorAprobar.set(null);
     }

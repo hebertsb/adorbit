@@ -13,7 +13,12 @@ export interface OperacionOffline {
   intentos: number;
   creadoEn: string;
   ultimoError?: string;
+  /** Id provisional que la UI le dio al registro creado sin red (brief/pieza). */
+  idTemporal?: string;
+  ultimoIntentoEn?: number;
 }
+
+const MAX_INTENTOS_AUTOMATICOS = 5;
 
 const CLAVE_BANDEJA_OFFLINE = 'adorbit_bandeja_salida_web_v1';
 const CLAVE_CACHE_LECTURA_PREFIJO = 'adorbit_cache_lectura_v1:';
@@ -66,10 +71,20 @@ export class OfflineSyncService {
     } catch {
       alcanzable = false;
     }
-    const antes = this.enLinea();
-    if (alcanzable === antes) return;
-    this.enLinea.set(alcanzable);
-    if (alcanzable) void this.sincronizarPendientes();
+    if (alcanzable !== this.enLinea()) this.enLinea.set(alcanzable);
+    // Sincronización automática: no hace falta tocar "Sincronizar ahora".
+    if (alcanzable && this.hayReintentables()) void this.sincronizarPendientes();
+  }
+
+  private hayReintentables(): boolean {
+    const ahora = Date.now();
+    return this.bandeja().some(
+      (op) =>
+        op.estado === 'pendiente' ||
+        (op.estado === 'error' &&
+          op.intentos < MAX_INTENTOS_AUTOMATICOS &&
+          ahora - (op.ultimoIntentoEn ?? 0) > 10000 * op.intentos),
+    );
   }
 
   /** Guarda una lectura en la caché persistente del navegador para consultas sin red. */
@@ -109,6 +124,7 @@ export class OfflineSyncService {
     url: string;
     metodo?: 'POST' | 'PUT';
     cuerpo: unknown;
+    idTemporal?: string;
   }): OperacionOffline {
     const item: OperacionOffline = {
       id: crypto.randomUUID(),
@@ -121,6 +137,7 @@ export class OfflineSyncService {
       estado: 'pendiente',
       intentos: 0,
       creadoEn: new Date().toISOString(),
+      idTemporal: entrada.idTemporal,
     };
     this.bandeja.update((actual) => {
       const nueva = [item, ...actual];
@@ -130,12 +147,21 @@ export class OfflineSyncService {
     return item;
   }
 
-  /** Drena todas las operaciones pendientes reenviando el mismo `Idempotency-Key`. */
-  async sincronizarPendientes(): Promise<number> {
+  /**
+   * Drena la bandeja EN ORDEN DE CREACIÓN reenviando el mismo `Idempotency-Key`.
+   * Si una operación creó un brief/pieza sin red, la UI usó un id provisional: al
+   * sincronizarse se lee el id real que devuelve el servidor y se reemplaza en las
+   * operaciones siguientes (ej. "validar pieza" / "aprobar pieza" de esa misma pieza).
+   */
+  async sincronizarPendientes(manual = false): Promise<number> {
     if (this.sincronizando() || !this.enLinea()) return 0;
-    const pendientes = this.bandeja().filter(
-      (op) => op.estado === 'pendiente' || op.estado === 'error',
-    );
+    const pendientes = this.bandeja()
+      .filter(
+        (op) =>
+          op.estado === 'pendiente' ||
+          (op.estado === 'error' && (manual || op.intentos < MAX_INTENTOS_AUTOMATICOS)),
+      )
+      .sort((a, b) => a.creadoEn.localeCompare(b.creadoEn));
     if (pendientes.length === 0) return 0;
 
     this.sincronizando.set(true);
@@ -143,7 +169,12 @@ export class OfflineSyncService {
 
     try {
       const token = this.auth.token();
-      for (const op of pendientes) {
+      for (const pendiente of pendientes) {
+        // Releer: una operación anterior pudo haberle reemplazado el id provisional.
+        const op = this.bandeja().find((o) => o.id === pendiente.id);
+        if (!op) continue;
+        if (this.dependeDeCreacionPendiente(op)) continue;
+
         this.actualizarEstado(op.id, 'sincronizando');
         try {
           const respuesta = await fetch(op.url, {
@@ -154,6 +185,7 @@ export class OfflineSyncService {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: JSON.stringify(op.cuerpo),
+            signal: AbortSignal.timeout(15000),
           });
 
           if (respuesta.status === 409) {
@@ -167,6 +199,15 @@ export class OfflineSyncService {
 
           if (!respuesta.ok) {
             throw new Error(`HTTP ${respuesta.status}`);
+          }
+
+          if (op.idTemporal) {
+            try {
+              const creado = (await respuesta.json()) as { id?: string };
+              if (creado?.id) this.reemplazarIdTemporal(op.idTemporal, creado.id);
+            } catch {
+              // Respuesta sin JSON: las dependientes quedarán en error y se podrán limpiar.
+            }
           }
 
           this.actualizarEstado(op.id, 'sincronizado');
@@ -184,6 +225,36 @@ export class OfflineSyncService {
     } finally {
       this.sincronizando.set(false);
     }
+  }
+
+  /** true si la operación usa el id provisional de una creación que aún no se sincronizó. */
+  private dependeDeCreacionPendiente(op: OperacionOffline): boolean {
+    const texto = op.url + JSON.stringify(op.cuerpo ?? null);
+    return this.bandeja().some(
+      (otra) =>
+        otra.id !== op.id &&
+        !!otra.idTemporal &&
+        otra.estado !== 'sincronizado' &&
+        texto.includes(otra.idTemporal),
+    );
+  }
+
+  private reemplazarIdTemporal(temporal: string, real: string): void {
+    this.bandeja.update((actual) => {
+      const nueva = actual.map((op) => {
+        if (op.estado === 'sincronizado') return op;
+        const cuerpoTexto = JSON.stringify(op.cuerpo ?? null);
+        if (!op.url.includes(temporal) && !cuerpoTexto.includes(temporal)) return op;
+        return {
+          ...op,
+          url: op.url.split(temporal).join(real),
+          cuerpo: JSON.parse(cuerpoTexto.split(temporal).join(real)),
+          etiqueta: op.etiqueta.split(temporal.slice(0, 8)).join(real.slice(0, 8)),
+        };
+      });
+      this.persistirBandeja(nueva);
+      return nueva;
+    });
   }
 
   limpiarSincronizadas(): void {
@@ -216,6 +287,7 @@ export class OfflineSyncService {
               estado,
               ultimoError: errorMsg,
               intentos: incrementarIntento ? op.intentos + 1 : op.intentos,
+              ultimoIntentoEn: incrementarIntento ? Date.now() : op.ultimoIntentoEn,
             }
           : op,
       );

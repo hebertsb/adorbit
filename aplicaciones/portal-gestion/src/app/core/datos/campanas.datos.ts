@@ -63,7 +63,15 @@ export class CampanasDatos {
   }
 
   async sincronizarConBackend(): Promise<void> {
-    this.estadoCarga.set('cargando');
+    // Stale-while-revalidate: pinta al instante lo último guardado y refresca en segundo plano.
+    if (this.listaCampanas().length === 0) {
+      const cacheadas = this.offline.leerCacheLectura<Campana[]>('campanas:lista');
+      if (cacheadas && cacheadas.length > 0) {
+        this.listaCampanas.set(cacheadas);
+        this.estadoCarga.set('disponible');
+      }
+    }
+    if (this.estadoCarga() !== 'disponible') this.estadoCarga.set('cargando');
     const consultaGql = {
       query: `
         query ObtenerCampanas {
@@ -85,11 +93,12 @@ export class CampanasDatos {
               id
               razonSocial
             }
-            piezas { id titulo tipoMedio estado urlArchivo version }
           }
         }
       `,
     };
+    // La lista NO pide `piezas`: costaba 1 llamada a ms-creatividades por brief de cada
+    // campaña (N+1). Las piezas se piden en el detalle (obtenerDetalleReal) y en Creatividades.
 
     try {
       const respuesta = await fetch(URL_GATEWAY_GRAPHQL, {
@@ -104,6 +113,7 @@ export class CampanasDatos {
       if (resultado.errors?.length) throw new Error(resultado.errors[0].message);
       if (Array.isArray(resultado.data?.campanas)) {
         for (const c of resultado.data.campanas) {
+          if (!Array.isArray(c.piezas)) continue;
           this.piezasPorCampana[c.id] = c.piezas.map((p: any) => ({
             id: p.id,
             titulo: p.titulo,

@@ -61,7 +61,7 @@
             Bandeja Offline · Idempotencia ({{ offline.bandeja().length }})
           </span>
           @if (offline.pendientesCount() > 0 && offline.enLinea()) {
-            <button type="button" (click)="offline.sincronizarPendientes()">
+            <button type="button" (click)="offline.sincronizarPendientes(true)">
               <strong>🔄 Sincronizar ahora ({{ offline.pendientesCount() }} pendientes)</strong>
               <small>Reenvía cada operación con su Idempotency-Key</small>
             </button>

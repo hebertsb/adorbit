@@ -122,7 +122,9 @@ export class Creatividades {
   }
 
   private async inicializar(): Promise<void> {
-    await this.campanasDatos.sincronizarConBackend();
+    const refresco = this.campanasDatos.sincronizarConBackend();
+    // Si ya hay campañas en caché se arranca con ellas sin esperar a la red.
+    if (this.campanasDatos.listar().length === 0) await refresco;
     const campanaParam = this.ruta.snapshot.queryParamMap.get('campanaId');
     const objetivo =
       (campanaParam ? this.campanasDatos.buscarPorId(campanaParam) : undefined) ??
@@ -428,7 +430,7 @@ export class Creatividades {
     await this.ejecutar(async () => {
       const actualizada = await this.datos.decidirPieza(pieza.id, decision);
       this.piezas.update((actuales) =>
-        actuales.map((item) => (item.id === actualizada.id ? actualizada : item)),
+        actuales.map((item) => (item.id === actualizada.id ? { ...item, ...actualizada } : item)),
       );
       if (this.piezaEspecificaciones()?.id === actualizada.id) {
         this.piezaEspecificaciones.set(actualizada);

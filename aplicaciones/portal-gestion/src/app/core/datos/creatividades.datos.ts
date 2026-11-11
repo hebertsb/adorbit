@@ -135,9 +135,11 @@ export class CreatividadesDatos {
     descripcion?: string;
   }): Promise<BriefCreativo> {
     const claveIdempotencia = crypto.randomUUID();
+    const idTemporal = crypto.randomUUID();
     if (!this.offline.enLinea()) {
       this.offline.encolarOperacion({
         claveIdempotencia,
+        idTemporal,
         tipo: 'crear_brief',
         etiqueta: `Crear brief: ${cuerpo.titulo}`,
         url: `${URL_API}/briefs`,
@@ -146,7 +148,7 @@ export class CreatividadesDatos {
       });
       const ahora = new Date().toISOString();
       const temporal: BriefCreativo = {
-        id: crypto.randomUUID(),
+        id: idTemporal,
         campanaId: cuerpo.campana_id,
         clienteId: cuerpo.cliente_id,
         titulo: `${cuerpo.titulo} (en cola offline)`,
@@ -169,6 +171,7 @@ export class CreatividadesDatos {
       if (!navigator.onLine) {
         this.offline.encolarOperacion({
           claveIdempotencia,
+          idTemporal,
           tipo: 'crear_brief',
           etiqueta: `Crear brief: ${cuerpo.titulo}`,
           url: `${URL_API}/briefs`,
@@ -177,7 +180,7 @@ export class CreatividadesDatos {
         });
         const ahora = new Date().toISOString();
         return {
-          id: crypto.randomUUID(),
+          id: idTemporal,
           campanaId: cuerpo.campana_id,
           clienteId: cuerpo.cliente_id,
           titulo: `${cuerpo.titulo} (en cola offline)`,
@@ -232,9 +235,11 @@ export class CreatividadesDatos {
     },
   ): Promise<PiezaCreativaReal> {
     const claveIdempotencia = crypto.randomUUID();
+    const idTemporal = crypto.randomUUID();
     if (!this.offline.enLinea()) {
       this.offline.encolarOperacion({
         claveIdempotencia,
+        idTemporal,
         tipo: 'crear_pieza',
         etiqueta: `Registrar pieza: ${cuerpo.nombre}`,
         url: `${URL_API}/briefs/${encodeURIComponent(briefId)}/piezas`,
@@ -243,7 +248,7 @@ export class CreatividadesDatos {
       });
       const ahora = new Date().toISOString();
       return {
-        id: crypto.randomUUID(),
+        id: idTemporal,
         briefId,
         campanaId: '',
         nombre: `${cuerpo.nombre} (en cola offline)`,
@@ -275,6 +280,11 @@ export class CreatividadesDatos {
         metodo: 'POST',
         cuerpo: { decision },
       });
+      // Sin red: respuesta optimista; la UI la fusiona con la pieza que ya tiene.
+      return Promise.resolve({
+        id,
+        estado: decision === 'aprobar' ? 'aprobada' : 'rechazada',
+      } as PiezaCreativaReal);
     }
     return this.solicitar(`/piezas/${encodeURIComponent(id)}/aprobar`, {
       method: 'POST',
