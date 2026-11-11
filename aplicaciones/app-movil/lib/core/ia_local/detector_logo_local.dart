@@ -40,7 +40,8 @@ class DetectorLogoLocal {
 
   static const _rutaModeloAsset = 'assets/modelos/yolo_logo_adorbit.onnx';
   static const _tamanoEntrada = 320;
-  static const umbralConfianza = 0.5;
+  // Calibrado: fotos sin logo llegan hasta ~0.74; el logo real da >= 0.84.
+  static const umbralConfianza = 0.8;
 
   OrtSession? _sesion;
   Future<OrtSession>? _cargando;

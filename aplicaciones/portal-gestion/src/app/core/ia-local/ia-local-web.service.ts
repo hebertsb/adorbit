@@ -14,6 +14,8 @@ export interface ResultadoVisionLocalWeb {
   cajaFraccion?: [number, number, number, number];
 }
 
+const UMBRAL_LOGO_ONNX = 0.8;
+
 interface SesionOnnxWeb {
   inputNames: string[];
   outputNames: string[];
@@ -109,9 +111,8 @@ export class IaLocalWebService {
       const metricas = this.evaluarTensorMarca(imageData, tamano, ancho, alto);
 
       const detectaLogo = deteccionOnnx ? deteccionOnnx.detecta : metricas.afinidadMarca >= 0.48;
-      const confianzaBruta = deteccionOnnx
-        ? Math.max(deteccionOnnx.confianza * 100, metricas.confianzaPct)
-        : metricas.confianzaPct;
+      // Con ONNX, la confianza mostrada es la del modelo (no se infla con la heurística).
+      const confianzaBruta = deteccionOnnx ? deteccionOnnx.confianza * 100 : metricas.confianzaPct;
       const confianza = Math.round(Math.min(99.4, Math.max(35, confianzaBruta)) * 10) / 10;
 
       const observaciones: string[] = [];
@@ -315,7 +316,8 @@ export class IaLocalWebService {
         mejorIndice = i;
       }
     }
-    const detecta = mejorPuntaje > 0.5;
+    // Umbral calibrado: fotos sin logo llegan hasta ~0.74; el logo real da >= 0.84.
+    const detecta = mejorPuntaje >= UMBRAL_LOGO_ONNX;
     let caja: [number, number, number, number] | undefined;
     if (detecta) {
       const cx = Number(bruto[mejorIndice]);
