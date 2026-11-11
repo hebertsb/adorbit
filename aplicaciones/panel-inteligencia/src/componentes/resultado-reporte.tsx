@@ -3,6 +3,7 @@ import type { ClienteIa } from '../api/cliente-ia';
 import { ErrorIa } from '../api/cliente-ia';
 import type { FormatoExportacion, Reporte } from '../api/tipos';
 import { datosDeGrafico } from '../utilidades/datos-grafico';
+import { mensajeWhatsApp } from '../utilidades/mensaje-whatsapp';
 import { GraficoBarras } from './grafico-barras';
 import { GraficoAnillo } from './grafico-anillo';
 import { GraficoLinea } from './grafico-linea';
@@ -33,11 +34,33 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
   const [vista, setVista] = useState<'grafico' | 'distribucion' | 'tarjetas'>('grafico');
   const grafico = datosDeGrafico(reporte);
 
+  // Selección de columnas: arranca con la que eligió la IA y el usuario la ajusta.
+  const disponibles = reporte.columnas_disponibles?.length ? reporte.columnas_disponibles : reporte.columnas;
+  const [visibles, setVisibles] = useState<string[]>(() => reporte.columnas.map((c) => c.clave));
+  const [selectorAbierto, setSelectorAbierto] = useState(false);
+  const columnasMostradas = visibles
+    .map((clave) => disponibles.find((c) => c.clave === clave))
+    .filter((c): c is (typeof disponibles)[number] => c !== undefined);
+  const seleccionPersonalizada = visibles.length !== disponibles.length;
+
+  const alternarColumna = (clave: string) =>
+    setVisibles((actuales) =>
+      actuales.includes(clave)
+        ? actuales.length > 1
+          ? actuales.filter((c) => c !== clave)
+          : actuales
+        : [...actuales, clave],
+    );
+
   const exportar = async (formato: FormatoExportacion) => {
     setExportando(formato);
     setFalloExportar(null);
     try {
-      const archivo = await cliente.exportar(reporte.id, formato);
+      const archivo = await cliente.exportar(
+        reporte.id,
+        formato,
+        seleccionPersonalizada ? visibles : undefined,
+      );
       descargar(archivo.blob, archivo.nombre);
     } catch (e) {
       setFalloExportar(
@@ -49,17 +72,9 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
   };
 
   const compartirWhatsApp = () => {
-    const texto = `🏛️ *ADORBIT ENTERPRISE · REPORTE EJECUTIVO*\n` +
-      `────────────────────────────────────────\n` +
-      `📋 *Reporte:* ${reporte.titulo}\n` +
-      `🔍 *Consulta:* _«${reporte.pregunta}»_\n` +
-      `📅 *Fecha:* ${fechaHora.format(new Date(reporte.generado_en))}\n\n` +
-      `*DICTAMEN Y ANÁLISIS DE INTELIGENCIA:*\n` +
-      `${reporte.respuesta_nl ? reporte.respuesta_nl.slice(0, 700) : 'Reporte y métricas consolidadas con éxito en la plataforma.'}\n\n` +
-      `────────────────────────────────────────\n` +
-      `Consulte el reporte y métricas completas en:\n` +
-      `🌐 ${typeof window !== 'undefined' ? `${window.location.origin}/reportes` : 'http://4.151.177.116/reportes'}\n\n` +
-      `*AdOrbit Platform · Dirección de Inteligencia y Operaciones*`;
+    const enlace =
+      typeof window !== 'undefined' ? `${window.location.origin}/reportes` : 'http://4.151.177.116/reportes';
+    const texto = mensajeWhatsApp(reporte, columnasMostradas, enlace);
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -116,6 +131,14 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
           {describirParametros(reporte.interpretacion.parametros)}). Solo lectura, sobre vistas autorizadas.
         </span>
       </p>
+      {reporte.presentacion_ia && (
+        <p className="interpretacion">
+          <Icono nombre="bloqueo" tamano={16} />
+          <span>
+            La IA eligió mostrar: {reporte.columnas.map((c) => c.etiqueta).join(', ')}.
+          </span>
+        </p>
+      )}
 
       {reporte.advertencias?.map((a) => (
         <p key={a} className="aviso aviso--aviso" role="status">
@@ -178,9 +201,43 @@ export function ResultadoReporte({ reporte, cliente }: { reporte: Reporte; clien
             <span className="seccion-cabecera__sobrelinea">Detalle</span>
             <h3>Datos del reporte</h3>
           </div>
-          <span className="contador-registros">{reporte.filas.length} registros</span>
+          <div className="selector-columnas__acciones">
+            <span className="contador-registros">{reporte.filas.length} registros</span>
+            <button
+              type="button"
+              className="boton boton--secundario"
+              aria-expanded={selectorAbierto}
+              aria-controls="selector-columnas"
+              onClick={() => setSelectorAbierto((v) => !v)}
+            >
+              Columnas ({visibles.length}/{disponibles.length})
+            </button>
+          </div>
         </div>
-        <TablaDatos columnas={reporte.columnas} filas={reporte.filas} titulo={reporte.titulo} />
+        {selectorAbierto && (
+          <fieldset id="selector-columnas" className="selector-columnas">
+            <legend>Qué datos mostrar (también se aplica a PDF, Excel y TXT)</legend>
+            {disponibles.map((c) => (
+              <label key={c.clave} className="selector-columnas__opcion">
+                <input
+                  type="checkbox"
+                  checked={visibles.includes(c.clave)}
+                  disabled={visibles.length === 1 && visibles.includes(c.clave)}
+                  onChange={() => alternarColumna(c.clave)}
+                />
+                {c.etiqueta}
+              </label>
+            ))}
+            <button
+              type="button"
+              className="boton boton--secundario"
+              onClick={() => setVisibles(disponibles.map((c) => c.clave))}
+            >
+              Mostrar todas
+            </button>
+          </fieldset>
+        )}
+        <TablaDatos columnas={columnasMostradas} filas={reporte.filas} titulo={reporte.titulo} />
       </section>
     </article>
   );

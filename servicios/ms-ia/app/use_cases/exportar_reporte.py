@@ -133,14 +133,24 @@ class ExportarReporte:
     def __init__(self, repositorio: ReporteGeneradoRepositorio) -> None:
         self._repositorio = repositorio
 
-    async def ejecutar(self, id_reporte: UUID, formato: str) -> tuple[bytes, str, str]:
-        """Devuelve (bytes, content_type, nombre_archivo)."""
+    async def ejecutar(
+        self, id_reporte: UUID, formato: str, columnas: list[str] | None = None
+    ) -> tuple[bytes, str, str]:
+        """Devuelve (bytes, content_type, nombre_archivo). `columnas` (opcional) es la
+        seleccion visible del usuario: solo se aceptan claves que existan en las filas
+        del reporte, en el orden pedido; si ninguna es valida se usan las del reporte."""
         if formato not in FORMATOS_VALIDOS:
             raise ExcepcionDominio("formato_invalido", "formato debe ser pdf, xlsx o txt")
 
         reporte = await self._repositorio.buscar(id_reporte)
         if reporte is None:
             raise ExcepcionDominio("reporte_no_encontrado", "No existe un reporte con ese id")
+
+        if columnas:
+            disponibles = list(reporte.filas[0].keys()) if reporte.filas else list(reporte.columnas)
+            elegidas = list(dict.fromkeys(c for c in columnas if c in disponibles))
+            if elegidas:
+                reporte.columnas = elegidas
 
         if formato == "xlsx":
             return _exportar_xlsx(reporte)

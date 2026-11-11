@@ -78,6 +78,20 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'automatizaciones',
+        canActivate: [requiereRoles('gerente')],
+        loadComponent: () =>
+          import('./paginas/automatizaciones/automatizaciones').then((m) => m.Automatizaciones),
+      },
+      {
+        path: 'segmentacion-campanas',
+        canActivate: [requiereRoles(...ROLES_GESTION)],
+        loadComponent: () =>
+          import('./paginas/segmentacion-campanas/segmentacion-campanas').then(
+            (m) => m.SegmentacionCampanas,
+          ),
+      },
+      {
         path: 'clientes',
         canActivate: [requiereRoles(...ROLES_GESTION)],
         loadComponent: () => import('./paginas/clientes/clientes').then((m) => m.Clientes),
@@ -103,6 +117,15 @@ export const routes: Routes = [
         canActivate: [requiereRoles(...ROLES_CREATIVIDAD)],
         loadComponent: () =>
           import('./paginas/creatividades/creatividades').then((m) => m.Creatividades),
+      },
+      {
+        // Ruta oculta (no figura en el menú): demostración de la pasarela GraphQL.
+        path: 'explorador-graphql',
+        canActivate: [requiereRoles(...ROLES_GESTION)],
+        loadComponent: () =>
+          import('./paginas/explorador-graphql/explorador-graphql').then(
+            (m) => m.ExploradorGraphql,
+          ),
       },
       {
         path: 'sin-acceso',

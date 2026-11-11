@@ -1432,3 +1432,44 @@ code {
     animation: none;
   }
 }
+
+/* Selector de columnas del reporte (qué datos mostrar y exportar) */
+.selector-columnas__acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.selector-columnas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0 0 12px;
+  padding: 12px;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  background: var(--superficie);
+  color: var(--tinta);
+}
+
+.selector-columnas legend {
+  padding: 0 4px;
+  font-size: 0.85rem;
+  color: var(--tinta-2);
+}
+
+.selector-columnas__opcion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.selector-columnas__opcion input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--marca);
+}

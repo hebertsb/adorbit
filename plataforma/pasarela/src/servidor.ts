@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 import { typeDefs, resolvers } from "./esquema";
 import { middlewareAutenticacion, PeticionAutenticada } from "./autenticacion";
 import { crearRouterAdministracionIdentidad } from "./administracion-identidad";
+import { crearRouterAutomatizaciones } from "./automatizaciones";
 
 dotenv.config();
 
@@ -138,6 +139,7 @@ async function iniciarServidor() {
   app.use(middlewareAutenticacion as any);
 
   app.use("/api/v1/administracion", express.json(), crearRouterAdministracionIdentidad());
+  app.use("/api/v1/automatizaciones", crearRouterAutomatizaciones());
 
   // Proxies REST transparentes hacia microservicios
   const crearProxy = (target: string, nombreServicio: string) =>

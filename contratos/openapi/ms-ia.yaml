@@ -140,6 +140,11 @@ paths:
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
         - { name: formato, in: query, required: false, schema: { type: string, enum: [pdf, xlsx, txt], default: pdf } }
+        - name: columnas
+          in: query
+          required: false
+          description: Claves separadas por coma a incluir, en ese orden; las que no existan en el reporte se ignoran
+          schema: { type: string, maxLength: 500 }
       responses:
         '200':
           description: Archivo exportado (application/pdf, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, o text/plain)
@@ -313,6 +318,14 @@ components:
               etiqueta: { type: string }
               tipo: { type: string, enum: [texto, numero, dinero, fecha, porcentaje] }
               moneda: { type: string, enum: [BOB, USD] }
+          description: Columnas visibles; la IA puede recortarlas/reordenarlas con definir_presentacion
+        columnas_disponibles:
+          type: array
+          description: Todas las columnas que devolvio la herramienta MCP (misma forma que columnas)
+          items: { type: object }
+        presentacion_ia:
+          type: boolean
+          description: true si la IA eligio que columnas mostrar segun la pregunta
         filas:
           type: array
           items: { type: object }

@@ -42,6 +42,30 @@
   }
 
   @if (vePestanaCampanas()) {
+    <a routerLink="/segmentacion-campanas" routerLinkActive="activo" class="enlace">
+      <svg class="ic" viewBox="0 0 24 24">
+        <circle cx="7" cy="8" r="3" />
+        <circle cx="17" cy="7" r="2" />
+        <circle cx="15" cy="17" r="3" />
+        <path d="M9.5 9.5l3.5 5.5M9 7l6 0" />
+      </svg>
+      Segmentación ML
+    </a>
+  }
+
+  @if (veAdministracion()) {
+    <a routerLink="/automatizaciones" routerLinkActive="activo" class="enlace">
+      <svg class="ic" viewBox="0 0 24 24">
+        <circle cx="5" cy="12" r="2" />
+        <circle cx="19" cy="6" r="2" />
+        <circle cx="19" cy="18" r="2" />
+        <path d="M7 12h4l6-6M11 12l6 6" />
+      </svg>
+      Automatizaciones
+    </a>
+  }
+
+  @if (vePestanaCampanas()) {
     <a routerLink="/clientes" routerLinkActive="activo" class="enlace">
       <svg class="ic" viewBox="0 0 24 24">
         <circle cx="9" cy="8" r="3" />

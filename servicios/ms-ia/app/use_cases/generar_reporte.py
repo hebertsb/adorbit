@@ -19,7 +19,20 @@ from ..domain.reporte_generado import ReporteGenerado
 from .compartido.idempotencia import con_idempotencia
 from .consultas_mcp import ConsultasMcp
 
-_MAX_RONDAS_HERRAMIENTAS = 3
+# consulta + presentacion + respuesta final (+1 de margen)
+_MAX_RONDAS_HERRAMIENTAS = 4
+_HERRAMIENTA_PRESENTACION = "definir_presentacion"
+
+
+def _leer_columnas(argumentos_crudos: str) -> list[str]:
+    try:
+        datos = json.loads(argumentos_crudos) if argumentos_crudos else {}
+    except (ValueError, TypeError):
+        return []
+    columnas = datos.get("columnas") if isinstance(datos, dict) else None
+    if not isinstance(columnas, list):
+        return []
+    return [c for c in columnas if isinstance(c, str)][:30]
 
 
 class GenerarReporte:
@@ -63,13 +76,19 @@ class GenerarReporte:
 
         herramientas_usadas: list[dict[str, Any]] = []
         ultimo_resultado_tabular: Any = None
+        columnas_elegidas: list[str] = []
 
         for _ in range(_MAX_RONDAS_HERRAMIENTAS):
             respuesta = await self._llm.completar_con_herramientas(mensajes)
 
             if not respuesta.llamadas_herramienta:
                 return self._construir_reporte(
-                    usuario_id, pregunta, respuesta.contenido, herramientas_usadas, ultimo_resultado_tabular
+                    usuario_id,
+                    pregunta,
+                    respuesta.contenido,
+                    herramientas_usadas,
+                    ultimo_resultado_tabular,
+                    columnas_elegidas,
                 )
 
             mensajes.append(
@@ -88,6 +107,21 @@ class GenerarReporte:
             )
 
             for llamada in respuesta.llamadas_herramienta:
+                if llamada.nombre == _HERRAMIENTA_PRESENTACION:
+                    # Solo presentacion: no toca datos ni MCP; se valida contra el resultado real.
+                    columnas_elegidas = _leer_columnas(llamada.argumentos_crudos)
+                    disponibles, _ = _tabla_desde_resultado(ultimo_resultado_tabular)
+                    validas = [c for c in columnas_elegidas if c in disponibles]
+                    mensajes.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": llamada.id,
+                            "content": json.dumps(
+                                {"ok": bool(validas), "columnas_aplicadas": validas, "disponibles": disponibles}
+                            ),
+                        }
+                    )
+                    continue
                 resultado = await self._ejecutar_herramienta(llamada.nombre, llamada.argumentos_crudos, usuario_id)
                 herramientas_usadas.append({"herramienta": llamada.nombre, "argumentos": llamada.argumentos_crudos})
                 if resultado is not None:
@@ -140,8 +174,13 @@ class GenerarReporte:
         respuesta_nl: str | None,
         herramientas_usadas: list[dict[str, Any]],
         resultado_tabular: Any,
+        columnas_elegidas: list[str] | None = None,
     ) -> ReporteGenerado:
         columnas, filas = _tabla_desde_resultado(resultado_tabular)
+        # La seleccion de la IA solo puede recortar/reordenar columnas que existen.
+        validas = list(dict.fromkeys(c for c in (columnas_elegidas or []) if c in columnas))
+        if validas:
+            columnas = validas
         return ReporteGenerado(
             id=uuid4(),
             usuario_id=usuario_id,

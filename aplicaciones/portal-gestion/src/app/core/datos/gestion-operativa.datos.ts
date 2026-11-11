@@ -91,6 +91,42 @@ export interface Cotizacion {
   items: ItemFactura[];
 }
 
+export interface FlujoN8n {
+  id: string;
+  nombre: string;
+  activo: boolean;
+  actualizado_en: string | null;
+  etiquetas: string[];
+}
+
+export interface EjecucionN8n {
+  id: string;
+  flujo_id: string;
+  flujo_nombre: string;
+  estado: string;
+  modo: string | null;
+  inicio: string | null;
+  fin: string | null;
+}
+
+export interface Automatizaciones {
+  editor_url: string;
+  flujos: FlujoN8n[];
+  ejecuciones: EjecucionN8n[];
+}
+
+/** Resultado de K-Means (segmento) + Isolation Forest (anomalía) por campaña activa. */
+export interface SegmentoCampanaMl {
+  campana_id: string;
+  nombre: string;
+  presupuesto_total: number;
+  gasto_actual: number;
+  cluster: number;
+  segmento: string;
+  es_anomalia: boolean;
+  puntaje_anomalia: number;
+}
+
 export interface RiesgoClienteMl {
   cliente_id: string;
   cliente_nombre: string;
@@ -325,6 +361,19 @@ export class GestionOperativaDatos {
     return this.solicitar<RiesgoClienteMl>(`/ml/riesgo-cliente/${encodeURIComponent(clienteId)}`, {
       headers: this.cabeceras(),
     }).catch(() => null);
+  }
+
+  /** Flujos y últimas ejecuciones de n8n, vía la pasarela (la API key nunca llega al navegador). */
+  obtenerAutomatizaciones(): Promise<Automatizaciones> {
+    return this.solicitar<Automatizaciones>('/automatizaciones', { headers: this.cabeceras() });
+  }
+
+  /** ML no supervisado de ms-ia: segmentación (K-Means) y anomalías (Isolation Forest). */
+  obtenerSegmentacionCampanas(soloAnomalias = false): Promise<SegmentoCampanaMl[]> {
+    const consulta = soloAnomalias ? '?solo_anomalias=true' : '';
+    return this.solicitar<{ items: SegmentoCampanaMl[] }>(`/ml/segmentacion-campanas${consulta}`, {
+      headers: this.cabeceras(),
+    }).then((r) => r.items ?? []);
   }
 
   listarAlertasIa(): Promise<AlertaIaItem[]> {

@@ -1,0 +1,89 @@
+<section class="auto">
+  <header class="cabecera">
+    <div>
+      <p class="etiqueta">n8n · Automatización</p>
+      <h1>Automatizaciones</h1>
+      <p class="subtitulo">
+        Flujos de n8n conectados a RabbitMQ, a los microservicios y a WhatsApp/correo. Se ven aquí
+        con tu sesión de AdOrbit; para crear o editar un flujo se abre el editor de n8n.
+      </p>
+    </div>
+    <div class="acciones">
+      <button type="button" class="boton" (click)="cargar()">Actualizar</button>
+      <a class="boton boton--principal" [href]="editorUrl()" target="_blank" rel="noopener">
+        Abrir editor n8n ↗
+      </a>
+    </div>
+  </header>
+
+  @if (cargando()) {
+    <p class="estado">Consultando n8n…</p>
+  } @else if (error()) {
+    <div class="estado error">
+      <p>{{ error() }}</p>
+      <button type="button" class="boton" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else if (info(); as datos) {
+    <div class="tarjetas">
+      <article class="tarjeta">
+        <p class="tarjeta-titulo">Flujos activos</p>
+        <p class="tarjeta-numero">{{ activos() }} / {{ datos.flujos.length }}</p>
+      </article>
+      <article class="tarjeta ok">
+        <p class="tarjeta-titulo">Ejecuciones exitosas</p>
+        <p class="tarjeta-numero">{{ exitosas() }}</p>
+      </article>
+      <article class="tarjeta mal">
+        <p class="tarjeta-titulo">Ejecuciones con error</p>
+        <p class="tarjeta-numero">{{ fallidas() }}</p>
+      </article>
+    </div>
+
+    <h2>Flujos</h2>
+    <div class="flujos">
+      @for (f of datos.flujos; track f.id) {
+        <article class="flujo">
+          <div class="flujo-cabecera">
+            <h3>{{ f.nombre }}</h3>
+            <span class="pastilla" [class.pastilla--activa]="f.activo">
+              {{ f.activo ? 'Activo' : 'Inactivo' }}
+            </span>
+          </div>
+          <p class="flujo-descripcion">{{ descripcion(f.id) }}</p>
+          <div class="flujo-pie">
+            @if (ultimaEjecucion(f.id); as u) {
+              <span class="ultima" [class.ultima--error]="esError(u)">
+                Última: {{ textoEstado(u) }} · {{ u.inicio | date: 'dd/MM HH:mm' }}
+              </span>
+            } @else {
+              <span class="ultima">Sin ejecuciones recientes</span>
+            }
+            <a [href]="urlFlujo(f.id)" target="_blank" rel="noopener">Ver en n8n ↗</a>
+          </div>
+        </article>
+      }
+    </div>
+
+    <h2>Últimas ejecuciones</h2>
+    @if (datos.ejecuciones.length === 0) {
+      <p class="estado">Todavía no hay ejecuciones.</p>
+    } @else {
+      <div class="ejecuciones">
+        @for (e of datos.ejecuciones; track e.id) {
+          <a class="ejecucion" [href]="urlEjecucion(e)" target="_blank" rel="noopener">
+            <span class="punto" [class.punto--ok]="esExito(e)" [class.punto--mal]="esError(e)"></span>
+            <span class="ejecucion-nombre">{{ e.flujo_nombre }}</span>
+            <span class="ejecucion-meta">
+              {{ textoEstado(e) }} · {{ textoModo(e.modo) }} · {{ e.inicio | date: 'dd/MM/yyyy HH:mm:ss' }}
+            </span>
+          </a>
+        }
+      </div>
+    }
+
+    <p class="nota">
+      La pasarela consulta la API de n8n con una clave guardada en el servidor (nunca llega al
+      navegador). Los enlaces «Ver en n8n» abren el editor y requieren estar en la red Tailscale.
+    </p>
+  }
+</section>

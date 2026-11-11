@@ -1,0 +1,56 @@
+<section class="explorador">
+  <header class="cabecera">
+    <p class="etiqueta">Pasarela · Apollo Server</p>
+    <h1>Explorador GraphQL</h1>
+    <p class="subtitulo">
+      Un solo endpoint (<code>POST /graphql</code>): el cliente elige los campos y la pasarela los
+      resuelve contra cada microservicio.
+    </p>
+  </header>
+
+  <div class="consultas" role="tablist" aria-label="Consultas de ejemplo">
+    @for (c of consultas; track c.nombre; let i = $index) {
+      <button
+        type="button"
+        role="tab"
+        class="chip"
+        [class.activo]="seleccionada() === i"
+        [attr.aria-selected]="seleccionada() === i"
+        (click)="elegir(i)"
+      >
+        {{ c.nombre }}
+      </button>
+    }
+  </div>
+  <p class="descripcion">{{ consultas[seleccionada()].descripcion }}</p>
+
+  <div class="paneles">
+    <div class="panel">
+      <div class="panel-cabecera">
+        <span>Consulta</span>
+        <button type="button" class="ejecutar" [disabled]="ejecutando()" (click)="ejecutar()">
+          {{ ejecutando() ? 'Ejecutando…' : '▶ Ejecutar' }}
+        </button>
+      </div>
+      <textarea
+        class="codigo"
+        spellcheck="false"
+        aria-label="Consulta GraphQL"
+        [ngModel]="consulta()"
+        (ngModelChange)="consulta.set($event)"
+      ></textarea>
+    </div>
+
+    <div class="panel">
+      <div class="panel-cabecera">
+        <span>Respuesta</span>
+        @if (estadoHttp() !== null) {
+          <span class="meta" [class.error]="estadoHttp()! >= 400">
+            HTTP {{ estadoHttp() }} · {{ duracionMs() }} ms
+          </span>
+        }
+      </div>
+      <pre class="codigo salida">{{ respuesta() || 'Elegí una consulta y tocá Ejecutar.' }}</pre>
+    </div>
+  </div>
+</section>

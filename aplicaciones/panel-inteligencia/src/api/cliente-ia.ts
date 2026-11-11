@@ -68,8 +68,13 @@ export function crearClienteIa(contexto: () => ContextoPanel) {
       return (await respuesta.json()) as Reporte;
     },
 
-    async exportar(id: string, formato: FormatoExportacion): Promise<ArchivoExportado> {
-      const respuesta = await pedir(`/api/v1/reportes/${id}/exportar?formato=${formato}`, {
+    async exportar(
+      id: string,
+      formato: FormatoExportacion,
+      columnas?: string[],
+    ): Promise<ArchivoExportado> {
+      const seleccion = columnas?.length ? `&columnas=${encodeURIComponent(columnas.join(','))}` : '';
+      const respuesta = await pedir(`/api/v1/reportes/${id}/exportar?formato=${formato}${seleccion}`, {
         headers: { Accept: '*/*' },
       });
       const cabecera = respuesta.headers.get('Content-Disposition') ?? '';

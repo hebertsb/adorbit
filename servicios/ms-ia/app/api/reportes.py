@@ -43,6 +43,7 @@ def _a_dict(reporte: ReporteGenerado) -> dict[str, Any]:
     `interpretacion`/`columnas` (como objetos)/`grafico` se derivan aqui, en la capa de
     API, a partir de los datos crudos del dominio; no se persisten calculados."""
     ultima_herramienta = reporte.herramientas_usadas[-1] if reporte.herramientas_usadas else None
+    disponibles = list(reporte.filas[0].keys()) if reporte.filas else list(reporte.columnas)
     parametros: dict[str, Any] = {}
     if ultima_herramienta is not None:
         try:
@@ -62,6 +63,10 @@ def _a_dict(reporte: ReporteGenerado) -> dict[str, Any]:
             "parametros": parametros,
         },
         "columnas": [columna_dto(c) for c in reporte.columnas],
+        # Todas las columnas que trajo la herramienta; `columnas` es la seleccion visible
+        # (la IA puede recortarla con definir_presentacion y el usuario ajustarla en la UI).
+        "columnas_disponibles": [columna_dto(c) for c in disponibles],
+        "presentacion_ia": reporte.columnas != disponibles,
         "filas": reporte.filas,
         "grafico": grafico_dto(reporte.columnas, reporte.filas),
         "respuesta_nl": reporte.respuesta_nl,
@@ -109,9 +114,13 @@ async def exportar_reporte(
     id_reporte: UUID,
     identidad: Annotated[IdentidadAutenticada, Depends(verificar_jwt)],
     formato: Annotated[str, Query()] = "pdf",
+    columnas: Annotated[str | None, Query(max_length=500)] = None,
 ) -> Response:
     exigir_rol(identidad, _ROLES_REPORTES)
-    contenido, tipo_contenido, nombre_archivo = await _exportar_reporte.ejecutar(id_reporte, formato)
+    seleccion = [c.strip() for c in columnas.split(",") if c.strip()] if columnas else None
+    contenido, tipo_contenido, nombre_archivo = await _exportar_reporte.ejecutar(
+        id_reporte, formato, seleccion
+    )
     return Response(
         content=contenido,
         media_type=tipo_contenido,

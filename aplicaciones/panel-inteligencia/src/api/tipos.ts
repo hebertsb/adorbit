@@ -30,7 +30,12 @@ export interface Reporte {
   titulo: string;
   generado_en: string;
   interpretacion: { herramienta: string; parametros: Record<string, unknown> };
+  /** Columnas visibles (la IA puede recortarlas según la pregunta). */
   columnas: Columna[];
+  /** Todas las columnas que trajo la herramienta MCP; el usuario elige entre ellas. */
+  columnas_disponibles?: Columna[];
+  /** true si la IA eligió qué columnas mostrar (definir_presentacion). */
+  presentacion_ia?: boolean;
   filas: Fila[];
   indicadores?: Indicador[];
   grafico?: Grafico | null;

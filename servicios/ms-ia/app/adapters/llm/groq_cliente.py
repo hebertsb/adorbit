@@ -66,12 +66,41 @@ HERRAMIENTAS_MCP: list[dict] = [
     },
 ]
 
+# Herramienta de PRESENTACION (no toca datos ni pasa por MCP): el modelo elige que
+# columnas del resultado mostrar y en que orden. ms-ia la valida contra las claves reales.
+HERRAMIENTA_PRESENTACION: dict = {
+    "type": "function",
+    "function": {
+        "name": "definir_presentacion",
+        "description": (
+            "Define que columnas del ultimo resultado se muestran en el reporte y en que orden. "
+            "Usala SOLO despues de obtener datos y cuando el usuario pida ver u ocultar ciertos datos "
+            "(ej. 'solo el total y la fecha', 'sin los IDs')."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "columnas": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Claves exactas de columnas del resultado, en el orden deseado",
+                }
+            },
+            "required": ["columnas"],
+        },
+    },
+}
+
 _PROMPT_SISTEMA = (
     "Eres el asistente de reportes de AdOrbit, una agencia de publicidad. Respondes "
     "preguntas sobre campanas, clientes y facturacion usando SOLO las herramientas "
     "disponibles -- nunca inventes datos ni cifras que no vengan de una llamada a una "
     "herramienta. Si una herramienta no trae lo necesario para responder, dilo. "
-    "Responde siempre en espanol, de forma breve y concreta."
+    "Si el usuario indica que datos quiere ver o no ver, despues de consultar llama a "
+    "definir_presentacion con las claves exactas de las columnas a mostrar. "
+    "Responde siempre en espanol, de forma breve y concreta: un resumen ejecutivo con las "
+    "cifras clave y una recomendacion. NO incluyas tablas Markdown ni identificadores UUID "
+    "(la tabla del reporte la arma el sistema)."
 )
 
 
@@ -94,7 +123,7 @@ class ClienteGroq:
         respuesta = await _cliente().chat.completions.create(
             model=self._modelo,
             messages=mensajes,
-            tools=HERRAMIENTAS_MCP,
+            tools=[*HERRAMIENTAS_MCP, HERRAMIENTA_PRESENTACION],
             tool_choice="auto",
             temperature=0.2,
         )

@@ -1,0 +1,97 @@
+<section class="seg">
+  <header class="cabecera">
+    <p class="etiqueta">ms-ia · Machine Learning no supervisado</p>
+    <h1>Segmentación de campañas</h1>
+    <p class="subtitulo">
+      <strong>K-Means</strong> agrupa las campañas activas según presupuesto, gasto y proporción
+      consumida, e <strong>Isolation Forest</strong> detecta las de gasto anómalo. Ninguno de los
+      dos recibió etiquetas: descubren los grupos y los casos raros por sí solos.
+    </p>
+  </header>
+
+  @if (cargando()) {
+    <p class="estado">Calculando segmentos…</p>
+  } @else if (error()) {
+    <div class="estado error">
+      <p>{{ error() }}</p>
+      <button type="button" class="boton" (click)="cargar()">Reintentar</button>
+    </div>
+  } @else {
+    <div class="tarjetas">
+      @for (s of segmentos; track s.clave) {
+        <article class="tarjeta" [class]="'tarjeta seg-' + s.clave">
+          <p class="tarjeta-titulo">{{ s.titulo }}</p>
+          <p class="tarjeta-numero">{{ cantidadEn(s.clave) }}</p>
+          <p class="tarjeta-texto">{{ s.explicacion }}</p>
+        </article>
+      }
+      <article class="tarjeta seg-anomalia">
+        <p class="tarjeta-titulo">Anomalías</p>
+        <p class="tarjeta-numero">{{ totalAnomalias() }}</p>
+        <p class="tarjeta-texto">Gasto fuera del patrón (Isolation Forest).</p>
+      </article>
+    </div>
+
+    <div class="barra">
+      <label class="interruptor">
+        <input
+          type="checkbox"
+          [checked]="soloAnomalias()"
+          (change)="soloAnomalias.set($any($event.target).checked)"
+        />
+        Ver solo anomalías
+      </label>
+      <button type="button" class="boton" (click)="cargar()">Recalcular</button>
+    </div>
+
+    @if (visibles().length === 0) {
+      <p class="estado">
+        {{ soloAnomalias() ? 'No se detectaron anomalías.' : 'No hay campañas activas para segmentar.' }}
+      </p>
+    } @else {
+      <div class="lista">
+        @for (c of visibles(); track c.campana_id) {
+          <article class="fila" [class.fila-anomala]="c.es_anomalia">
+            <div class="fila-principal">
+              <a class="nombre" [routerLink]="['/campanas', c.campana_id]">{{ c.nombre }}</a>
+              <div class="insignias">
+                <span class="insignia" [class]="'insignia seg-' + c.segmento">
+                  {{ tituloSegmento(c.segmento) }}
+                </span>
+                @if (c.es_anomalia) {
+                  <span class="insignia anomalia">Anomalía</span>
+                }
+              </div>
+            </div>
+            <dl class="datos">
+              <div>
+                <dt>Presupuesto</dt>
+                <dd>Bs {{ c.presupuesto_total | number: '1.2-2' }}</dd>
+              </div>
+              <div>
+                <dt>Gastado</dt>
+                <dd>Bs {{ c.gasto_actual | number: '1.2-2' }}</dd>
+              </div>
+              <div>
+                <dt>Consumido</dt>
+                <dd>{{ porcentaje(c) | number: '1.0-0' }} %</dd>
+              </div>
+              <div>
+                <dt>Puntaje anomalía</dt>
+                <dd>{{ c.puntaje_anomalia | number: '1.3-3' }}</dd>
+              </div>
+            </dl>
+            <div class="progreso" aria-hidden="true">
+              <span [style.width.%]="porcentaje(c) > 100 ? 100 : porcentaje(c)"></span>
+            </div>
+          </article>
+        }
+      </div>
+    }
+
+    <p class="nota">
+      Modelos entrenados por lotes y versionados en <code>modelos_aprendizaje</code>. Puntaje de
+      anomalía: cuanto más negativo, más se aleja del patrón.
+    </p>
+  }
+</section>
