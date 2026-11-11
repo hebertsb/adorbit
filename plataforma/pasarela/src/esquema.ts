@@ -322,7 +322,12 @@ export const resolvers = {
       const headers: Record<string, string> = {};
       if (contexto.token) headers["Authorization"] = contexto.token;
 
-      const cl = await peticionSegura<any>(url, { headers });
+      // Varias campañas comparten cliente: una sola llamada al CRM por cliente y por consulta.
+      const pedidos: Map<string, Promise<any>> = (contexto.clientesPedidos ??= new Map());
+      if (!pedidos.has(padre.clienteId)) {
+        pedidos.set(padre.clienteId, peticionSegura<any>(url, { headers }));
+      }
+      const cl = await pedidos.get(padre.clienteId);
       if (!cl) {
         const respaldo = CLIENTES_RESPALDO[padre.clienteId];
         return {
