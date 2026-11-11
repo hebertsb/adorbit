@@ -66,6 +66,12 @@
               <small>Reenvía cada operación con su Idempotency-Key</small>
             </button>
           }
+          @if (tieneSincronizadas()) {
+            <button type="button" (click)="offline.limpiarSincronizadas()">
+              <strong>🧹 Limpiar sincronizadas</strong>
+              <small>Quita de la lista las que ya llegaron al servidor</small>
+            </button>
+          }
           @for (op of offline.bandeja().slice(0, 6); track op.id) {
             <button type="button" (click)="offline.descartarOperacion(op.id)">
               <strong>{{ op.etiqueta }} · [{{ op.estado }}]</strong>

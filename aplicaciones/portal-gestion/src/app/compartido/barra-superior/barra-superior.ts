@@ -23,6 +23,9 @@ export class BarraSuperior {
   protected readonly buscadorAbierto = signal(false);
   protected readonly notificacionesAbiertas = signal(false);
   protected readonly colaOfflineAbierta = signal(false);
+  protected readonly tieneSincronizadas = computed(() =>
+    this.offline.bandeja().some((op) => op.estado === 'sincronizado'),
+  );
   protected readonly clientes = signal<ClienteCrm[]>([]);
 
   protected readonly usuario = computed(() => this.auth.usuario());
