@@ -79,8 +79,10 @@ export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
       grant_type: 'password',
       client_id: configuracion.oidc.clienteId,
       username: 'cliente@adorbit.com',
-      password: 'AdOrbit2026!',
-      scope: 'openid profile adorbit-audiencias',
+      password: 'admin',
+      // El cliente 'portal-cliente' de Keycloak solo acepta el scope 'openid'; las
+      // audiencias de los microservicios y el claim cliente_id ya vienen en el token.
+      scope: 'openid',
     });
     const res = await fetch(`${configuracion.oidc.autoridad}/protocol/openid-connect/token`, {
       method: 'POST',
@@ -102,7 +104,7 @@ export function ProveedorAutenticacion({ children }: { children: ReactNode }) {
       id_token: datos.id_token,
       refresh_token: datos.refresh_token,
       token_type: datos.token_type ?? 'Bearer',
-      scope: datos.scope ?? 'openid profile adorbit-audiencias',
+      scope: datos.scope ?? 'openid',
       expires_at: ahora + (datos.expires_in ?? 1800),
       profile: {
         sub: 'cliente-demo',
