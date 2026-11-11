@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -14,6 +15,7 @@ import '../../core/i18n/textos.dart';
 import '../../core/red/api_excepcion.dart';
 import '../../core/ia_local/detector_logo_local.dart';
 import '../../core/datos_locales/bandeja_salida_dao.dart';
+import '../../core/dispositivo/ubicacion_service.dart';
 import '../../core/sync/sincronizador_service.dart';
 import '../../core/tema/colores_ao.dart';
 import '../../datos/modelos/brief.dart';
@@ -42,6 +44,8 @@ class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
   _EstadoFisico _estadoSeleccionado = _EstadoFisico.bueno;
   Uint8List? _fotoBytes;
   DateTime? _fotoFecha;
+  UbicacionCaptura? _ubicacion;
+  bool _leyendoGps = false;
 
   bool _analizando = false;
   VisionResultado? _resultado;
@@ -93,6 +97,18 @@ class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
     if (archivo == null) return;
     final bytes = await archivo.readAsBytes();
     if (!mounted) return;
+    // Georreferencia la foto con el GPS del celular (funciona sin internet).
+    setState(() {
+      _ubicacion = null;
+      _leyendoGps = true;
+    });
+    UbicacionService.obtener().then((u) {
+      if (!mounted) return;
+      setState(() {
+        _ubicacion = u;
+        _leyendoGps = false;
+      });
+    });
     setState(() {
       _fotoBytes = bytes;
       _fotoFecha = DateTime.now();
@@ -145,6 +161,7 @@ class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
               'duracion_ms': reloj.elapsedMilliseconds,
               'capturado_en': ahora.toUtc().toIso8601String(),
               'procesamiento': 'on_device',
+              if (_ubicacion != null) 'ubicacion_gps': _ubicacion!.aJson(),
             },
           }),
           estado: 'pendiente',
@@ -153,6 +170,12 @@ class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
         ),
       );
       await SincronizadorService(token: token).drenarPendientes();
+      // Respuesta háptica (motor de vibración): una si la pieza está conforme, pesada si no.
+      if (deteccion.detectaLogo) {
+        await HapticFeedback.mediumImpact();
+      } else {
+        await HapticFeedback.heavyImpact();
+      }
       if (!mounted) return;
       setState(() {
         _resultado = resultado;
@@ -399,6 +422,35 @@ class _AuditoriaVallasPaginaState extends ConsumerState<AuditoriaVallasPagina> {
                             ? _t('validacion.logo_reconocido_detalle')
                             : _t('validacion.logo_no_reconocido_detalle'),
                         style: TextStyle(color: c.textoSuave, fontSize: 12),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            _ubicacion != null
+                                ? Icons.location_on
+                                : Icons.location_off,
+                            size: 14,
+                            color: _ubicacion != null
+                                ? c.ok
+                                : c.textoTenue,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              _ubicacion != null
+                                  ? '${_t('auditoria.ubicacion_verificada')}: ${_ubicacion!.texto}'
+                                  : (_leyendoGps
+                                      ? 'Leyendo GPS…'
+                                      : 'Sin GPS (permiso denegado o ubicación apagada)'),
+                              style: TextStyle(
+                                color: c.textoSuave,
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 2),
                       Text(

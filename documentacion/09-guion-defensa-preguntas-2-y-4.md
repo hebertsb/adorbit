@@ -183,12 +183,12 @@ INFERENCIA (en línea):  UI → pasarela /api/v1/ml/... → ms-ia ml.py
 ### Cómo demostrarlo — Web
 > ⚠️ **NO apretar F5 estando sin red.** El sitio se sirve por `http://4.151.177.116` (sin HTTPS) y el navegador solo activa el service worker en HTTPS o `localhost`, así que recargar sin red muestra la página de error de Chrome. Todo lo demás (caché de lecturas, bandeja, sincronización) funciona **navegando por el menú** sin recargar.
 
-1. Con red: entrar a **Campañas**, **Creatividades** (abrir un brief) y **Dashboard** → así se cargan esas pantallas y se guardan sus datos en caché.
+1. Con red: entrar a **Campañas**, **Dashboard** y por último **Creatividades** (http://4.151.177.116/creatividades) y **abrir un brief** → se cargan esas pantallas y sus datos quedan en caché. Al entrar a Creatividades se descarga el modelo YOLO (12 MB) en memoria: esperar **10–15 s**. Para asegurarse, subir una imagen de prueba con red y ver que la tarjeta diga **"ONNX Runtime Web (YOLOv8n On-Device)"** (si dice "Web Canvas Tensor…", el modelo aún no cargó o no está desplegado).
 2. **Desconectar el Wi-Fi de la laptop.**
 3. La barra superior cambia a **"Sin conexión"**.
 4. Ir a **Campañas** por el menú lateral → la lista sigue apareciendo (desde caché).
 5. En **Creatividades** → crear un brief, subir una pieza o aprobarla → aparece *"📦 Sin red: … guardadas en la bandeja de salida para sincronizar."* → el contador de pendientes sube (clic en la píldora de sincronización para ver la cola).
-6. **IA local sin red (web):** en Creatividades → nueva pieza → subir una imagen con el logo → la tarjeta de análisis muestra el motor **"ONNX Runtime Web (YOLOv8n On-Device)"**. El modelo se descargó al entrar a Creatividades con red y quedó en memoria; la imagen nunca sale del navegador.
+6. **IA local sin red (web):** en Creatividades, con el brief seleccionado → **Nueva pieza** → subir una imagen con el logo → la tarjeta de análisis muestra el motor **"ONNX Runtime Web (YOLOv8n On-Device)"**. El modelo se descargó al entrar a Creatividades con red y quedó en memoria; la imagen nunca sale del navegador.
 7. **Reconectar el Wi-Fi** → se sincroniza solo y el contador baja a 0.
 
 ### Cómo demostrarlo — Móvil
@@ -225,7 +225,7 @@ CON RED:   evento 'online' / WorkManager → reenviar pendientes con la MISMA Id
 
 ### Preguntas probables
 - **"¿Qué pasa si se envía dos veces al reconectar?"** → La `Idempotency-Key` se genera al crear la operación offline y se reutiliza en cada reintento; el servidor devuelve la misma respuesta.
-- **"¿La IA funciona sin internet?"** → Sí, en ambos: el **mismo modelo YOLO** (`yolo_logo_adorbit.onnx`) corre en el celular (flutter_onnxruntime) y en el navegador (ONNX Runtime Web/WASM, servido desde el propio portal en `/ort/`, sin CDN). Si el runtime no cargara, hay un respaldo heurístico (colores del manual de marca). Código web: `ia-local-web.service.ts` → `precargarModelo()` y `correrOnnxWeb()`.
+- **"¿La IA funciona sin internet?"** → En el **móvil** sí: el modelo YOLO está empaquetado en ONNX y corre en el celular. En la **web**, el análisis local usa un motor heurístico (colores y forma del manual de marca); el ONNX web se intenta cargar, pero el respaldo es heurístico. *(Decirlo así si pregunta.)*
 
 ---
 

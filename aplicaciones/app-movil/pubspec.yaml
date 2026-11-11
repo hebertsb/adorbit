@@ -55,6 +55,7 @@ dependencies:
   http_parser: ^4.1.2
   # OIDC nativo Authorization Code + PKCE (versión exacta según CLAUDE.md).
   flutter_appauth: 12.1.0
+  geolocator: ^14.0.1
 
 dev_dependencies:
   flutter_test:
